@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>ChatBridge Capture</title>
+<style>
+  body{font:15px/1.5 "Segoe UI",system-ui,sans-serif;background:#0f1115;color:#eef0f3;margin:0;display:grid;place-items:center;min-height:100vh}
+  .card{background:#171a20;border:1px solid #262b34;border-radius:18px;padding:28px 30px;width:min(540px,92vw)}
+  h1{font-size:20px;margin:0 0 4px} p{color:#9aa3af;margin:6px 0 16px}
+  input{width:100%;box-sizing:border-box;background:#1d2128;border:1px solid #262b34;border-radius:10px;color:#eef0f3;padding:11px 12px;font:inherit}
+  input:focus{outline:none;border-color:#2dd4bf}
+  button{background:#2dd4bf;color:#06201d;border:0;border-radius:10px;padding:10px 18px;font:600 14px "Segoe UI",system-ui;cursor:pointer;margin-top:12px}
+  button.o{background:#262b34;color:#eef0f3;margin-left:8px}
+  #msg{margin-top:14px;min-height:22px;font-size:14px} .ok{color:#34d399} .bad{color:#f87171}
+  ol{color:#9aa3af;padding-left:20px} b{color:#eef0f3;font-weight:500}
+</style></head>
+<body><div class="card">
+  <h1>ChatBridge Capture</h1>
+  <p>Paste the pairing code once. After that, a “Save to ChatBridge” button appears on ChatGPT, Claude.ai and Gemini.</p>
+  <ol><li>Open the <b>ChatBridge</b> app on this PC.</li><li>Go to <b>Settings → Browser capture</b> and click <b>Copy code</b>.</li><li>Paste it here and save.</li></ol>
+  <input id="token" type="password" placeholder="Pairing code" autocomplete="off">
+  <button id="save">Save</button><button id="test" class="o">Test connection</button>
+  <div id="msg"></div>
+</div>
+<script src="options.js"></script></body></html>

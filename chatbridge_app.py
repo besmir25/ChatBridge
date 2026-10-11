@@ -1,0 +1,658 @@
+"""ChatBridge - the modern window. A native window (Edge WebView2) showing ui/index.html, backed by chatbridge.py."""
+import ctypes
+import hmac
+import json
+import logging
+import os
+import re
+import secrets
+import socket
+import subprocess
+import sys
+import threading
+import time
+import urllib.error
+import urllib.request
+import uuid
+from ctypes import wintypes
+
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+import webview
+
+import chatbridge as cb
+from icons import fetch_icons
+
+VERSION = "1.0.0"
+REPO = "besmir25/chat_bridge"   # GitHub "owner/name" that hosts the releases (change here if the repo is named differently)
+# When packaged by PyInstaller the screen files sit next to the code inside _MEIPASS; otherwise next to this file.
+HERE = getattr(sys, "_MEIPASS", None) or os.path.dirname(os.path.abspath(__file__))
+LOG_PATH = os.path.join(cb.APP_DIR, "chatbridge.log")
+SCAN_CACHE = os.path.join(cb.APP_DIR, "scan_cache.json")
+ICON_DIR = os.path.join(cb.APP_DIR, "icons")
+
+
+# ---------------------------------------------------------------- Windows helpers
+def set_clipboard(text):
+    u, k = ctypes.windll.user32, ctypes.windll.kernel32
+    u.OpenClipboard.argtypes, u.OpenClipboard.restype = [wintypes.HWND], wintypes.BOOL
+    u.SetClipboardData.argtypes, u.SetClipboardData.restype = [wintypes.UINT, wintypes.HANDLE], wintypes.HANDLE
+    k.GlobalAlloc.argtypes, k.GlobalAlloc.restype = [wintypes.UINT, ctypes.c_size_t], wintypes.HANDLE
+    k.GlobalLock.argtypes, k.GlobalLock.restype = [wintypes.HANDLE], ctypes.c_void_p
+    k.GlobalUnlock.argtypes = [wintypes.HANDLE]
+    data = text.encode("utf-16-le") + b"\0\0"
+    h = k.GlobalAlloc(0x0002, len(data))  # GMEM_MOVEABLE
+    p = k.GlobalLock(h)
+    ctypes.memmove(p, data, len(data))
+    k.GlobalUnlock(h)
+    for _ in range(20):
+        if u.OpenClipboard(None):
+            break
+        time.sleep(0.05)
+    else:
+        raise OSError("Couldn't open the clipboard")
+    try:
+        u.EmptyClipboard()
+        u.SetClipboardData(13, h)  # CF_UNICODETEXT
+    finally:
+        u.CloseClipboard()
+
+
+def foreground_title():
+    u = ctypes.windll.user32
+    buf = ctypes.create_unicode_buffer(256)
+    u.GetWindowTextW(u.GetForegroundWindow(), buf, 256)
+    return buf.value.lower()
+
+
+def press(vks):
+    u = ctypes.windll.user32
+    for vk in vks:
+        u.keybd_event(vk, 0, 0, 0)
+    for vk in reversed(vks):
+        u.keybd_event(vk, 0, 2, 0)
+
+
+# ---------------------------------------------------------------- update check
+def parse_version(s):
+    """'v1.2.3' -> (1, 2, 3). Missing parts count as 0."""
+    nums = [int(n) for n in re.findall(r"\d+", s or "")[:3]]
+    return tuple(nums + [0] * (3 - len(nums)))
+
+
+def fetch_latest_release(repo=REPO):
+    req = urllib.request.Request(f"https://api.github.com/repos/{repo}/releases/latest",
+                                 headers={"User-Agent": f"ChatBridge/{VERSION}", "Accept": "application/vnd.github+json"})
+    with urllib.request.urlopen(req, timeout=8) as r:
+        return json.loads(r.read().decode("utf-8"))
+
+
+def update_info(fetch=fetch_latest_release):
+    """Ask GitHub for the newest release. It sends nothing about you or your chats. Never downloads or installs anything."""
+    try:
+        rel = fetch()
+    except urllib.error.HTTPError as e:
+        return {"status": "none" if e.code == 404 else "offline"}   # 404 = no release published yet
+    except Exception:
+        return {"status": "offline"}
+    tag = str(rel.get("tag_name") or "")
+    newer = parse_version(tag) > parse_version(VERSION)
+    return {"status": "available" if newer else "current", "version": tag.lstrip("vV"), "url": rel.get("html_url") or "",
+            "notes": str(rel.get("body") or "")[:600]}
+
+
+# ---------------------------------------------------------------- receives chats from the browser extension
+CAPTURE_PORTS = range(47821, 47826)
+_EXT_ORIGINS = ("chrome-extension://", "moz-extension://", "edge-extension://")
+
+
+class _ExclusiveServer(ThreadingHTTPServer):
+    """On Windows a port can be shared by default, so a second program (or a second ChatBridge) could sit on the same
+    port and receive our requests. Claim it exclusively instead; if it's taken, the caller moves on to the next port."""
+    allow_reuse_address = False
+
+    def server_bind(self):
+        if hasattr(socket, "SO_EXCLUSIVEADDRUSE"):
+            self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
+        super().server_bind()
+
+
+class _CaptureHandler(BaseHTTPRequestHandler):
+    api = None  # set when the server starts
+
+    def log_message(self, *a):
+        pass
+
+    def _send(self, code, obj):
+        data = json.dumps(obj).encode()
+        self.send_response(code)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(data)))
+        self.end_headers()
+        self.wfile.write(data)
+
+    def do_GET(self):
+        if self.path == "/ping":
+            return self._send(200, {"app": "ChatBridge", "version": VERSION})
+        self._send(404, {"error": "not found"})
+
+    def do_POST(self):
+        # Any web page can try to talk to localhost, so only the extension (which sends the pairing token) is let in.
+        origin = self.headers.get("Origin", "")
+        if origin and not origin.startswith(_EXT_ORIGINS):
+            return self._send(403, {"error": "forbidden origin"})
+        if not hmac.compare_digest(self.headers.get("X-ChatBridge-Token", ""), self.api._capture_token()):
+            return self._send(401, {"error": "bad token - copy the pairing code from ChatBridge Settings"})
+        if self.path != "/capture":
+            return self._send(404, {"error": "not found"})
+        try:
+            n = int(self.headers.get("Content-Length", "0"))
+            if not 0 < n <= 8_000_000:
+                return self._send(413, {"error": "too large"})
+            payload = json.loads(self.rfile.read(n).decode("utf-8"))
+        except (ValueError, UnicodeDecodeError):
+            return self._send(400, {"error": "bad json"})
+        res = self.api._capture(payload)
+        self._send(200 if res.get("ok") else 400, res)
+
+
+# ---------------------------------------------------------------- the bridge the page talks to
+class Api:
+    def __init__(self):
+        self._window = None
+        self._lib = cb.load_json(cb.LIB_PATH, [])
+        self._cfg = {**cb.DEFAULT_CFG, **cb.load_json(cb.CFG_PATH, {})}
+        self._found, self._apps, self._icons = [], [], {}
+        cache = cb.load_json(SCAN_CACHE, {})
+        self._apps = cache.get("apps", [])
+        self._icons = fetch_icons([{"key": a["name"]} for a in self._apps], ICON_DIR)
+        self._proj = None
+        self._chat = None
+        self._busy = threading.Lock()
+        self._lock = threading.RLock()
+        self._update_fetch = fetch_latest_release   # replaced in tests
+        self._capture_srv, self._capture_port = None, None
+        self._paste_delay = 2.5
+
+    # ---- updates
+    def check_update(self, manual=False):
+        """Automatic checks run at most once a day and only if enabled; 'Check now' always runs."""
+        if not manual:
+            if not self._cfg.get("update_check", True) or time.time() - self._cfg.get("last_update_check", 0) < 86400:
+                return {"status": "skipped"}
+        info = update_info(self._update_fetch)
+        if info["status"] in ("current", "available", "none"):
+            self._cfg["last_update_check"] = time.time()
+            cb.save_json(cb.CFG_PATH, self._cfg)
+        return {**info, "current": VERSION}
+
+    def open_release(self, url):
+        """Open a release page in the browser - only pages of this project on github.com."""
+        import webbrowser
+        if str(url).startswith(f"https://github.com/{REPO}/"):
+            webbrowser.open(url)
+            return {"ok": True}
+        return {"error": "That link isn't a ChatBridge release page."}
+
+    # ---- browser capture
+    def _capture_token(self):
+        if not self._cfg.get("capture_token"):
+            self._cfg["capture_token"] = secrets.token_urlsafe(24)
+            cb.save_json(cb.CFG_PATH, self._cfg)
+        return self._cfg["capture_token"]
+
+    def start_capture_server(self):
+        """Listen on 127.0.0.1 only. Returns the port, or None if every port is taken."""
+        _CaptureHandler.api = self
+        for port in CAPTURE_PORTS:
+            try:
+                srv = _ExclusiveServer(("127.0.0.1", port), _CaptureHandler)
+            except OSError:
+                continue
+            threading.Thread(target=srv.serve_forever, daemon=True).start()
+            self._capture_srv, self._capture_port = srv, port
+            return port
+        return None
+
+    def _capture(self, p):
+        if not isinstance(p, dict) or not isinstance(p.get("messages"), list):
+            return {"error": "no messages"}
+        msgs = []
+        for m in p["messages"][:3000]:
+            if isinstance(m, dict) and isinstance(m.get("content"), str) and m["content"].strip():
+                msgs.append({"role": cb._norm_role(m.get("role", "assistant")), "content": m["content"].strip()[:200_000]})
+        if not msgs:
+            return {"error": "no messages"}
+        title = str(p.get("title") or "Web chat").strip()[:120] or "Web chat"
+        source = str(p.get("source") or "Web chat").strip()[:40]
+        conv = cb.new_conv(title, source, msgs)
+        url = str(p.get("url") or "")[:500]
+        if url:
+            conv["origin"] = "web:" + url   # capturing the same conversation again updates it instead of duplicating it
+        with self._lock:
+            self._lib = [c for c in self._lib if not (url and c.get("origin") == conv.get("origin"))]
+            self._lib.insert(0, conv)
+            self._save()
+        self._push("onCaptured", {"id": conv["id"], "title": title, "source": source, "count": len(msgs), "chats": self._chats()})
+        return {"ok": True, "id": conv["id"], "count": len(msgs)}
+
+    def _push(self, fn, payload):
+        if self._window:
+            try:
+                self._window.evaluate_js(f"window.{fn} && window.{fn}({json.dumps(payload)})")
+            except Exception:
+                pass
+
+    def open_extension_folder(self):
+        folder = os.path.join(HERE, "extension")
+        if os.path.isdir(folder):
+            os.startfile(folder)
+            return {"ok": True}
+        return {"error": "The extension folder wasn't found next to the app."}
+
+    # ---- plumbing
+    def _emit(self, state, msg="", **extra):
+        if self._window:
+            payload = json.dumps({"state": state, "msg": msg, **extra})
+            try:
+                self._window.evaluate_js(f"window.onProgress && window.onProgress({payload})")
+            except Exception:
+                pass
+
+    def _save(self):
+        cb.save_json(cb.LIB_PATH, self._lib)
+
+    def _pool(self):
+        have = {c.get("origin") for c in self._lib if c.get("origin")}
+        return self._lib + [c for c in self._found if c["origin"] not in have]
+
+    def _by_ids(self, ids):
+        pool = {c["id"]: c for c in self._pool()}
+        return [pool[i] for i in ids if i in pool]
+
+    def _chats(self):
+        return [{"id": c["id"], "title": c["title"], "source": c.get("source") or "Other", "created": c.get("created", ""),
+                 "count": len(c["messages"]), "kind": c.get("kind", "chat"), "saved": c in self._lib,
+                 "chars": (chars := sum(len(m["content"]) for m in c["messages"])), "tokens": chars // 4,
+                 "real_tokens": sum((c.get("usage") or {}).values()) or None, "mode": c.get("mode")}
+                for c in self._pool()]
+
+    def _apps_out(self):
+        out = []
+        compat = self._cfg.get("compat", {})
+        for i, a in enumerate(self._apps):
+            icon = self._icons.get(a["name"])
+            if not icon and a["kind"] == "Local server":  # e.g. the Ollama server uses the Ollama app's icon
+                icon = next((v for k, v in self._icons.items() if v and k.lower().startswith(a["name"].split()[0].lower())), None)
+            out.append({"key": i, "name": a["name"], "kind": a["kind"], "icon": icon, "models": a.get("models", []),
+                        "info": a.get("info", ""), "tested": (compat.get(a["name"]) or {}).get("ok"),
+                        "note": cb.profile_for(a["name"]).get("note", "")})
+        order = {"Desktop app": 0, "Local server": 1, "CLI tool": 2, "Possible AI app": 3}
+        return sorted(out, key=lambda x: (order.get(x["kind"], 9), x["name"].lower()))
+
+    def _settings(self):
+        c = self._cfg
+        return {"provider": c["provider"], "base_url": c["base_url"], "model": c["model"], "has_key": bool(c["api_key"]),
+                "autopaste": c.get("autopaste", True), "size": c.get("ui_size", 16),
+                "theme": {"dark": "midnight"}.get(c.get("theme"), c.get("theme", "midnight")), "font": c.get("font", "code"),
+                "providers": list(cb.PROVIDERS), "about_me": c.get("about_me", ""),
+                "price_in": c.get("price_in", ""), "price_out": c.get("price_out", ""),
+                "compact": c.get("compact", False), "scrub": c.get("scrub", True), "last_target": c.get("last_target"),
+                "capture_port": self._capture_port, "capture_token": self._capture_token(),
+                "update_check": c.get("update_check", True), "version": VERSION}
+
+    # ---- startup and scanning
+    def bootstrap(self):
+        return {"chats": self._chats(), "apps": self._apps_out(), "settings": self._settings(),
+                "welcomed": bool(self._cfg.get("welcomed"))}
+
+    def scan_all(self):
+        apps = cb.scan_apps()
+        items = [{"key": a["name"], "parse": a["launch"]} for a in apps if (a.get("launch") or "").startswith("shell:")]
+        self._icons = fetch_icons(items, ICON_DIR)
+        self._apps = apps
+        cb.save_json(SCAN_CACHE, {"apps": [{k: v for k, v in a.items() if k != "launch_fn"} for a in apps]})
+        self._found = cb.discover_chats()
+        return {"chats": self._chats(), "apps": self._apps_out()}
+
+    def mark_welcomed(self):
+        self._cfg["welcomed"] = True
+        cb.save_json(cb.CFG_PATH, self._cfg)
+
+    # ---- library
+    def add_text(self, title, source, text):
+        if not (text or "").strip():
+            return {"error": "Paste some text first."}
+        c = cb.parse_text(text, (title or "Pasted chat").strip())
+        c["source"] = (source or "").strip() or "Pasted text"
+        self._lib.insert(0, c)
+        self._save()
+        return {"id": c["id"], "chats": self._chats()}
+
+    def import_files(self):
+        fd = getattr(webview, "FileDialog", None)
+        mode = fd.OPEN if fd else webview.OPEN_DIALOG
+        paths = self._window.create_file_dialog(mode, allow_multiple=True, file_types=(
+            "Chat files (*.json;*.txt;*.md;*.markdown)", "All files (*.*)"))
+        if not paths:
+            return {"ids": [], "chats": self._chats()}
+        ids, errors = [], []
+        for p in paths:
+            try:
+                convs = cb.parse_file(p)
+                self._lib = convs + self._lib
+                ids += [c["id"] for c in convs]
+            except Exception as e:
+                errors.append(f"{os.path.basename(p)}: {e}")
+        self._save()
+        return {"ids": ids, "errors": errors, "chats": self._chats()}
+
+    def pick_project(self):
+        fd = getattr(webview, "FileDialog", None)
+        res = self._window.create_file_dialog(fd.FOLDER if fd else webview.FOLDER_DIALOG)
+        if not res:
+            return None
+        root = res[0] if isinstance(res, (list, tuple)) else res
+        files, skipped = cb.scan_project(root)
+        if not files:
+            return {"error": "No text or code files found in that folder."}
+        self._proj = (root, files)
+        on, running = set(), 0
+        for i, f in enumerate(files):
+            if running + f["size"] <= cb.BUDGET:
+                on.add(i)
+                running += f["size"]
+        return {"root": root, "name": os.path.basename(root.rstrip("\\/")) or root, "budget": cb.BUDGET,
+                "files": [{"i": i, "rel": f["rel"], "size": f["size"], "on": i in on, "type": f["type"]}
+                          for i, f in enumerate(files)],
+                "skipped": [{"rel": r, "why": w} for r, w in skipped]}
+
+    def project_size(self, indices, mode):
+        """Estimated tokens for the project as it would be sent, so the picker can show a live meter."""
+        if not self._proj:
+            return {"tokens": 0}
+        root, files = self._proj
+        text = cb.build_project_text(root, [files[i] for i in indices], mode)
+        return {"tokens": cb.estimate_tokens(text), "chars": len(text)}
+
+    def add_project(self, indices, mode="full"):
+        if not self._proj or not indices:
+            return {"error": "Tick at least one file."}
+        root, files = self._proj
+        c = cb.project_conv(root, [files[i] for i in indices], mode if mode in ("full", "outline", "tree") else "full")
+        self._lib = [x for x in self._lib if not (x.get("kind") == "project" and x.get("path") == root)]  # re-adding refreshes it
+        self._lib.insert(0, c)
+        self._save()
+        return {"id": c["id"], "chats": self._chats()}
+
+    def delete_chats(self, ids):
+        gone = set(ids)
+        self._lib = [c for c in self._lib if c["id"] not in gone]
+        self._save()
+        return self._chats()
+
+    def preview(self, cid):
+        c = next((c for c in self._pool() if c["id"] == cid), None)
+        if not c:
+            return None
+        return {"title": c["title"], "source": c.get("source"), "kind": c.get("kind", "chat"),
+                "messages": [{"role": m["role"], "content": m["content"][:4000]} for m in c["messages"][:60]]}
+
+    # ---- settings
+    def save_settings(self, s):
+        self._cfg.update({"autopaste": bool(s["autopaste"]), "theme": s["theme"], "font": s.get("font", "code"),
+                          "ui_size": int(s["size"])})
+        for k in ("about_me", "price_in", "price_out", "compact", "scrub", "last_target", "update_check"):
+            if k in s:
+                self._cfg[k] = s[k]
+        cb.save_json(cb.CFG_PATH, self._cfg)
+        return self._settings()
+
+    def edit_profiles(self):
+        if not os.path.exists(cb.PROFILES_PATH):
+            cb.save_json(cb.PROFILES_PATH, cb.DEFAULT_PROFILES)
+        os.startfile(cb.PROFILES_PATH)
+
+    def add_app(self, name):
+        name = (name or "").strip()
+        if not name:
+            return {"error": "Type the app's name."}
+        import re
+        cb.merge_catalog([{"label": name, "regex": re.escape(name)}])
+        return {"ok": True}
+
+    # ---- sending
+    def _prepared(self, convs, opts):
+        """Apply 'compact' and 'scrub' to copies of the chosen items. Returns (items, scrub counts, tokens saved)."""
+        opts = opts or {}
+        out, totals, saved = [], {"keys": 0, "emails": 0, "phones": 0, "paths": 0}, 0
+        for c in convs:
+            msgs = c["messages"]
+            if opts.get("compact") and c.get("kind") != "project":  # never alter code in a project
+                before = sum(cb.estimate_tokens(m["content"]) for m in msgs)
+                msgs = cb.compact_messages(msgs, aggressive=opts.get("compact") == "max")
+                saved += before - sum(cb.estimate_tokens(m["content"]) for m in msgs)
+            if opts.get("scrub"):
+                cleaned = []
+                for m in msgs:
+                    text, n = cb.scrub_text(m["content"], secrets=True, personal=c.get("kind") != "project")
+                    for k, v in n.items():
+                        totals[k] += v
+                    cleaned.append({"role": m["role"], "content": text})
+                msgs = cleaned
+            out.append({**c, "messages": msgs})
+        return out, totals, saved
+
+    def _build(self, convs, opts=None):
+        items, counts, saved = self._prepared(convs, opts)
+        about = self._cfg.get("about_me", "")
+        if len(items) > 1 or any(c.get("kind") == "project" for c in items):
+            text = cb.build_handoff_many(items, 0, "", about)
+        else:
+            text = cb.build_handoff(items[0], 0, "full", "", about)
+        return text, counts, saved
+
+    def _handoff(self, convs):
+        return self._build(convs, {})[0]
+
+    def _target_info(self, target):
+        """(app name, approximate context window in tokens) for a target key."""
+        if isinstance(target, int) or (isinstance(target, str) and target.isdigit()):
+            try:
+                name = self._apps[int(target)]["name"]
+                return name, cb.profile_for(name).get("window")
+            except IndexError:
+                pass
+        return ("the clipboard" if target == "copy" else None), None
+
+    def estimate(self, ids, target, opts):
+        """Size of what would be sent: tokens, share of the target's window, savings, and cost if a price is set."""
+        convs = self._by_ids(ids)
+        if not convs:
+            return {"tokens": 0}
+        text, counts, saved = self._build(convs, opts)
+        tokens = cb.estimate_tokens(text)
+        name, window = self._target_info(target)
+        price = self._cfg.get("price_in")
+        try:
+            cost = round(tokens / 1e6 * float(price), 4) if price not in (None, "") else None
+        except ValueError:
+            cost = None
+        return {"tokens": tokens, "chars": len(text), "saved": saved, "scrubbed": counts, "window": window,
+                "pct": round(tokens / window * 100, 1) if window else None, "cost": cost, "target": name}
+
+    def usage_summary(self, ids):
+        """Real token usage recorded by Claude Code for the chosen chats, plus cost if the user entered prices."""
+        tot = {"in": 0, "out": 0, "cache_read": 0, "cache_create": 0}
+        for c in self._by_ids(ids):
+            for k, v in (c.get("usage") or {}).items():
+                tot[k] = tot.get(k, 0) + v
+        try:
+            pin, pout = float(self._cfg.get("price_in") or 0), float(self._cfg.get("price_out") or 0)
+        except ValueError:
+            pin = pout = 0
+        cost = round((tot["in"] * pin + tot["out"] * pout) / 1e6, 4) if (pin or pout) else None
+        return {**tot, "cost": cost}
+
+    def send(self, ids, target, opts=None):
+        convs = self._by_ids(ids)
+        if not convs:
+            return {"error": "Tick at least one chat first."}
+        if target is None:
+            return {"error": "Choose where to send it."}
+        known = {c["id"] for c in self._lib}
+        new = [c for c in convs if c["id"] not in known]
+        if new:
+            self._lib = new + self._lib
+            self._save()
+        text, counts, saved = self._build(convs, opts)
+        title = convs[0]["title"] if len(convs) == 1 else f"{len(convs)} items"
+        name, _ = self._target_info(target)
+        self._cfg["last_target"] = name if target != "copy" else "copy"
+        if opts:
+            self._cfg["compact"], self._cfg["scrub"] = bool(opts.get("compact")), bool(opts.get("scrub"))
+        cb.save_json(cb.CFG_PATH, self._cfg)
+        cb.add_history({"id": uuid.uuid4().hex, "time": time.strftime("%Y-%m-%d %H:%M"), "target": name or "?",
+                        "target_key": target, "titles": [c["title"] for c in convs], "ids": ids, "opts": opts or {},
+                        "tokens": cb.estimate_tokens(text)})
+        threading.Thread(target=self._deliver, args=(target, text, title, ids), daemon=True).start()
+        return {"ok": True, "chats": self._chats(), "settings": self._settings()}
+
+    def get_history(self):
+        return cb.load_json(cb.HISTORY_PATH, [])
+
+    def _deliver(self, target, text, title, ids):
+        try:
+            if target == "copy":
+                set_clipboard(text)
+                self._emit("done", "Copied. Paste it anywhere with Ctrl+V.")
+            else:
+                app = self._apps[int(target)]
+                if app["kind"] == "Local server":
+                    model = app["models"][0] if app["models"] else ""
+                    self._cfg.update({"provider": "OpenAI-compatible", "base_url": app["base_url"], "model": model, "api_key": ""})
+                    cb.save_json(cb.CFG_PATH, self._cfg)
+                    self._chat = {"system": text, "label": app["name"], "models": app["models"]}
+                    self._emit("chat", "", label=app["name"], models=app["models"], model=model)
+                elif app["kind"] == "CLI tool":
+                    set_clipboard(text)
+                    subprocess.Popen(["cmd", "/k", app["name"]], creationflags=0x10)
+                    self._emit("done", f"{app['name']} opened in a terminal. Right-click there to paste.")
+                else:
+                    self._deliver_desktop(app, title, text)
+        except Exception as e:
+            self._emit("error", f"Something went wrong: {e}")
+
+    def _deliver_desktop(self, app, title, text, force_full=False, test_marker=None):
+        prof = cb.profile_for(app["name"])
+        keys = cb.parse_keys(prof["new_chat"]) if prof["new_chat"] else None
+        exe = folder = None
+        if prof["paste"] == "file" and not force_full:
+            path = cb.save_handoff_file(text, title)
+            folder = os.path.dirname(path)
+            set_clipboard(f'Read the file "{path}". It is earlier work I did with another AI assistant. Treat it as our '
+                          f"prior context, tell me in a sentence where we left off, then continue from there.")
+            exe = cb.find_exe(app["name"])
+        else:
+            set_clipboard(test_marker or text)
+        if callable(app.get("launch_fn")):
+            app["launch_fn"]()
+        elif exe:
+            subprocess.Popen([exe, folder])
+        elif (app.get("launch") or "").startswith("shell:"):
+            subprocess.Popen(["explorer", app["launch"]])
+        elif app.get("launch"):
+            os.startfile(app["launch"])
+        else:
+            raise OSError("No launch target found for this app.")
+        if not self._cfg.get("autopaste", True):
+            self._emit("done", f"{app['name']} is open. Click its message box and press Ctrl+V.")
+            return False
+        self._emit("working", f"Opening {app['name']}... don't click elsewhere.")
+        front = lambda: prof["title"] in foreground_title()
+        for _ in range(50):  # up to ~25 seconds for the window to come forward
+            if front():
+                break
+            time.sleep(0.5)
+        else:
+            self._emit("warn", f"{app['name']} didn't come to the front. Click its message box and press Ctrl+V.")
+            return False
+        time.sleep(self._paste_delay)  # let the app finish loading
+        if not front():
+            self._emit("warn", f"{app['name']} isn't in front any more. Click its message box and press Ctrl+V.")
+            return False
+        if keys:
+            press(keys)
+            time.sleep(1.2)
+            if not front():
+                self._emit("warn", f"{app['name']} isn't in front any more. Click its message box and press Ctrl+V.")
+                return False
+        press([0x11, 0x56])  # Ctrl+V. ChatBridge never presses Enter.
+        self._emit("done", f"Pasted into {app['name']}. Check it, then press Enter there to send.", pasted=True)
+        return True
+
+    def test_app(self, target):
+        try:
+            app = self._apps[int(target)]
+        except (TypeError, ValueError, IndexError):
+            return {"error": "Pick a desktop app first."}
+        if app["kind"] not in ("Desktop app", "Possible AI app"):
+            return {"error": "Testing works for desktop apps."}
+        marker = f"ChatBridge test {int(time.time()) % 10000}"
+
+        def run():
+            try:
+                ok = self._deliver_desktop(app, "test", marker, force_full=True, test_marker=marker)
+                self._emit("test", "", name=app["name"], marker=marker, pasted=bool(ok))
+            except Exception as e:
+                self._emit("error", f"Something went wrong: {e}")
+        threading.Thread(target=run, daemon=True).start()
+        return {"ok": True}
+
+    def record_compat(self, name, ok):
+        self._cfg.setdefault("compat", {})[name] = {"ok": bool(ok), "date": time.strftime("%Y-%m-%d")}
+        cb.save_json(cb.CFG_PATH, self._cfg)
+        return self._apps_out()
+
+    # ---- chatting with a local or API model inside the app
+    def chat(self, history, model=None):
+        if not self._chat:
+            return {"error": "Nothing to continue yet."}
+        cfg = dict(self._cfg)
+        if model:
+            cfg["model"] = model
+        try:
+            return {"reply": cb.call_model(cfg, self._chat["system"], history)}
+        except Exception as e:
+            return {"error": str(e)}
+
+
+def main():
+    # A windowed (no console) build has no stdout/stderr; some libraries crash if they try to print.
+    for name in ("stdout", "stderr"):
+        if getattr(sys, name) is None:
+            setattr(sys, name, open(os.devnull, "w"))
+    os.makedirs(cb.APP_DIR, exist_ok=True)
+    logging.basicConfig(filename=LOG_PATH, level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+    logging.info("ChatBridge %s starting", VERSION)
+    try:
+        api = Api()
+        logging.info("Browser capture listening on port %s", api.start_capture_server())
+        index = os.path.join(HERE, "ui", "index.html")
+        if not os.path.isfile(index):
+            raise FileNotFoundError(f"Missing screen files: {index}")
+        window = webview.create_window(f"ChatBridge", index, js_api=api, width=1240, height=820, min_size=(960, 640),
+                                       background_color="#0f1115")
+        api._window = window
+        webview.start()
+    except Exception:
+        logging.exception("ChatBridge crashed on startup")
+        ctypes.windll.user32.MessageBoxW(
+            0, f"ChatBridge couldn't start.\n\nDetails were saved to:\n{LOG_PATH}\n\n"
+               "If the window area is blank, install the Microsoft Edge WebView2 Runtime and try again.",
+            "ChatBridge", 0x10)
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()

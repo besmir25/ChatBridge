@@ -1,0 +1,21 @@
+# a stray repository GitHub Desktop created inside this folder
+/chatbridge/
+
+# build output
+dist/
+build/
+release/
+*.spec
+__pycache__/
+*.pyc
+.cbenv/
+.venv*/
+
+# screenshots and scratch files made while designing (they contain personal chats and names)
+previews/
+
+# anything personal
+*.log
+config.json
+library.json
+history.json

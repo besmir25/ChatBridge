@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ChatBridge</title>
+<style>html{background:#0f1115}.app{visibility:hidden}</style><!-- hidden until app.css loads, so there's never a flash of unstyled page -->
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="logo"><span class="mark">⇄</span><span>ChatBridge</span></div>
+    <div class="chips">
+      <span class="chip"><span class="dot spin" id="dotApps"></span><span id="chipApps">Looking for your AI apps…</span></span>
+      <span class="chip" id="chipChats">Looking for chats…</span>
+      <a class="chip upd" id="chipUpdate" hidden href="#" title="Opens the download page in your browser">Update available</a>
+    </div>
+    <div class="tools">
+      <button id="btnTheme" title="Next color theme">Theme</button>
+      <button id="btnHistory" title="What you sent, and where">History</button>
+      <button id="btnSmaller" title="Smaller text">A−</button>
+      <button id="btnBigger" title="Bigger text">A+</button>
+      <button id="btnSettings">Settings</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="col">
+      <div class="col-head"><span class="lbl">From</span>
+        <div class="acts"><button class="link" id="btnAll">Select all</button><button class="link" id="btnNone">None</button></div></div>
+      <div class="adders">
+        <button class="pill" id="btnFile">+ Chat file</button>
+        <button class="pill" id="btnPaste">+ Paste text</button>
+        <button class="pill" id="btnProject">+ Project folder</button>
+      </div>
+      <div class="list" id="chatList"></div>
+    </section>
+
+    <div class="divider" aria-hidden="true"><i>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+    </i></div>
+
+    <section class="col">
+      <div class="col-head"><span class="lbl">To</span>
+        <div class="acts"><button class="link" id="btnTest" title="Pastes a harmless test line. Nothing is sent.">Test this app</button><button class="link" id="btnEditApps">Edit app list</button></div></div>
+      <div class="grid" id="appGrid"></div>
+    </section>
+  </main>
+
+  <footer class="bar">
+    <div class="sum">
+      <div id="summary">Tick a chat on the left and choose where it should go.</div>
+      <div id="estimate" class="est"></div>
+    </div>
+    <div class="opts">
+      <label class="sw sm" title="Trims long code/output blocks, blank runs and repeats to save tokens"><input type="checkbox" id="oCompact"> Compact</label>
+      <label class="sw sm" title="Removes API keys, passwords, emails, phone numbers and your Windows user name"><input type="checkbox" id="oScrub"> Scrub private info</label>
+    </div>
+    <button class="go off" id="btnSend"><span id="sendLabel">Send</span></button>
+  </footer>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- paste text -->
+<div class="modal" id="mPaste" hidden><div class="sheet">
+  <div class="sheet-head">Paste a conversation</div>
+  <div class="sheet-sub">Lines like “User:”, “Assistant:”, “You said:” or “ChatGPT said:” split the turns.</div>
+  <div class="sheet-body">
+    <div class="row"><label class="f">Title<input type="text" id="pTitle" value="Pasted chat"></label>
+    <label class="f">Where it came from<input type="text" id="pSource" value="Pasted text"></label></div>
+    <textarea id="pText" placeholder="Paste the chat here"></textarea>
+  </div>
+  <div class="sheet-foot"><button class="btn" data-close>Cancel</button><button class="btn primary" id="pAdd">Add chat</button></div>
+</div></div>
+
+<!-- project -->
+<div class="modal" id="mProject" hidden><div class="sheet" style="width:min(720px,94vw)">
+  <div class="sheet-head" id="prjTitle">Choose the files to bring along</div>
+  <div class="sheet-sub" id="prjRoot"></div>
+  <div class="sheet-body">
+    <div class="row" style="gap:6px;flex-wrap:wrap" id="prjModes">
+      <label class="sw sm"><input type="radio" name="pmode" value="full" checked> Full files</label>
+      <label class="sw sm" title="Big files become a skeleton: definitions, headings or top-level keys"><input type="radio" name="pmode" value="outline"> Outline big files</label>
+      <label class="sw sm" title="Folder structure plus the README only"><input type="radio" name="pmode" value="tree"> Structure only</label>
+    </div>
+    <div class="adders" id="prjTypes"></div>
+    <div class="files" id="prjFiles"></div>
+    <div><div class="meter" id="prjMeter"><i></i></div><div class="note" id="prjTotal" style="margin-top:6px"></div></div>
+    <div class="note" id="prjSkipped"></div>
+  </div>
+  <div class="sheet-foot"><button class="link" id="prjAll">All</button><button class="link" id="prjNone">None</button><span style="flex:1"></span>
+    <button class="btn" data-close>Cancel</button><button class="btn primary" id="prjAdd">Add project</button></div>
+</div></div>
+
+<!-- settings -->
+<div class="modal" id="mSettings" hidden><div class="sheet">
+  <div class="sheet-head">Settings</div>
+  <div class="sheet-sub">Look and feel, and how sending behaves.</div>
+  <div class="sheet-body">
+    <div class="row"><label class="f">Color theme<select id="sTheme"></select></label>
+    <label class="f">Font<select id="sFont"></select></label></div>
+    <label class="sw"><input type="checkbox" id="sAuto"> Paste into the app automatically after opening it</label>
+    <label class="f">About me (optional) — added to every send, so a new AI knows who you are
+      <textarea id="sAbout" style="min-height:90px" placeholder="e.g. I'm a nurse learning Python. Keep answers short and explain jargon."></textarea></label>
+    <div class="row"><label class="f">Price per 1M input tokens, $ (optional)<input type="text" id="sPriceIn" placeholder="leave blank to hide costs"></label>
+    <label class="f">Price per 1M output tokens, $ (optional)<input type="text" id="sPriceOut"></label></div>
+    <div class="note">Prices are only used to show a rough cost for API-style billing. Chat subscriptions aren't billed per token. Token counts are estimates (usually within about 15%).</div>
+    <div class="note">ChatBridge never presses Enter for you. You read the chat and send it yourself.</div>
+    <label class="sw"><input type="checkbox" id="sUpdate"> Check for updates once a day</label>
+    <div class="row" style="align-items:center"><button class="btn" id="sCheckNow" style="flex:0 0 auto">Check now</button>
+      <span class="note" id="sVersion"></span></div>
+    <div class="note">An update check only asks GitHub for the newest version number. It sends nothing about you or your chats, and never installs anything by itself.</div>
+    <div style="border-top:1px solid var(--line);padding-top:12px;display:flex;flex-direction:column;gap:8px">
+      <b style="font-weight:500">Browser capture (ChatGPT, Claude.ai, Gemini)</b>
+      <div class="note">Add the ChatBridge extension to Edge or Chrome, then paste this pairing code into it once. It only works with this code, and only on this PC (port <span id="sPort">–</span>).</div>
+      <div class="row"><input type="text" id="sToken" readonly><button class="btn" id="sCopyToken" style="flex:0 0 auto">Copy code</button>
+        <button class="btn" id="sExt" style="flex:0 0 auto">Open extension folder</button></div>
+    </div>
+  </div>
+  <div class="sheet-foot"><button class="btn" data-close>Cancel</button><button class="btn primary" id="sSave">Save</button></div>
+</div></div>
+
+<!-- welcome -->
+<div class="modal" id="mWelcome" hidden><div class="sheet">
+  <div class="sheet-head">Welcome to ChatBridge</div>
+  <div class="sheet-sub">Pick up any AI conversation in a different AI, without starting over.</div>
+  <div class="sheet-body"><div class="steps">
+    <div class="step"><span class="num">1</span><div><b>Pick your chats</b><div class="note">Chats ChatBridge found on this PC are on the left. You can also add a file, paste text, or bring a whole project folder.</div></div></div>
+    <div class="step"><span class="num">2</span><div><b>Choose where they go</b><div class="note">Your installed AI apps are on the right. Not sure one works? Use “Test this app”.</div></div></div>
+    <div class="step"><span class="num">3</span><div><b>Press Send</b><div class="note">The app opens and your chat is pasted in. You read it and press Enter yourself.</div></div></div>
+  </div></div>
+  <div class="sheet-foot"><button class="btn primary" id="wGo">Got it</button></div>
+</div></div>
+
+<!-- test result -->
+<div class="modal" id="mTest" hidden><div class="sheet">
+  <div class="sheet-head" id="tTitle">Did it work?</div>
+  <div class="sheet-body"><div id="tBody"></div><div class="note">Nothing was sent. You can delete the text in that app.</div></div>
+  <div class="sheet-foot"><button class="btn" id="tNo">No</button><button class="btn primary" id="tYes">Yes, it appeared</button></div>
+</div></div>
+
+<!-- add app -->
+<div class="modal" id="mApps" hidden><div class="sheet">
+  <div class="sheet-head">App list</div>
+  <div class="sheet-sub">ChatBridge finds apps by name. Add one that’s missing, or change how an app is handled.</div>
+  <div class="sheet-body">
+    <label class="f">Add an app (name as it appears in the Start menu)<input type="text" id="aName" placeholder="e.g. Perplexity"></label>
+    <div class="row"><button class="btn" id="aAdd">Add and rescan</button><button class="btn" id="aEdit">Open the app rules in Notepad</button></div>
+  </div>
+  <div class="sheet-foot"><button class="btn" data-close>Close</button></div>
+</div></div>
+
+<!-- history -->
+<div class="modal" id="mHistory" hidden><div class="sheet" style="width:min(720px,94vw)">
+  <div class="sheet-head">What you've sent</div>
+  <div class="sheet-sub">Newest first. “Send again” repeats it with the same options.</div>
+  <div class="sheet-body" id="histBody"></div>
+  <div class="sheet-foot"><button class="btn" data-close>Close</button></div>
+</div></div>
+
+<!-- preview -->
+<div class="modal" id="mPreview" hidden><div class="sheet" style="width:min(720px,94vw)">
+  <div class="sheet-head" id="vTitle"></div><div class="sheet-sub" id="vSub"></div>
+  <div class="sheet-body" id="vBody"></div>
+  <div class="sheet-foot"><button class="btn" data-close>Close</button></div>
+</div></div>
+
+<!-- chat drawer -->
+<aside class="drawer" id="drawer" hidden>
+  <div class="drawer-head"><span id="dTitle">Chat</span><select id="dModel" hidden></select><button class="x" style="opacity:1" id="dClose" title="Close">×</button></div>
+  <div class="msgs" id="msgs"></div>
+  <div class="compose"><textarea id="dInput" placeholder="Type a message. Ctrl+Enter to send."></textarea><button class="btn primary" id="dSend">Send</button></div>
+</aside>
+
+<script src="demo.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
