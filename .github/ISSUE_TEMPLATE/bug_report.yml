@@ -1,0 +1,26 @@
+name: Bug report
+description: Something in ChatBridge itself isn't working
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What went wrong?
+      description: "What did you do, what did you expect, and what happened instead?"
+    validations: {required: true}
+  - type: input
+    id: version
+    attributes:
+      label: ChatBridge version
+      placeholder: "e.g. 1.0.0"
+  - type: input
+    id: windows
+    attributes:
+      label: Windows version
+      placeholder: "e.g. Windows 11 23H2"
+  - type: textarea
+    id: log
+    attributes:
+      label: Log (optional)
+      description: "The file %APPDATA%\\ChatBridge\\chatbridge.log may help. Remove anything private before pasting."
+      render: text

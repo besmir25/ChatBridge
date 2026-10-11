@@ -24,7 +24,7 @@ import chatbridge as cb
 from icons import fetch_icons
 
 VERSION = "1.0.0"
-REPO = "besmir25/chat_bridge"   # GitHub "owner/name" that hosts the releases (change here if the repo is named differently)
+REPO = "besmir25/ChatBridge"   # GitHub "owner/name" that hosts the releases (change here if the repo is named differently)
 # When packaged by PyInstaller the screen files sit next to the code inside _MEIPASS; otherwise next to this file.
 HERE = getattr(sys, "_MEIPASS", None) or os.path.dirname(os.path.abspath(__file__))
 LOG_PATH = os.path.join(cb.APP_DIR, "chatbridge.log")

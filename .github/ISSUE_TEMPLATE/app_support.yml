@@ -1,0 +1,30 @@
+name: An app doesn't work
+description: ChatBridge opens the app but the chat doesn't arrive, or the app isn't found
+labels: ["app-support"]
+body:
+  - type: input
+    id: app
+    attributes:
+      label: Which app?
+      placeholder: "e.g. Copilot, Claude, Perplexity"
+    validations: {required: true}
+  - type: dropdown
+    id: what
+    attributes:
+      label: What happens?
+      options:
+        - The app isn't listed
+        - The app opens but nothing is pasted
+        - The text is pasted in the wrong place
+        - Something else
+    validations: {required: true}
+  - type: textarea
+    id: details
+    attributes:
+      label: Details
+      description: "What did you click? What did you expect? A screenshot helps — but please hide anything private first."
+  - type: input
+    id: version
+    attributes:
+      label: ChatBridge version
+      placeholder: "Settings shows it, e.g. 1.0.0"

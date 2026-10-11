@@ -1,56 +1,90 @@
 # ChatBridge
 
-Move a conversation from one AI to another, without starting over.
+**Move a conversation — or a whole code project — from one AI app to another, without starting over.**
 
-ChatBridge finds the AI apps on your Windows PC and the chats and projects you've had, lets you tick what you want, and
-sends it to the app you choose — opened, with the chat pasted in, ready for you to read and press Enter.
+![License: MIT](https://img.shields.io/badge/license-MIT-2dd4bf) ![Platform: Windows 10/11](https://img.shields.io/badge/platform-Windows%2010%2F11-60a5fa) ![Runs locally](https://img.shields.io/badge/data-stays%20on%20your%20PC-34d399)
 
-![ChatBridge](assets/chatbridge.png)
+You started a conversation in one AI and want to continue it in another — or hand a project to a new model. Today that means
+copying and pasting, losing context, and re-explaining everything. ChatBridge does it in three steps and shows what it's
+about to send before it does.
 
-## What it does
+![ChatBridge: pick chats on the left, pick an app on the right, press Send](docs/screenshots/main.png)
 
-- **Finds your AI apps** (Claude, ChatGPT, Copilot, Antigravity, local models like Ollama, and more) and shows their real icons.
-- **Finds your chats** stored on this PC (Claude Code, Codex, Gemini CLI, LM Studio, Jan), and imports ChatGPT / Claude exports,
-  pasted text, or markdown.
-- **Saves web chats with one click** using the included browser extension (ChatGPT, Claude.ai, Gemini).
-- **Brings whole projects** — code, markdown, YAML and other config files, with a folder tree, a live size meter, and a
-  choice of full files, outlines of big files, or structure only. Secrets and key files are left out automatically.
-- **Shows the size before you send** (estimated tokens, share of the app's context window), can **compact** long output,
-  and can **scrub** keys, emails, phone numbers and your Windows user name.
-- **Never presses Enter for you.** You always read it first.
+## How it works
+
+1. **Pick your chats** — chats ChatBridge found on your PC, plus anything you add (a chat file, pasted text, or a project folder).
+2. **Choose where they go** — your installed AI apps appear as tiles, with their real icons.
+3. **Press Send** — the app opens and the chat is pasted in. **You read it and press Enter yourself.**
+
+## Features
+
+- **Finds your AI apps** — Claude, ChatGPT, Copilot, Antigravity, local models such as Ollama, and more.
+- **Finds your chats** — those stored on this PC (Claude Code, Codex, Gemini CLI, LM Studio, Jan), and imports ChatGPT and Claude
+  exports, pasted text and markdown.
+- **Saves web chats in one click** with the included browser extension (ChatGPT, Claude.ai, Gemini).
+- **Moves whole projects** — code, markdown, YAML and other config files, with a folder tree, a live size meter, and a choice of
+  *full files*, *outlines of big files*, or *structure only*. Quick filters for code, config, docs and tests.
+- **Shows the size before you send** — estimated tokens and the share of the app's context window.
+- **Compact** trims long code/output blocks and repeats to save tokens. **Scrub private info** removes API keys, passwords,
+  emails, phone numbers and your Windows user name.
+- **History**, **drag and drop** (drag a chat onto an app), and the app you used last is remembered.
+- **Five color themes** and a code-style font: Midnight, Tokyo Night, Gruvbox, Nord and Paper (light).
+
+![Bringing a project folder along](docs/screenshots/project.png)
+
+| | |
+|---|---|
+| ![Send history](docs/screenshots/history.png) | ![Color themes](docs/screenshots/themes.png) |
+
+> The screenshots use sample data and placeholder icons. On your PC ChatBridge shows each app's real icon, taken from Windows.
 
 ## Install
 
-Download `ChatBridge-Setup.exe` from the [Releases](../../releases) page and run it. It installs for your Windows account
-only and needs no administrator rights.
+Download **`ChatBridge-Setup.exe`** from the [Releases](../../releases) page and run it. It installs for your Windows account
+only and needs no administrator rights. It also installs an uninstaller you can reach from *Settings → Apps*.
 
-Windows may warn about an unknown publisher while the app is new. Each release lists a SHA-256 checksum so you can
-verify the download.
+> ChatBridge is new and not code-signed yet, so Windows may show an *unknown publisher* warning. Each release lists a SHA-256
+> checksum so you can verify the download.
 
-## Browser extension
+**Requirements:** Windows 10 or 11 with the Microsoft Edge WebView2 runtime (already included in Windows 11).
+
+## Browser extension (optional)
 
 1. Open `edge://extensions` (or `chrome://extensions`) and turn on **Developer mode**.
-2. **Load unpacked** and choose the `extension` folder (ChatBridge → Settings → *Open extension folder* opens it).
+2. Click **Load unpacked** and choose the `extension` folder (ChatBridge → Settings → *Open extension folder* opens it).
 3. In ChatBridge → Settings → **Browser capture**, click **Copy code**, then paste it into the extension's options page.
 
-## Privacy
+A *Save to ChatBridge* button then appears on ChatGPT, Claude.ai and Gemini. The extension only talks to ChatBridge on your own
+PC, and only after you click the button.
 
-Everything stays on your PC. See [PRIVACY.md](PRIVACY.md).
+## Privacy and safety
 
-## Build from source
-
-Requires Python 3.9+ on Windows with the Edge WebView2 runtime (included in Windows 11).
-
-```bash
-pip install pywebview pyinstaller pillow
-python chatbridge_app.py            # run it
-python -m unittest discover -s tests -v
-python make_release.py              # tests + build the app and the installer into release/
-```
-
-`CHATBRIDGE_GUI_TESTS=1` adds tests that open a fake chat window and briefly use the clipboard and keyboard.
+- Everything stays on your PC: no account, no analytics, no servers. See [PRIVACY.md](PRIVACY.md).
+- The only network request is an optional once-a-day check for a newer version (you can turn it off).
+- ChatBridge **never presses Enter** and never sends a message for you.
+- Project folders: `.env` files, key files, and any file that looks like it contains a key or password are left out automatically.
 
 ## Adding or fixing an app
 
-Each app's behaviour (its window title, its "new chat" shortcut, whether to paste the chat or hand over a file) is one entry
-in `profiles.json` — see ChatBridge → *Edit app list*. Keys like `ctrl+shift+l` are allowed; **Enter is refused**.
+Each app's behaviour — its window title, its "new chat" shortcut, whether to paste the chat or hand over a file — is one entry in
+an editable list (ChatBridge → *Edit app list*). Keys like `ctrl+shift+l` are allowed; **Enter is refused**. If an app doesn't
+work, please [open an issue](../../issues/new/choose) — it's usually a one-line fix.
+
+## Build from source
+
+Python 3.9+ on Windows:
+
+```bash
+pip install pywebview pyinstaller pillow
+python chatbridge_app.py                      # run it
+python -m unittest discover -s tests -v       # 40+ tests
+python make_release.py                        # tests, then build the app and the installer into release/
+```
+
+Set `CHATBRIDGE_GUI_TESTS=1` to also run tests that open a fake chat window (they briefly use the clipboard and keyboard).
+Releasing is described in [RELEASING.md](RELEASING.md).
+
+## License
+
+[MIT](LICENSE). ChatBridge is an independent project and is not affiliated with or endorsed by any AI company. Product names
+are trademarks of their owners.

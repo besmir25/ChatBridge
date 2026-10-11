@@ -5,7 +5,7 @@ if (!window.pywebview && /[?&]demo/.test(location.search)) {
   let chats = [
     {id: "1", title: "Resume builds for the job list", source: "Claude Code", created: "2026-10-11 15:36", count: 40, kind: "chat", saved: false, tokens: 9800, real_tokens: 1420000},
     {id: "2", title: "ChatBridge: build an app to move chats", source: "Claude Code", created: "2026-10-11 15:36", count: 19, kind: "chat", saved: false, tokens: 4300},
-    {id: "3", title: "git is installed to path..continue", source: "Claude Code", created: "2026-06-13 14:17", count: 27, kind: "chat", saved: true, tokens: 1600},
+    {id: "3", title: "Fix a git setup problem on Windows", source: "Claude Code", created: "2026-06-13 14:17", count: 27, kind: "chat", saved: true, tokens: 1600},
     {id: "4", title: "Project: chatbridge", source: "Project folder", created: "2026-10-11 16:40", count: 1, kind: "project", saved: true, tokens: 22800, mode: "outline"},
     {id: "5", title: "Trip planning", source: "ChatGPT", created: "2026-09-02 10:12", count: 22, kind: "chat", saved: true, tokens: 5200},
   ];
@@ -27,7 +27,7 @@ if (!window.pywebview && /[?&]demo/.test(location.search)) {
     preview: async id => ({title: "Preview", source: "Demo", kind: "chat", messages: [{role: "user", content: "Hello, can we pick up the itinerary?"}, {role: "assistant", content: "Yes. Day 3 was Kyoto."}]}),
     estimate: async (ids, target, o) => ({tokens: 18240 - (o.compact ? 4100 : 0), chars: 70000, saved: o.compact ? 4100 : 0,
       scrubbed: o.scrub ? {keys: 1, emails: 2, phones: 0, paths: 3} : {}, window: target === 0 ? 200000 : null,
-      pct: target === 0 ? Math.round((18240 - (o.compact ? 4100 : 0)) / 2000) / 10 : null, cost: null, target: target === 0 ? "Claude" : "Antigravity"}),
+      pct: target === 0 ? Math.round((18240 - (o.compact ? 4100 : 0)) / 200) / 10 : null, cost: null, target: target === 0 ? "Claude" : "Antigravity"}),
     get_history: async () => [{time: "2026-10-11 17:30", target: "Claude", target_key: 0, titles: ["Resume builds for the job list", "ChatBridge: build an app"], ids: ["1", "2"], opts: {compact: true, scrub: true}, tokens: 14140},
                               {time: "2026-10-11 16:05", target: "the clipboard", target_key: "copy", titles: ["Project: chatbridge"], ids: ["4"], opts: {}, tokens: 22800}],
     project_size: async (idx, mode) => ({tokens: Math.round(idx.length * (mode === "tree" ? 120 : mode === "outline" ? 900 : 3200))}),
