@@ -28,12 +28,17 @@ with zipfile.ZipFile(payload, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as z:
             z.write(full, os.path.relpath(full, APP_DIR))
 print(f"payload: {os.path.getsize(payload) / 1e6:.1f} MB, version {version}")
 
+from version_info import write_version_file  # noqa: E402
+
+VERSION_FILE = os.path.join(build, "version_info_setup.txt")
+write_version_file(VERSION_FILE, version, "ChatBridge Setup")
+
 import PyInstaller.__main__ as pyi  # noqa: E402
 
 EXCLUDE = ["numpy", "scipy", "pandas", "matplotlib", "IPython", "notebook", "PyQt5", "PyQt6", "PySide2", "PySide6", "sphinx",
            "pytest", "sklearn", "numba", "bokeh", "dask", "h5py", "lxml", "sqlalchemy", "cryptography", "webview", "clr_loader"]
 args = ["--noconfirm", "--clean", "--onefile", "--windowed", "--name", "ChatBridge-Setup",
-        "--icon", os.path.join(HERE, "assets", "chatbridge.ico"),
+        "--icon", os.path.join(HERE, "assets", "chatbridge.ico"), "--version-file", VERSION_FILE,
         "--add-data", f"{payload};.", "--add-data", f"{os.path.join(build, 'version.txt')};.",
         "--add-data", f"{os.path.join(HERE, 'assets', 'chatbridge.png')};assets",
         "--distpath", os.path.join(HERE, "dist"), "--workpath", os.path.join(build, "work"), "--specpath", build]

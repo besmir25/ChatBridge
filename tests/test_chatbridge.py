@@ -294,6 +294,7 @@ class WebApi(unittest.TestCase):
         public = [n for n in vars(self.api) if not n.startswith("_")]
         self.assertEqual(public, [])
 
+    @unittest.skipIf(os.environ.get("CI"), "build servers have no interactive clipboard")
     def test_clipboard_round_trip(self):
         self.app.set_clipboard("héllo ✓ ChatBridge")
         out = __import__("subprocess").run(["powershell", "-NoProfile", "-Command", "Get-Clipboard"], capture_output=True,
@@ -417,6 +418,100 @@ class Updates(unittest.TestCase):
         self.assertEqual(len(calls), 2)
         self.assertIn("error", api.open_release("https://evil.example/x"))
         self.assertIn("error", api.open_release("https://github.com/someone-else/repo/releases"))
+
+
+LOG = """# Changelog
+
+## Unreleased
+- not out yet
+
+## 1.2.0 (2026-11-01)
+- third feature
+
+## 1.1.0
+- second feature
+- **bold** thing
+
+## 1.0.0
+- first
+"""
+
+
+class ReleaseTools(unittest.TestCase):
+    def setUp(self):
+        import release_tools
+        self.rt = release_tools
+
+    def test_changelog_parsing_and_ranges(self):
+        self.assertEqual([v for v, _ in self.rt.parse_changelog(LOG)], ["1.2.0", "1.1.0", "1.0.0"])   # 'Unreleased' skipped
+        self.assertEqual([v for v, _ in self.rt.changelog_between(LOG, "1.0.0", "1.2.0")], ["1.2.0", "1.1.0"])
+        self.assertEqual(self.rt.changelog_between(LOG, "1.2.0", "1.2.0"), [])
+        self.assertGreater(self.rt.vkey("1.10.0"), self.rt.vkey("1.9.0"))
+
+    def test_release_notes(self):
+        notes = self.rt.release_notes("1.1.0", LOG)
+        self.assertIn("second feature", notes)
+        self.assertIn("ChatBridge-Setup.exe", notes)
+        self.assertNotIn("third feature", notes)
+        with self.assertRaises(ValueError):
+            self.rt.release_notes("9.9.9", LOG)
+
+    def test_bump_turns_unreleased_into_a_version(self):
+        root = tempfile.mkdtemp(prefix="bump-", dir=_TMP)
+        with open(os.path.join(root, "chatbridge_app.py"), "w", encoding="utf-8") as f:
+            f.write('import os\nVERSION = "1.0.0"\nREPO = "x/y"\n')
+        with open(os.path.join(root, "CHANGELOG.md"), "w", encoding="utf-8") as f:
+            f.write(LOG)
+        self.rt.bump("1.3.0", root)
+        self.assertIn('VERSION = "1.3.0"', open(os.path.join(root, "chatbridge_app.py"), encoding="utf-8").read())
+        log = open(os.path.join(root, "CHANGELOG.md"), encoding="utf-8").read()
+        self.assertEqual(self.rt.parse_changelog(log)[0][0], "1.3.0")
+        self.assertIn("not out yet", dict(self.rt.parse_changelog(log))["1.3.0"])
+        self.rt.bump("1.3.0", root)                                    # running it twice changes nothing more
+        self.assertEqual(log, open(os.path.join(root, "CHANGELOG.md"), encoding="utf-8").read())
+        for bad in ("1.3", "v1.3.0", "abc"):
+            with self.assertRaises(ValueError):
+                self.rt.bump(bad, root)
+
+    def test_version_resource_file(self):
+        import version_info
+        p = os.path.join(_TMP, "vi.txt")
+        version_info.write_version_file(p, "1.4.2", "ChatBridge Setup")
+        text = open(p, encoding="utf-8").read()
+        self.assertIn("filevers=(1, 4, 2, 0)", text)
+        self.assertIn("ProductVersion', '1.4.2'", text)
+
+
+class WhatsNew(unittest.TestCase):
+    def setUp(self):
+        import chatbridge_app
+        self.m = chatbridge_app
+        self.api = chatbridge_app.Api()
+        self.old_here, self.old_ver = chatbridge_app.HERE, chatbridge_app.VERSION
+        folder = tempfile.mkdtemp(prefix="wn-", dir=_TMP)
+        with open(os.path.join(folder, "CHANGELOG.md"), "w", encoding="utf-8") as f:
+            f.write(LOG)
+        chatbridge_app.HERE, chatbridge_app.VERSION = folder, "1.2.0"
+
+    def tearDown(self):
+        self.m.HERE, self.m.VERSION = self.old_here, self.old_ver
+
+    def test_fresh_install_shows_nothing_but_records_the_version(self):
+        self.api._cfg.pop("seen_version", None), self.api._cfg.pop("welcomed", None)
+        self.assertFalse(self.api.whats_new()["show"])
+        self.assertEqual(self.api._cfg["seen_version"], "1.2.0")
+
+    def test_upgrade_shows_every_skipped_version_once(self):
+        self.api._cfg["seen_version"] = "1.0.0"
+        w = self.api.whats_new()
+        self.assertTrue(w["show"])
+        self.assertEqual([s["version"] for s in w["sections"]], ["1.2.0", "1.1.0"])
+        self.assertFalse(self.api.whats_new()["show"])                 # second launch: already seen
+
+    def test_existing_1_0_0_user_who_never_recorded_a_version(self):
+        self.api._cfg.pop("seen_version", None)
+        self.api._cfg["welcomed"] = True
+        self.assertEqual(len(self.api.whats_new()["sections"]), 2)
 
 
 class _Model(BaseHTTPRequestHandler):

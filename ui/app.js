@@ -279,6 +279,7 @@ function showUpdate(info, manual) {
   if (info && info.status === "available") {
     const c = $("#chipUpdate");
     c.hidden = false; c.textContent = "Update available: " + info.version; c.dataset.url = info.url;
+    c.dataset.version = info.version; c.dataset.notes = info.notes || "";
     if (manual) toast(`Version ${info.version} is available. Click the chip at the top to download it.`, "good", 7000);
   } else if (manual) {
     toast(!info || info.status === "offline" ? "Couldn't reach GitHub. Check your internet connection."
@@ -286,7 +287,34 @@ function showUpdate(info, manual) {
           !info || info.status === "offline" ? "warn" : "good", 5000);
   }
 }
-$("#chipUpdate").onclick = e => { e.preventDefault(); api().open_release($("#chipUpdate").dataset.url); };
+/* very small markdown: "### heading", "- bullet", "**bold**", `code` */
+function mdLite(text) {
+  let html = "", list = false;
+  for (const raw of String(text || "").split("\n")) {
+    const line = esc(raw).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/`(.+?)`/g, "<code>$1</code>");
+    const li = line.match(/^\s*[-*]\s+(.*)$/);
+    if (li) { if (!list) { html += '<ul style="margin:4px 0 8px 18px;padding:0">'; list = true; } html += `<li>${li[1]}</li>`; continue; }
+    if (list) { html += "</ul>"; list = false; }
+    if (/^#{1,4}\s+/.test(line)) html += `<div style="font-weight:600;margin:10px 0 2px">${line.replace(/^#+\s+/, "")}</div>`;
+    else if (line.trim()) html += `<div>${line}</div>`;
+  }
+  return html + (list ? "</ul>" : "");
+}
+$("#chipUpdate").onclick = e => {                    // show the release notes first; the download is one more click
+  e.preventDefault();
+  const c = $("#chipUpdate");
+  $("#nTitle").textContent = "ChatBridge " + (c.dataset.version || "") + " is available";
+  $("#nBody").innerHTML = mdLite(c.dataset.notes) || "<div>See the download page for what changed.</div>";
+  $("#nGo").hidden = false; open("#mNew");
+};
+$("#nGo").onclick = () => { api().open_release($("#chipUpdate").dataset.url); close("#mNew"); };
+async function showWhatsNew() {
+  let w; try { w = await api().whats_new(); } catch (e) { return; }
+  if (!w || !w.show) return;
+  $("#nTitle").textContent = "What's new in ChatBridge " + w.version;
+  $("#nBody").innerHTML = w.sections.map(s => `<div style="font-weight:600;margin-top:6px">Version ${esc(s.version)}</div>${mdLite(s.body)}`).join("");
+  $("#nGo").hidden = true; open("#mNew");
+}
 $("#sCheckNow").onclick = async () => { toast("Checking…", "work", 0); showUpdate(await api().check_update(true), true); };
 $("#sCopyToken").onclick = async () => {
   const t = $("#sToken"); t.select();
@@ -411,7 +439,8 @@ async function start() {
   S.chats = b.chats; S.apps = b.apps; S.settings = b.settings;
   $("#oCompact").checked = !!b.settings.compact; $("#oScrub").checked = b.settings.scrub !== false;
   applySettings(); rememberTarget(); renderAll();
-  if (!b.welcomed) { open("#mWelcome"); }
+  if (!b.welcomed) { open("#mWelcome"); } else { showWhatsNew(); }   // new users get the welcome; people who updated get what's new
+  if (!b.welcomed) api().whats_new();                                  // just records the version so it isn't "new" next time
   rescan();
   api().check_update(false).then(i => showUpdate(i, false)).catch(() => {});
 }

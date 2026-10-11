@@ -26,6 +26,14 @@ md.distribution = _distribution
 
 import PyInstaller.__main__ as pyi  # noqa: E402
 
+import re  # noqa: E402
+from version_info import write_version_file  # noqa: E402
+
+VERSION = re.search(r'VERSION = "([^"]+)"', open(os.path.join(HERE, "chatbridge_app.py"), encoding="utf-8").read()).group(1)
+os.makedirs(os.path.join(HERE, "build"), exist_ok=True)
+VERSION_FILE = os.path.join(HERE, "build", "version_info_app.txt")
+write_version_file(VERSION_FILE, VERSION, "ChatBridge - move chats between AI apps")   # shows in the exe's Properties > Details
+
 EXCLUDE = ["numpy", "scipy", "pandas", "matplotlib", "IPython", "notebook", "jupyter", "PyQt5", "PyQt6", "PySide2",
            "PySide6", "sphinx", "pytest", "sklearn", "numba", "bokeh", "dask", "h5py", "lxml", "sqlalchemy", "cryptography"]
 args = ["--noconfirm", "--clean", "--windowed", "--name", "ChatBridge",
@@ -33,6 +41,8 @@ args = ["--noconfirm", "--clean", "--windowed", "--name", "ChatBridge",
         "--add-data", f"{os.path.join(HERE, 'ui')};ui",
         "--add-data", f"{os.path.join(HERE, 'assets', 'chatbridge.png')};assets",
         "--add-data", f"{os.path.join(HERE, 'extension')};extension",
+        "--add-data", f"{os.path.join(HERE, 'CHANGELOG.md')};.",
+        "--version-file", VERSION_FILE,
         "--distpath", os.path.join(HERE, "dist"), "--workpath", os.path.join(HERE, "build"),
         "--specpath", os.path.join(HERE, "build")]
 for m in EXCLUDE:

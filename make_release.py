@@ -21,7 +21,13 @@ def run(*cmd):
         sys.exit(f"Stopped: {' '.join(cmd)} failed.")
 
 
+import release_tools  # noqa: E402
+
 version = re.search(r'VERSION = "([^"]+)"', open("chatbridge_app.py", encoding="utf-8").read()).group(1)
+try:  # fail early, before the slow builds, if the changelog has nothing to say about this version
+    notes = release_tools.release_notes(version, open("CHANGELOG.md", encoding="utf-8").read())
+except ValueError as e:
+    sys.exit(str(e))
 run("-W", "ignore", "-m", "unittest", "discover", "-s", "tests")
 run("make_icon.py")
 run("build_exe.py")
@@ -40,6 +46,8 @@ with zipfile.ZipFile(ext, "w", zipfile.ZIP_DEFLATED) as z:
 with open(os.path.join(out, "SHA256SUMS.txt"), "w") as f:
     for p in (setup, ext):
         f.write(f"{hashlib.sha256(open(p, 'rb').read()).hexdigest()}  {os.path.basename(p)}\n")
+with open(os.path.join(out, f"RELEASE_NOTES_v{version}.md"), "w", encoding="utf-8") as f:
+    f.write(notes)
 print(f"\nReady in release/ for version {version}:")
 for name in sorted(os.listdir(out)):
     print(f"  {name}  ({os.path.getsize(os.path.join(out, name)) / 1e6:.1f} MB)")

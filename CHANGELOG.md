@@ -1,5 +1,11 @@
 # Changelog
 
+Newest first. Add new entries under **Unreleased**; `python bump_version.py X.Y.Z` turns that section into the release.
+
+## Unreleased
+- A "What's new" window appears once after you update, and the update notice shows the release notes before you download
+- The app and installer now show their name, version and publisher in Windows file properties
+
 ## 1.0.0
 First public release.
 

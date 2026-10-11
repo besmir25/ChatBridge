@@ -1,0 +1,45 @@
+name: Release
+
+# Publish a release by pushing a version tag:   git tag v1.1.0   then   git push origin v1.1.0
+# (python bump_version.py 1.1.0 prepares the version and changelog first - see RELEASING.md)
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install
+        run: pip install pywebview pyinstaller pillow
+
+      - name: Check the tag matches the version inside the app
+        shell: python
+        run: |
+          import os, re, sys
+          tag = os.environ["GITHUB_REF_NAME"].lstrip("v")
+          ver = re.search(r'VERSION = "([^"]+)"', open("chatbridge_app.py", encoding="utf-8").read()).group(1)
+          if tag != ver:
+              sys.exit(f"The tag is v{tag} but chatbridge_app.py says VERSION = {ver}. Run bump_version.py, commit, and tag again.")
+
+      - name: Test and build the app, installer and extension
+        run: python make_release.py
+
+      - name: Publish the release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          FLAGS=""
+          if [[ "$GITHUB_REF_NAME" == *-* ]]; then FLAGS="--prerelease"; fi
+          gh release create "$GITHUB_REF_NAME" \
+            release/ChatBridge-Setup.exe release/ChatBridge-Capture-extension-*.zip release/SHA256SUMS.txt \
+            --title "ChatBridge ${GITHUB_REF_NAME#v}" \
+            --notes-file "release/RELEASE_NOTES_${GITHUB_REF_NAME}.md" $FLAGS

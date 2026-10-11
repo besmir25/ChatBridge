@@ -22,6 +22,7 @@ import webview
 
 import chatbridge as cb
 from icons import fetch_icons
+from release_tools import changelog_between
 
 VERSION = "1.0.0"
 REPO = "besmir25/ChatBridge"   # GitHub "owner/name" that hosts the releases (change here if the repo is named differently)
@@ -175,6 +176,20 @@ class Api:
         self._paste_delay = 2.5
 
     # ---- updates
+    def whats_new(self):
+        """After an upgrade, return the changelog entries for the versions you skipped (once). A fresh install shows nothing."""
+        seen = self._cfg.get("seen_version") or ("1.0.0" if self._cfg.get("welcomed") else None)  # 1.0.0 didn't record it
+        self._cfg["seen_version"] = VERSION
+        cb.save_json(cb.CFG_PATH, self._cfg)
+        if not seen or parse_version(seen) >= parse_version(VERSION):
+            return {"show": False}
+        try:
+            with open(os.path.join(HERE, "CHANGELOG.md"), encoding="utf-8") as f:
+                secs = changelog_between(f.read(), seen, VERSION)
+        except OSError:
+            return {"show": False}
+        return {"show": bool(secs), "version": VERSION, "sections": [{"version": v, "body": b} for v, b in secs]}
+
     def check_update(self, manual=False):
         """Automatic checks run at most once a day and only if enabled; 'Check now' always runs."""
         if not manual:

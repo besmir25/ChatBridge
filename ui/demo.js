@@ -41,6 +41,12 @@ if (!window.pywebview && /[?&]demo/.test(location.search)) {
         .map(([rel, size, type], i) => ({i, rel, size, type, on: true}))}),
     add_project: async () => ({id: "9", chats}), add_text: async () => ({id: "8", chats}), import_files: async () => ({ids: [], chats}),
     add_app: async () => ({ok: true}), edit_profiles: async () => {}, mark_welcomed: async () => {},
+    whats_new: async () => /modal=new/.test(location.search) ? {show: true, version: "1.1.0", sections: [
+      {version: "1.1.0", body: "- New: send a chat to two apps at once\n- The project picker remembers your last choice"},
+      {version: "1.0.1", body: "- Fixed: Copilot sometimes opened without the chat\n- **Faster** start-up"}]} : {show: false},
+    check_update: async () => /modal=update/.test(location.search) ? {status: "available", current: "1.0.0", version: "1.1.0",
+      url: "https://github.com/besmir25/ChatBridge/releases/tag/v1.1.0", notes: "## ChatBridge 1.1.0\n\n- New: send a chat to two apps at once\n- The project picker remembers your last choice\n\n### Install\nDownload **ChatBridge-Setup.exe** below and run it."} : {status: "current", current: "1.0.0"},
+    open_release: async () => ({ok: true}),
   }};
   /* ?demo&pick preselects two chats and Claude; ?demo&modal=project|history|settings opens that dialog */
   setTimeout(() => {
@@ -48,5 +54,6 @@ if (!window.pywebview && /[?&]demo/.test(location.search)) {
     const m = (location.search.match(/modal=(\w+)/) || [])[1];
     const btn = {project: "#btnProject", history: "#btnHistory", settings: "#btnSettings"}[m];
     if (btn) document.querySelector(btn).click();
+    if (m === "update") document.querySelector("#chipUpdate").click();
   }, 1500);
 }
