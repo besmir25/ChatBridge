@@ -39,7 +39,13 @@ jobs:
         run: |
           FLAGS=""
           if [[ "$GITHUB_REF_NAME" == *-* ]]; then FLAGS="--prerelease"; fi
-          gh release create "$GITHUB_REF_NAME" \
-            release/ChatBridge-Setup.exe release/ChatBridge-Capture-extension-*.zip release/SHA256SUMS.txt \
-            --title "ChatBridge ${GITHUB_REF_NAME#v}" \
-            --notes-file "release/RELEASE_NOTES_${GITHUB_REF_NAME}.md" $FLAGS
+          FILES="release/ChatBridge-Setup.exe release/ChatBridge-Capture-extension-*.zip release/SHA256SUMS.txt"
+          NOTES="release/RELEASE_NOTES_${GITHUB_REF_NAME}.md"
+          TITLE="ChatBridge ${GITHUB_REF_NAME#v}"
+          if gh release view "$GITHUB_REF_NAME" > /dev/null 2>&1; then
+            # a release for this tag was already created by hand on github.com: fill it in instead of failing
+            gh release upload "$GITHUB_REF_NAME" $FILES --clobber
+            gh release edit "$GITHUB_REF_NAME" --title "$TITLE" --notes-file "$NOTES"
+          else
+            gh release create "$GITHUB_REF_NAME" $FILES --title "$TITLE" --notes-file "$NOTES" $FLAGS
+          fi
