@@ -12,6 +12,7 @@ import sys
 import threading
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 import uuid
 from ctypes import wintypes
@@ -24,7 +25,7 @@ import chatbridge as cb
 from icons import fetch_icons
 from release_tools import changelog_between
 
-VERSION = "1.0.0"
+VERSION = "1.0.1"
 REPO = "besmir25/ChatBridge"   # GitHub "owner/name" that hosts the releases (change here if the repo is named differently)
 # When packaged by PyInstaller the screen files sit next to the code inside _MEIPASS; otherwise next to this file.
 HERE = getattr(sys, "_MEIPASS", None) or os.path.dirname(os.path.abspath(__file__))
@@ -119,7 +120,8 @@ class _ExclusiveServer(ThreadingHTTPServer):
 
 
 class _CaptureHandler(BaseHTTPRequestHandler):
-    api = None  # set when the server starts
+    api = None      # set when the server starts
+    timeout = 10    # a stalled client can't hold a thread forever
 
     def log_message(self, *a):
         pass
@@ -133,19 +135,38 @@ class _CaptureHandler(BaseHTTPRequestHandler):
         self.wfile.write(data)
 
     def do_GET(self):
-        if self.path == "/ping":
-            return self._send(200, {"app": "ChatBridge", "version": VERSION})
+        path, _, query = self.path.partition("?")
+        if path == "/ping":
+            out = {"app": "ChatBridge", "version": VERSION}
+            nonce = urllib.parse.parse_qs(query).get("nonce", [""])[0][:128]
+            if nonce:
+                # Proves to the extension that this is the real ChatBridge (it knows the pairing code) BEFORE the extension
+                # sends the code or any chat. Another program that merely answers on this port can't produce it.
+                out["proof"] = hmac.new(self.api._capture_token().encode(), nonce.encode(), "sha256").hexdigest()
+            return self._send(200, out)
         self._send(404, {"error": "not found"})
+
+    def _refuse(self, code, message):
+        """Read (and throw away) a little of the request first: replying and closing with unread data makes Windows reset the
+        connection, so the sender would see a crash instead of a clear 'no'."""
+        try:
+            n = int(self.headers.get("Content-Length", "0"))
+            if 0 < n <= 1_000_000:
+                self.rfile.read(n)
+        except (ValueError, OSError):
+            pass
+        self._send(code, {"error": message})
 
     def do_POST(self):
         # Any web page can try to talk to localhost, so only the extension (which sends the pairing token) is let in.
         origin = self.headers.get("Origin", "")
         if origin and not origin.startswith(_EXT_ORIGINS):
-            return self._send(403, {"error": "forbidden origin"})
-        if not hmac.compare_digest(self.headers.get("X-ChatBridge-Token", ""), self.api._capture_token()):
-            return self._send(401, {"error": "bad token - copy the pairing code from ChatBridge Settings"})
+            return self._refuse(403, "forbidden origin")
+        if not hmac.compare_digest(self.headers.get("X-ChatBridge-Token", "").encode("utf-8", "replace"),
+                                   self.api._capture_token().encode()):   # bytes, so odd characters can't raise
+            return self._refuse(401, "bad token - copy the pairing code from ChatBridge Settings")
         if self.path != "/capture":
-            return self._send(404, {"error": "not found"})
+            return self._refuse(404, "not found")
         try:
             n = int(self.headers.get("Content-Length", "0"))
             if not 0 < n <= 8_000_000:
@@ -161,8 +182,12 @@ class _CaptureHandler(BaseHTTPRequestHandler):
 class Api:
     def __init__(self):
         self._window = None
-        self._lib = cb.load_json(cb.LIB_PATH, [])
-        self._cfg = {**cb.DEFAULT_CFG, **cb.load_json(cb.CFG_PATH, {})}
+        loaded = cb.load_json(cb.LIB_PATH, [])
+        # Check every saved item once at start-up, so one damaged entry can never leave the window blank
+        self._lib = [c for c in (cb.clean_conv(x, trusted=True) for x in (loaded if isinstance(loaded, list) else [])) if c]
+        cfg = cb.load_json(cb.CFG_PATH, {})
+        self._cfg = {**cb.DEFAULT_CFG, **(cfg if isinstance(cfg, dict) else {})}
+        cb.prune_handoffs()
         self._found, self._apps, self._icons = [], [], {}
         cache = cb.load_json(SCAN_CACHE, {})
         self._apps = cache.get("apps", [])
@@ -275,7 +300,8 @@ class Api:
                 pass
 
     def _save(self):
-        cb.save_json(cb.LIB_PATH, self._lib)
+        with self._lock:
+            cb.save_json(cb.LIB_PATH, self._lib)
 
     def _pool(self):
         have = {c.get("origin") for c in self._lib if c.get("origin")}
@@ -286,11 +312,21 @@ class Api:
         return [pool[i] for i in ids if i in pool]
 
     def _chats(self):
-        return [{"id": c["id"], "title": c["title"], "source": c.get("source") or "Other", "created": c.get("created", ""),
-                 "count": len(c["messages"]), "kind": c.get("kind", "chat"), "saved": c in self._lib,
-                 "chars": (chars := sum(len(m["content"]) for m in c["messages"])), "tokens": chars // 4,
-                 "real_tokens": sum((c.get("usage") or {}).values()) or None, "mode": c.get("mode")}
-                for c in self._pool()]
+        out = []
+        with self._lock:
+            lib_ids = {c["id"] for c in self._lib}
+            for c in self._pool():
+                try:    # one odd item must not take the whole list down
+                    chars = sum(len(m["content"]) for m in c["messages"])
+                    out.append({"id": c["id"], "title": str(c["title"]), "source": str(c.get("source") or "Other"),
+                                "created": str(c.get("created", "")), "count": len(c["messages"]),
+                                "kind": "project" if c.get("kind") == "project" else "chat", "saved": c["id"] in lib_ids,
+                                "chars": chars, "tokens": chars // 4,
+                                "real_tokens": sum(v for v in (c.get("usage") or {}).values() if isinstance(v, int)) or None,
+                                "mode": c.get("mode") if c.get("mode") in ("full", "outline", "tree") else None})
+                except (KeyError, TypeError):
+                    continue
+        return out
 
     def _apps_out(self):
         out = []
@@ -339,9 +375,10 @@ class Api:
         if not (text or "").strip():
             return {"error": "Paste some text first."}
         c = cb.parse_text(text, (title or "Pasted chat").strip())
-        c["source"] = (source or "").strip() or "Pasted text"
-        self._lib.insert(0, c)
-        self._save()
+        c["source"] = (source or "").strip()[:40] or "Pasted text"
+        with self._lock:
+            self._lib.insert(0, c)
+            self._save()
         return {"id": c["id"], "chats": self._chats()}
 
     def import_files(self):
@@ -355,7 +392,8 @@ class Api:
         for p in paths:
             try:
                 convs = cb.parse_file(p)
-                self._lib = convs + self._lib
+                with self._lock:
+                    self._lib = convs + self._lib
                 ids += [c["id"] for c in convs]
             except Exception as e:
                 errors.append(f"{os.path.basename(p)}: {e}")
@@ -387,23 +425,39 @@ class Api:
         if not self._proj:
             return {"tokens": 0}
         root, files = self._proj
-        text = cb.build_project_text(root, [files[i] for i in indices], mode)
+        chosen = [files[i] for i in self._valid_indices(indices, len(files))]
+        text = cb.build_project_text(root, chosen, mode if mode in ("full", "outline", "tree") else "full")
         return {"tokens": cb.estimate_tokens(text), "chars": len(text)}
 
+    @staticmethod
+    def _valid_indices(indices, n):
+        """The page sends file numbers; only accept whole numbers that exist, once each."""
+        seen, out = set(), []
+        for i in indices if isinstance(indices, list) else []:
+            if isinstance(i, int) and not isinstance(i, bool) and 0 <= i < n and i not in seen:
+                seen.add(i)
+                out.append(i)
+        return out
+
     def add_project(self, indices, mode="full"):
-        if not self._proj or not indices:
+        if not self._proj:
             return {"error": "Tick at least one file."}
         root, files = self._proj
-        c = cb.project_conv(root, [files[i] for i in indices], mode if mode in ("full", "outline", "tree") else "full")
-        self._lib = [x for x in self._lib if not (x.get("kind") == "project" and x.get("path") == root)]  # re-adding refreshes it
-        self._lib.insert(0, c)
-        self._save()
+        chosen = [files[i] for i in self._valid_indices(indices, len(files))]
+        if not chosen:
+            return {"error": "Tick at least one file."}
+        c = cb.project_conv(root, chosen, mode if mode in ("full", "outline", "tree") else "full")
+        with self._lock:
+            self._lib = [x for x in self._lib if not (x.get("kind") == "project" and x.get("path") == root)]  # re-adding refreshes it
+            self._lib.insert(0, c)
+            self._save()
         return {"id": c["id"], "chats": self._chats()}
 
     def delete_chats(self, ids):
-        gone = set(ids)
-        self._lib = [c for c in self._lib if c["id"] not in gone]
-        self._save()
+        gone = {i for i in (ids if isinstance(ids, list) else []) if isinstance(i, str)}
+        with self._lock:
+            self._lib = [c for c in self._lib if c["id"] not in gone]
+            self._save()
         return self._chats()
 
     def preview(self, cid):
@@ -515,11 +569,12 @@ class Api:
             return {"error": "Tick at least one chat first."}
         if target is None:
             return {"error": "Choose where to send it."}
-        known = {c["id"] for c in self._lib}
-        new = [c for c in convs if c["id"] not in known]
-        if new:
-            self._lib = new + self._lib
-            self._save()
+        with self._lock:
+            known = {c["id"] for c in self._lib}
+            new = [c for c in convs if c["id"] not in known]
+            if new:
+                self._lib = new + self._lib
+                self._save()
         text, counts, saved = self._build(convs, opts)
         title = convs[0]["title"] if len(convs) == 1 else f"{len(convs)} items"
         name, _ = self._target_info(target)
@@ -545,9 +600,9 @@ class Api:
                 app = self._apps[int(target)]
                 if app["kind"] == "Local server":
                     model = app["models"][0] if app["models"] else ""
-                    self._cfg.update({"provider": "OpenAI-compatible", "base_url": app["base_url"], "model": model, "api_key": ""})
-                    cb.save_json(cb.CFG_PATH, self._cfg)
-                    self._chat = {"system": text, "label": app["name"], "models": app["models"]}
+                    # kept in memory only: choosing a local model must not overwrite the user's saved settings or key
+                    self._chat = {"system": text, "label": app["name"], "models": app["models"],
+                                  "cfg": {"provider": "OpenAI-compatible", "base_url": app["base_url"], "model": model, "api_key": ""}}
                     self._emit("chat", "", label=app["name"], models=app["models"], model=model)
                 elif app["kind"] == "CLI tool":
                     set_clipboard(text)
@@ -633,7 +688,7 @@ class Api:
     def chat(self, history, model=None):
         if not self._chat:
             return {"error": "Nothing to continue yet."}
-        cfg = dict(self._cfg)
+        cfg = {**self._cfg, **self._chat.get("cfg", {})}
         if model:
             cfg["model"] = model
         try:

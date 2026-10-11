@@ -514,6 +514,225 @@ class WhatsNew(unittest.TestCase):
         self.assertEqual(len(self.api.whats_new()["sections"]), 2)
 
 
+class ReviewFixes(unittest.TestCase):
+    """Regression tests for the problems an independent code review found."""
+
+    # -- untrusted chat files
+    def test_hostile_import_is_neutralised(self):
+        evil = {"format": "chatbridge", "conversations": [
+            {"title": "<b>x</b>" * 100, "source": 5, "kind": "project", "mode": "<img src=x onerror=alert(1)>", "origin": "web:fake",
+             "id": "../../x", "path": "C:\\", "messages": [{"role": "user", "content": "hi"}, {"role": "x", "content": 7}, "junk"]},
+            {}, {"messages": "nope"}, {"messages": []}, "string", None]}
+        convs = cb.parse_json(evil)
+        self.assertEqual(len(convs), 1)
+        c = convs[0]
+        self.assertEqual(c["mode"], "full")                       # not a script
+        self.assertNotIn("origin", c)                              # can't hide real chats by spoofing the origin
+        self.assertNotEqual(c["id"], "../../x")
+        self.assertEqual((len(c["messages"]), c["source"]), (1, "Imported"))
+        self.assertLessEqual(len(c["title"]), 120)
+
+    def test_a_damaged_library_does_not_blank_the_app(self):
+        import chatbridge_app
+        cb.save_json(cb.LIB_PATH, [{"title": "no messages"}, "junk", 5, {"title": "ok", "messages": [{"role": "user", "content": "hi"}]}])
+        api = chatbridge_app.Api()
+        self.assertEqual([c["title"] for c in api._lib], ["ok"])
+        api._lib.append({"id": "bad", "title": "broken"})          # even one that slips in later can't take the list down
+        self.assertEqual([c["title"] for c in api._chats()], ["ok"])
+
+    def test_corrupt_files_are_set_aside_not_overwritten(self):
+        p = os.path.join(_TMP, "damaged.json")
+        with open(p, "w", encoding="utf-8") as f:
+            f.write("{ this is not json at all")
+        self.assertEqual(cb.load_json(p, []), [])
+        self.assertTrue([n for n in os.listdir(_TMP) if n.startswith("damaged.json.corrupt-")])   # kept for recovery
+        self.assertFalse(os.path.exists(p))
+
+    def test_saving_from_many_threads_at_once(self):
+        import threading
+        p, errors = os.path.join(_TMP, "race.json"), []
+
+        def work(i):
+            try:
+                for j in range(15):
+                    cb.save_json(p, {"writer": i, "n": j})
+            except Exception as e:
+                errors.append(e)
+        ts = [threading.Thread(target=work, args=(i,)) for i in range(8)]
+        [t.start() for t in ts]
+        [t.join() for t in ts]
+        self.assertEqual(errors, [])
+        self.assertIn("writer", cb.load_json(p, {}))               # always a complete, valid file
+        self.assertTrue(os.path.exists(p + ".bak"))
+
+    # -- secrets and privacy
+    def test_scrub_catches_prefixed_names_and_more_token_shapes(self):
+        for s in ("OPENAI_API_KEY=abcd1234efgh5678", "DB_PASSWORD=hunter2hunter2", "GITHUB_TOKEN=ghx12345678901",
+                  "AWS_SECRET_ACCESS_KEY: wJalrXUtnFEMI/K7MDENG", 'password: "correct horse battery"'):
+            out, n = cb.scrub_text(s)
+            self.assertGreaterEqual(n["keys"], 1, s)
+        for s in ("sk_live_" + "a" * 24, "github_pat_" + "A" * 30, "npm_" + "b" * 36, "postgres://bob:secretpw@db.example.com/x",
+                  "eyJhbGciOiJIUzI1NiJ9." + "c" * 20 + "." + "d" * 20, "AccountKey=" + "Zm9vYmFy" * 4):
+            self.assertTrue(cb.SECRET_TEXT.search(s), s)
+
+    def test_scrub_user_name_in_every_path_style(self):
+        for s in ("C:\\Users\\Jo Doe\\x", "C:\\\\Users\\\\jodoe\\\\x", "c:/users/jodoe/x"):
+            out, n = cb.scrub_text(s)
+            self.assertNotIn("jodoe", out.lower().replace("jo doe", "jodoe"), s)
+            self.assertEqual(n["paths"], 1, s)
+
+    def test_long_text_does_not_stall_the_scrubber(self):
+        t0 = time.time()
+        cb.scrub_text("a" * 60_000)
+        cb.scrub_text("a@" * 20_000)
+        self.assertLess(time.time() - t0, 2.0)
+
+    def test_scanner_skips_more_secret_files_folders_and_links(self):
+        root = tempfile.mkdtemp(prefix="sc-", dir=_TMP)
+        for rel in ("app.py", ".npmrc", "prod.tfvars", "terraform.tfstate", "release.jks", "id_ecdsa", "secret_key.txt",
+                    ".aws/config", "secrets/notes.txt", ".ssh/known_hosts"):
+            path = os.path.join(root, rel)
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            with open(path, "w", encoding="utf-8") as f:
+                f.write("x = 1\n")
+        outside = os.path.join(_TMP, "outside-secret.txt")
+        with open(outside, "w", encoding="utf-8") as f:
+            f.write("not for sharing")
+        try:
+            os.symlink(outside, os.path.join(root, "link.txt"))
+            linked = True
+        except (OSError, NotImplementedError):
+            linked = False                                          # creating links needs a privilege on Windows
+        files, skipped = cb.scan_project(root)
+        self.assertEqual([f["rel"] for f in files], ["app.py"])
+        if linked:
+            self.assertIn("link.txt", [r for r, _ in skipped])
+
+    def test_project_text_has_no_folder_path(self):
+        root = tempfile.mkdtemp(prefix="np-", dir=_TMP)
+        with open(os.path.join(root, "a.py"), "w", encoding="utf-8") as f:
+            f.write("x = 1\n")
+        files, _ = cb.scan_project(root)
+        text = cb.build_project_text(root, files)
+        self.assertNotIn(root, text)
+        self.assertNotIn("Users", text.split("File list")[0].split("Folder structure")[0])
+
+    def test_git_is_run_with_program_launching_settings_off(self):
+        from unittest import mock
+        with mock.patch("subprocess.run") as run:
+            run.return_value = mock.Mock(returncode=0, stdout=b"")
+            cb._git(_TMP, "status")
+        cmd = run.call_args[0][0]
+        for flag in ("core.fsmonitor=false", "--no-optional-locks", "protocol.allow=never"):
+            self.assertIn(flag, cmd)
+        self.assertTrue(any(c.startswith("core.hooksPath=") for c in cmd))
+
+    def test_handoff_files_are_pruned_after_a_week(self):
+        folder = tempfile.mkdtemp(prefix="ho-", dir=_TMP)
+        old, new = os.path.join(folder, "old.md"), os.path.join(folder, "new.md")
+        for p in (old, new):
+            with open(p, "w", encoding="utf-8") as f:
+                f.write("chat")
+        os.utime(old, (time.time() - 9 * 86400,) * 2)
+        cb.prune_handoffs(folder=folder)
+        self.assertEqual(os.listdir(folder), ["new.md"])
+
+    # -- key presses
+    def test_enter_in_disguise_is_refused_and_short_titles_are_not_trusted(self):
+        for spec in ("ctrl+m", "ctrl+j", "ctrl+shift+m"):
+            with self.assertRaises(ValueError, msg=spec):
+                cb.parse_keys(spec)
+        self.assertEqual(cb.parse_keys("ctrl+k"), [0x11, 0x4B])
+        self.assertEqual(cb.profile_for("AI Helper")["title"], "ai helper")   # "ai" alone would match far too many windows
+
+    # -- the extension handshake
+    def test_ping_proves_the_app_knows_the_pairing_code(self):
+        import chatbridge_app
+        import hmac as _hmac
+        import urllib.request
+        api = chatbridge_app.Api()
+        port = api.start_capture_server()
+        try:
+            with urllib.request.urlopen(f"http://127.0.0.1:{port}/ping?nonce=abc123", timeout=5) as r:
+                out = json.loads(r.read())
+            self.assertEqual(out["proof"], _hmac.new(api._capture_token().encode(), b"abc123", "sha256").hexdigest())
+            with urllib.request.urlopen(f"http://127.0.0.1:{port}/ping", timeout=5) as r:
+                self.assertNotIn("proof", json.loads(r.read()))      # no nonce, no proof
+            req = urllib.request.Request(f"http://127.0.0.1:{port}/capture", b"{}", {"X-ChatBridge-Token": "t\u00e9st"})
+            try:
+                urllib.request.urlopen(req, timeout=5)
+            except Exception as e:
+                self.assertEqual(getattr(e, "code", None), 401)      # odd characters give a clean refusal, not a dead thread
+        finally:
+            api._capture_srv.shutdown()
+            api._capture_srv.server_close()
+
+    # -- the page bridge
+    def test_file_numbers_from_the_page_are_validated(self):
+        import chatbridge_app
+        v = chatbridge_app.Api._valid_indices
+        self.assertEqual(v([0, 2, 2, -1, 99, True, "1", 1.5, None], 3), [0, 2])
+        self.assertEqual(v("not a list", 3), [])
+
+    def test_the_page_has_a_content_security_policy(self):
+        html = open(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "ui", "index.html"), encoding="utf-8").read()
+        self.assertIn("Content-Security-Policy", html)
+        self.assertIn("script-src 'self'", html)
+        self.assertNotIn("'unsafe-inline'", html.split("script-src")[1].split(";")[0])   # no inline scripts, ever
+        self.assertIn("connect-src 'self'", html)
+
+
+class InstallerSafety(unittest.TestCase):
+    def setUp(self):
+        import installer
+        self.i = installer
+
+    def test_install_folder_is_always_named_chatbridge(self):
+        n = self.i.normalize_install_dir
+        self.assertEqual(os.path.basename(n(r"D:\Games")), "ChatBridge")
+        self.assertEqual(n(r"D:\Games\ChatBridge"), r"D:\Games\ChatBridge")
+        self.assertEqual(n(r'"D:\Games\chatbridge\"').lower(), r"d:\games\chatbridge")
+        self.assertEqual(n("C:\\"), "C:\\ChatBridge")
+
+    def test_uninstall_only_touches_our_own_folder(self):
+        safe = self.i.is_safe_install_dir
+        parent = tempfile.mkdtemp(prefix="inst-", dir=_TMP)
+        self.assertFalse(safe(parent))                                # not named ChatBridge
+        self.assertFalse(safe("C:\\"))                                # a drive
+        self.assertFalse(safe(os.path.expanduser("~")))               # the user's folder
+        self.assertFalse(safe(os.path.join(os.path.expanduser("~"), "Downloads")))
+        mine = os.path.join(parent, "ChatBridge")
+        os.makedirs(mine)
+        self.assertFalse(safe(mine))                                  # right name but not made by the installer
+        with open(os.path.join(mine, ".chatbridge-install"), "w") as f:
+            f.write("x")
+        self.assertTrue(safe(mine))
+
+    def test_refused_uninstall_deletes_nothing(self):
+        stray = os.path.join(tempfile.mkdtemp(prefix="stray-", dir=_TMP), "ChatBridge")
+        os.makedirs(stray)
+        with open(os.path.join(stray, "my-important-file.txt"), "w") as f:
+            f.write("keep me")
+        self.assertFalse(self.i.do_uninstall(stray, remove_data=True))
+        self.assertTrue(os.path.exists(os.path.join(stray, "my-important-file.txt")))
+
+    def test_install_refuses_a_folder_that_already_holds_other_files(self):
+        bundle = tempfile.mkdtemp(prefix="bundle-", dir=_TMP)
+        import zipfile
+        zipfile.ZipFile(os.path.join(bundle, "payload.zip"), "w").close()
+        old_bundle, self.i.BUNDLE = self.i.BUNDLE, bundle
+        try:
+            target = os.path.join(tempfile.mkdtemp(prefix="foreign-", dir=_TMP), "ChatBridge")
+            os.makedirs(target)
+            with open(os.path.join(target, "photos.zip"), "w") as f:
+                f.write("someone's files")
+            with self.assertRaises(ValueError):
+                self.i.do_install(target, desktop=False)
+            self.assertTrue(os.path.exists(os.path.join(target, "photos.zip")))
+        finally:
+            self.i.BUNDLE = old_bundle
+
+
 class _Model(BaseHTTPRequestHandler):
     seen = []
 

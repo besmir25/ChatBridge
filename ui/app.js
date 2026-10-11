@@ -73,7 +73,7 @@ function renderChats() {
     ${items.map(c => `
       <div class="card ${S.sel.has(c.id) ? "on" : ""}" data-id="${esc(c.id)}" draggable="true">
         <span class="chk">✓</span>
-        <div class="t"><b>${esc(c.title)}</b><small title="${c.real_tokens ? "Claude Code recorded " + c.real_tokens.toLocaleString() + " tokens processed for this chat (including cached reads)" : "Estimated size"}">${c.kind === "project" ? "Project" + (c.mode ? " · " + c.mode : "") : c.count + " messages"} · ~${kfmt(c.tokens)} tokens · ${esc((c.created || "").slice(0, 10))}</small></div>
+        <div class="t"><b>${esc(c.title)}</b><small title="${c.real_tokens ? "Claude Code recorded " + c.real_tokens.toLocaleString() + " tokens processed for this chat (including cached reads)" : "Estimated size"}">${c.kind === "project" ? "Project" + (c.mode ? " · " + esc(c.mode) : "") : Number(c.count) + " messages"} · ~${kfmt(c.tokens)} tokens · ${esc((c.created || "").slice(0, 10))}</small></div>
         <button class="eye" data-view="${esc(c.id)}" title="Preview">◉</button>
         ${c.saved ? `<button class="x" data-del="${esc(c.id)}" title="Remove from ChatBridge">×</button>` : ""}
       </div>`).join("")}`).join("");

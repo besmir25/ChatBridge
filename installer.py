@@ -57,10 +57,36 @@ def desktop_link():
 
 
 def make_shortcut(lnk, target, workdir):
-    q = lambda s: "'" + s.replace("'", "''") + "'"
-    ps = (f"$s=(New-Object -ComObject WScript.Shell).CreateShortcut({q(lnk)});$s.TargetPath={q(target)};"
-          f"$s.WorkingDirectory={q(workdir)};$s.IconLocation={q(target)};$s.Description='Move chats between AI apps';$s.Save()")
-    subprocess.run(["powershell", "-NoProfile", "-Command", ps], creationflags=NOWIN, capture_output=True, timeout=60)
+    # Paths go in through environment variables, never pasted into the script, so no folder or user name can break the quoting.
+    ps = ("$s=(New-Object -ComObject WScript.Shell).CreateShortcut($env:CB_LNK);$s.TargetPath=$env:CB_TARGET;"
+          "$s.WorkingDirectory=$env:CB_DIR;$s.IconLocation=$env:CB_TARGET;$s.Description='Move chats between AI apps';$s.Save()")
+    r = subprocess.run(["powershell", "-NoProfile", "-Command", ps], creationflags=NOWIN, capture_output=True, timeout=60,
+                       env={**os.environ, "CB_LNK": lnk, "CB_TARGET": target, "CB_DIR": workdir})
+    if r.returncode or not os.path.exists(lnk):
+        raise OSError(f"Couldn't create the shortcut {lnk}")
+
+
+MARKER = ".chatbridge-install"
+
+
+def is_ours(d):
+    """True only for a folder this installer made: it has our marker, or both ChatBridge.exe and its uninstaller."""
+    return os.path.isfile(os.path.join(d, MARKER)) or (
+        os.path.isfile(os.path.join(d, f"{APP}.exe")) and os.path.isfile(os.path.join(d, f"Uninstall {APP}.exe")))
+
+
+def normalize_install_dir(d):
+    """Whatever the user types, install into a folder named ChatBridge (so 'D:\\Games' becomes 'D:\\Games\\ChatBridge')."""
+    d = os.path.abspath(os.path.expandvars((d or "").strip().strip('"')))
+    return d if os.path.basename(d.rstrip("\\/")).lower() == APP.lower() else os.path.join(d, APP)
+
+
+def is_safe_install_dir(d):
+    """Deleting is only allowed for a folder named ChatBridge that this installer created - never a drive, Downloads, etc."""
+    d = os.path.abspath(d or "")
+    if os.path.dirname(d) == d or os.path.basename(d.rstrip("\\/")).lower() != APP.lower():
+        return False
+    return is_ours(d)
 
 
 def app_running(install_dir):
@@ -88,6 +114,9 @@ def do_install(install_dir, desktop, progress=lambda pct, msg: None):
     payload = os.path.join(BUNDLE, "payload.zip")
     if not os.path.isfile(payload):
         raise FileNotFoundError("This setup file is incomplete (payload.zip is missing).")
+    install_dir = normalize_install_dir(install_dir)
+    if os.path.isdir(install_dir) and os.listdir(install_dir) and not is_ours(install_dir):
+        raise ValueError(f"The folder {install_dir} already has other files in it. Choose an empty or new folder.")
     if app_running(install_dir):
         stop_app()
     progress(2, "Preparing…")
@@ -102,6 +131,8 @@ def do_install(install_dir, desktop, progress=lambda pct, msg: None):
                 progress(5 + int(80 * i / len(names)), "Copying files…")
     uninstaller = os.path.join(install_dir, f"Uninstall {APP}.exe")
     shutil.copyfile(sys.executable, uninstaller)
+    with open(os.path.join(install_dir, MARKER), "w", encoding="utf-8") as f:
+        f.write(f"Installed by ChatBridge Setup {version()}. Uninstall only deletes folders that contain this file.\n")
     progress(88, "Creating shortcuts…")
     exe = os.path.join(install_dir, f"{APP}.exe")
     make_shortcut(start_menu_link(), exe, install_dir)
@@ -127,6 +158,9 @@ def installed_dir():
 
 
 def do_uninstall(install_dir, remove_data):
+    """Returns False (and deletes nothing) if install_dir isn't a ChatBridge folder made by this installer."""
+    if not is_safe_install_dir(install_dir):
+        return False
     stop_app()
     for lnk in (start_menu_link(), desktop_link()):
         try:
@@ -140,6 +174,13 @@ def do_uninstall(install_dir, remove_data):
     shutil.rmtree(install_dir, ignore_errors=True)
     if remove_data:
         shutil.rmtree(os.path.join(os.environ.get("APPDATA", ""), APP), ignore_errors=True)
+        home_cb = os.path.join(os.path.expanduser("~"), APP)     # the saved hand-over files (full chat text)
+        shutil.rmtree(os.path.join(home_cb, "handoffs"), ignore_errors=True)
+        try:
+            os.rmdir(home_cb)   # only if now empty
+        except OSError:
+            pass
+    return True
 
 
 def relaunch_from_temp(args):
@@ -255,6 +296,7 @@ class Window:
         self.clear()
         self.label("ChatBridge is installed", 18, FG, True).pack(fill="x", pady=(30, 6))
         self.label("Find it in your Start menu. On first start it looks for your AI apps and chats automatically.", 11, MUTED).pack(fill="x")
+        self.label(f"Installed in {os.path.dirname(exe)}", 9, MUTED).pack(fill="x", pady=(12, 0))
         foot = tk.Frame(self.body, bg=BG)
         foot.pack(side="bottom", fill="x")
 
@@ -297,6 +339,11 @@ def main():
     if a.uninstall:
         a.dir = a.dir or installed_dir() or os.path.dirname(sys.executable)
         norm = lambda p: os.path.normcase(os.path.abspath(p))
+        if not is_safe_install_dir(a.dir):   # checked up front, so a wrong folder is never touched (and the user is told)
+            if not a.silent:
+                messagebox.showerror("Nothing was removed", f"{a.dir}\n\nisn't a ChatBridge folder created by this installer, "
+                                     "so it was left alone.")
+            sys.exit(2)
         if a.from_temp or (a.silent and norm(os.path.dirname(sys.executable)) != norm(a.dir)):
             time.sleep(1.5)  # let the first copy exit so its files can be deleted
             do_uninstall(a.dir, a.remove_data)
@@ -313,10 +360,13 @@ def main():
             return
         return Window("uninstall", a).run()
     if a.silent:
-        target = a.dir or installed_dir() or default_dir()
-        exe = do_install(target, a.desktop)
+        try:
+            exe = do_install(a.dir or installed_dir() or default_dir(), a.desktop)
+        except (ValueError, OSError) as e:
+            print(e, file=sys.stderr)
+            sys.exit(2)
         if not a.no_launch:
-            subprocess.Popen([exe], cwd=target)
+            subprocess.Popen([exe], cwd=os.path.dirname(exe))
         return
     Window("install", a).run()
 

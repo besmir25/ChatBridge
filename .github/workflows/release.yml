@@ -14,9 +14,20 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0     # needed to check which branch the tag belongs to
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+
+      - name: Only publish tags that are on the main branch
+        shell: bash
+        run: |
+          if ! git branch -r --contains "$GITHUB_SHA" | grep -qE 'origin/main$'; then
+            echo "Tag $GITHUB_REF_NAME is not on the main branch - refusing to publish a release from it."
+            exit 1
+          fi
+
       - name: Install
         run: pip install pywebview pyinstaller pillow
 

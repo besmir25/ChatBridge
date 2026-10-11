@@ -132,21 +132,30 @@ def load_profiles():
     return [p for p in user if isinstance(p, dict) and p.get("match")] + DEFAULT_PROFILES
 
 
+def _window_title_key(title, name):
+    """The text a window title must contain before we press any key in it. Very short words (like "ai") match far too many
+    windows, so fall back to the app's full name."""
+    t = (title or name.split()[0]).lower()
+    return t if len(t) >= 4 else name.lower()
+
+
 def profile_for(name):
     for p in load_profiles():
         try:
             if re.search(p["match"], name, re.I):
-                return {"new_chat": "", "paste": "full", "note": "", **p,
-                        "title": (p.get("title") or name.split()[0]).lower()}
+                return {"new_chat": "", "paste": "full", "note": "", **p, "title": _window_title_key(p.get("title"), name)}
         except re.error:
             continue
-    return {"match": "", "new_chat": "", "paste": "full", "note": "", "title": name.split()[0].lower()}
+    return {"match": "", "new_chat": "", "paste": "full", "note": "", "title": _window_title_key("", name)}
 
 
 def parse_keys(spec):
     """'ctrl+shift+l' -> [0x11, 0x10, 0x4C]. Enter/Return are refused: ChatBridge never sends for you."""
     out = []
-    for part in [s.strip().lower() for s in spec.split("+") if s.strip()]:
+    parts = [s.strip().lower() for s in spec.split("+") if s.strip()]
+    if "ctrl" in parts and any(p in ("m", "j") for p in parts):   # Ctrl+M / Ctrl+J are Enter in disguise (CR / LF)
+        raise ValueError("Ctrl+M and Ctrl+J act like Enter. ChatBridge never presses Enter.")
+    for part in parts:
         if part in ("enter", "return", "numpadenter"):
             raise ValueError("ChatBridge never presses Enter - you send the message yourself.")
         if part in _KEYS:
@@ -163,39 +172,66 @@ def parse_keys(spec):
 # ---------------------------------------------------------------- project folders
 SKIP_DIRS = {".git", "node_modules", "__pycache__", ".venv", "venv", "env", "dist", "build", ".idea", ".vscode",
              "target", ".next", ".cache", "site-packages", ".pytest_cache", ".mypy_cache"}
-SECRET_NAME = re.compile(r"(^\.env($|\.)|\.pem$|\.key$|\.pfx$|\.p12$|id_rsa|id_ed25519|credentials|secrets?\.|\.kdbx$)", re.I)
-SECRET_TEXT = re.compile(r"(sk-[A-Za-z0-9_-]{20,}|AKIA[0-9A-Z]{16}|gh[pousr]_[A-Za-z0-9]{30,}|xox[baprs]-[A-Za-z0-9-]{10,}"
-                         r"|AIza[0-9A-Za-z_-]{30,}|-----BEGIN [A-Z ]*PRIVATE KEY-----)")
+SECRET_NAME = re.compile(
+    r"(^\.env($|\.)|\.pem$|\.key$|\.pfx$|\.p12$|\.jks$|\.keystore$|\.ppk$|\.kdbx$|\.tfvars$|\.tfstate(\.backup)?$"
+    r"|^\.(npmrc|pypirc|netrc|git-credentials|dockercfg|htpasswd|pgpass)$|^id_(rsa|dsa|ecdsa|ed25519)"
+    r"|credentials|secrets?[._-]|[._-]secrets?\.|secret_key|private[._-]key|service[._-]account.*\.json$)", re.I)
+SECRET_DIRS = {".ssh", ".aws", ".gnupg", ".kube", ".azure", ".gcloud", "secrets", ".secrets"}   # nothing inside these is ever included
+SECRET_TEXT = re.compile(
+    r"(sk-[A-Za-z0-9_-]{20,}|sk_(?:live|test)_[A-Za-z0-9]{16,}|AKIA[0-9A-Z]{16}|gh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{20,}"
+    r"|npm_[A-Za-z0-9]{30,}|xox[baprs]-[A-Za-z0-9-]{10,}|AIza[0-9A-Za-z_-]{30,}|SG\.[A-Za-z0-9_-]{16,}\.[A-Za-z0-9_-]{16,}"
+    r"|eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}"                       # JWTs
+    r"|[a-z][a-z0-9+.-]{1,20}://[^\s:/@'\"]{1,64}:[^\s@/'\"]{3,128}@"                        # user:password@host in URLs
+    r"|AccountKey=[A-Za-z0-9+/=]{20,}|-----BEGIN [A-Z ]*PRIVATE KEY-----)")
 MAX_FILE, BUDGET = 100_000, 120_000  # characters per file / suggested total (~30k tokens)
 
 
-def _git(root, *args):
+def _inside(root_real, path_real):
     try:
-        r = subprocess.run(["git", "-C", root, *args], capture_output=True, text=True, timeout=20,
+        return os.path.commonpath([os.path.normcase(root_real), os.path.normcase(path_real)]) == os.path.normcase(root_real)
+    except ValueError:   # different drives
+        return False
+
+
+def _git(root, *args):
+    """Run git in a folder the user picked. That folder may be a downloaded repo, and git reads its config, so switch off the
+    settings that can run programs (fsmonitor, hooks) and ask git not to take locks or follow protocols."""
+    safe = ["-c", "core.fsmonitor=false", "-c", "core.hooksPath=" + ("NUL" if os.name == "nt" else "/dev/null"),
+            "-c", "protocol.allow=never", "--no-optional-locks"]
+    try:
+        r = subprocess.run(["git", *safe, "-C", root, *args], capture_output=True, timeout=20,
                            creationflags=0x08000000 if os.name == "nt" else 0)
-        return r.stdout if r.returncode == 0 else None
+        return r.stdout.decode("utf-8", errors="replace") if r.returncode == 0 else None
     except (OSError, subprocess.SubprocessError):
         return None
 
 
 def scan_project(root, limit=3000):
     """Return (files, skipped). files: [{rel, size, text}] safe to share; skipped: [(rel, reason)]."""
-    listed = _git(root, "ls-files", "-co", "--exclude-standard")
-    if listed and listed.strip():
-        rels = [r for r in listed.splitlines() if r]
+    listed = _git(root, "ls-files", "-z", "-co", "--exclude-standard")   # -z: exact names, even with non-English letters
+    if listed and listed.strip("\0"):
+        rels = [r for r in listed.split("\0") if r]
     else:
         rels = []
         for d, dirs, names in os.walk(root):
-            dirs[:] = [x for x in dirs if x not in SKIP_DIRS]
+            dirs[:] = [x for x in dirs if x not in SKIP_DIRS and x.lower() not in SECRET_DIRS]
             rels += [os.path.relpath(os.path.join(d, n), root) for n in names]
     files, skipped = [], []
+    real_root = os.path.realpath(root)
     for rel in sorted(rels)[:limit]:
         rel = rel.replace("\\", "/")
-        if any(part in SKIP_DIRS for part in rel.split("/")[:-1]):
+        parts = rel.split("/")
+        if any(part in SKIP_DIRS for part in parts[:-1]):
             continue
         path = os.path.join(root, rel)
+        if any(part.lower() in SECRET_DIRS for part in parts[:-1]):
+            skipped.append((rel, "inside a folder that holds secrets"))
+            continue
         if SECRET_NAME.search(os.path.basename(rel)):
             skipped.append((rel, "looks like a secret file"))
+            continue
+        if not _inside(real_root, os.path.realpath(path)):   # a link could point at a file outside the folder you picked
+            skipped.append((rel, "a link to a file outside this folder"))
             continue
         try:
             size = os.path.getsize(path)
@@ -285,7 +321,7 @@ OUTLINE_OVER = 6000  # characters: bigger files are shown as an outline in "outl
 def build_project_text(root, files, mode="full"):
     """mode: 'full' (every selected file), 'outline' (big files become skeletons), 'tree' (structure + README only)."""
     name = os.path.basename(root.rstrip("\\/")) or root
-    out = [f"Project: {name}", f"Folder: {root}", f"Files included: {len(files)}   Mode: {mode}"]
+    out = [f"Project: {name}", f"Files included: {len(files)}   Mode: {mode}"]   # no full path: it usually contains the Windows user name
     branch = _git(root, "rev-parse", "--abbrev-ref", "HEAD")
     if branch:
         out += ["", "Git branch: " + branch.strip()]
@@ -324,10 +360,11 @@ def project_conv(root, files, mode="full"):
 # ---------------------------------------------------------------- size, compacting, privacy
 _TOKEN_PIECE = re.compile(r"[A-Za-z]+|\d+|[^\sA-Za-z\d]")
 _ANSI = re.compile(r"\x1b\[[0-9;]*[A-Za-z]")
-_EMAIL = re.compile(r"[\w.+-]+@[\w-]+\.[\w.-]+")
+_EMAIL = re.compile(r"(?<![\w.+-])[\w.+-]{1,64}@[\w-]{1,63}(?:\.[\w-]{1,63})+")   # the look-behind + caps keep this linear on long text
 _PHONE = re.compile(r"(?<!\d)(?:\+?1[\s.-]?)?\(?\d{3}\)?[\s.-]\d{3}[\s.-]\d{4}(?!\d)")
-_USER_PATH = re.compile(r"(?i)(C:\\Users\\)[^\\\s\"'<>|]+")
-_KEY_ASSIGN = re.compile(r"(?i)\b(api[_-]?key|secret|token|password|passwd)\b(\s*[:=]\s*)[\"']?[^\s\"']{8,}[\"']?")
+_USER_PATH = re.compile(r"(?i)(C:(?:\\{1,4}|/)Users(?:\\{1,4}|/))[^\\/\s\"'<>|]+")   # C:\Users\x, C:\\Users\\x (JSON) and C:/Users/x
+_KEY_ASSIGN = re.compile(r"(?i)([\w.-]{0,40}(?:api[_-]?key|secret|token|passw(?:or)?d|pwd|auth)[\w.-]{0,40})(\s*[:=]\s*)"
+                         r"(?:\"[^\"\n]{4,200}\"|'[^'\n]{4,200}'|[^\s\"']{8,})")   # quoted values may contain spaces
 
 
 def estimate_tokens(text):
@@ -411,9 +448,26 @@ def find_exe(name):
     return shutil.which(first)
 
 
+HANDOFF_DIR = os.path.join(os.path.expanduser("~"), "ChatBridge", "handoffs")
+
+
+def prune_handoffs(days=7, folder=None):
+    """These files hold full chat text, so don't let them pile up: delete the ones older than a week."""
+    folder = folder or HANDOFF_DIR
+    cutoff = time.time() - days * 86400
+    try:
+        for name in os.listdir(folder):
+            p = os.path.join(folder, name)
+            if name.endswith(".md") and os.path.isfile(p) and os.path.getmtime(p) < cutoff:
+                os.remove(p)
+    except OSError:
+        pass
+
+
 def save_handoff_file(text, title):
-    folder = os.path.join(os.path.expanduser("~"), "ChatBridge", "handoffs")
+    folder = HANDOFF_DIR
     os.makedirs(folder, exist_ok=True)
+    prune_handoffs(folder=folder)
     safe = re.sub(r'[\\/:*?"<>|\s]+', "-", title)[:50].strip("-") or "chat"
     path = os.path.join(folder, f"{time.strftime('%Y%m%d-%H%M%S')}-{safe}.md")
     with open(path, "w", encoding="utf-8") as f:
@@ -486,20 +540,40 @@ def scan_apps():
 
 
 # ---------------------------------------------------------------- storage
+_SAVE_LOCK = threading.RLock()
+
+
 def load_json(path, default):
     try:
         with open(path, "r", encoding="utf-8") as f:
             return json.load(f)
-    except (OSError, ValueError):
+    except OSError:
+        return default
+    except ValueError:
+        # A damaged file must not be silently replaced by an empty one on the next save: set it aside so it can be recovered.
+        try:
+            if os.path.getsize(path) > 2:
+                os.replace(path, f"{path}.corrupt-{time.strftime('%Y%m%d-%H%M%S')}")
+        except OSError:
+            pass
         return default
 
 
 def save_json(path, data):
-    os.makedirs(APP_DIR, exist_ok=True)
-    tmp = path + ".tmp"
-    with open(tmp, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=1)
-    os.replace(tmp, path)
+    """Write atomically, from any thread: a unique temp file per call, one lock, and a .bak of the previous version."""
+    with _SAVE_LOCK:
+        os.makedirs(os.path.dirname(path) or APP_DIR, exist_ok=True)
+        tmp = f"{path}.{os.getpid()}.{threading.get_ident()}.tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=1)
+            f.flush()
+            os.fsync(f.fileno())
+        if os.path.exists(path):
+            try:
+                shutil.copyfile(path, path + ".bak")
+            except OSError:
+                pass
+        os.replace(tmp, path)
 
 
 # ---------------------------------------------------------------- parsing
@@ -582,15 +656,43 @@ def parse_generic(item, source="Imported"):
     return new_conv(item.get("title") or item.get("name"), item.get("source") or source, msgs)
 
 
+def _s(v, limit):
+    return v[:limit] if isinstance(v, str) else ""
+
+
+def clean_conv(d, trusted=False):
+    """Keep only the fields we understand, with the right types and sizes. Returns None if there's nothing usable.
+
+    Imported files are untrusted: they could carry markup meant for the page, wrong types that crash the app, or an
+    'origin' that hides real chats. trusted=True (our own library file) additionally keeps id/origin/path.
+    """
+    if not isinstance(d, dict) or not isinstance(d.get("messages"), list):
+        return None
+    msgs = []
+    for m in d["messages"][:5000]:
+        if isinstance(m, dict) and isinstance(m.get("content"), str) and m["content"].strip():
+            msgs.append({"role": _norm_role(m.get("role", "assistant")), "content": m["content"][:200_000]})
+    if not msgs:
+        return None
+    c = {"id": uuid.uuid4().hex, "title": _s(d.get("title"), 120).strip() or "Untitled",
+         "source": _s(d.get("source"), 40).strip() or "Imported", "created": _s(d.get("created"), 32),
+         "summary": _s(d.get("summary"), 20_000), "messages": msgs}
+    if d.get("kind") == "project":
+        c["kind"] = "project"
+        c["mode"] = d.get("mode") if d.get("mode") in ("full", "outline", "tree") else "full"
+    if isinstance(d.get("usage"), dict):
+        c["usage"] = {k: int(v) for k, v in d["usage"].items() if k in ("in", "out", "cache_read", "cache_create") and isinstance(v, int)}
+    if trusted:
+        for k in ("id", "origin", "path"):
+            if isinstance(d.get(k), str) and d[k]:
+                c[k] = d[k][:500]
+    return c
+
+
 def parse_json(data):
     if isinstance(data, dict) and data.get("format") == "chatbridge":
-        out = []
-        for c in data.get("conversations", []):
-            c = dict(c)
-            c["id"] = uuid.uuid4().hex
-            c.setdefault("summary", "")
-            out.append(c)
-        return out
+        convs = data.get("conversations")
+        return [c for c in (clean_conv(x) for x in (convs if isinstance(convs, list) else [])) if c]
     items = data if isinstance(data, list) else [data]
     if items and isinstance(items[0], dict) and "role" in items[0] and "mapping" not in items[0]:
         items = [{"messages": items}]  # bare OpenAI-style messages array
@@ -604,7 +706,7 @@ def parse_json(data):
             out.append(parse_claude(it))
         elif "messages" in it:
             out.append(parse_generic(it))
-    return [c for c in out if c["messages"]]
+    return [c for c in (clean_conv(x) for x in out) if c]   # every import path ends here, so nothing unchecked gets saved
 
 
 _LABEL = (r"you said|chatgpt said|claude said|gemini said|copilot said|user|you|human|me|assistant|"

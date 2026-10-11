@@ -3,6 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<!-- Only this app's own files may run or load. Even if some text from a chat file ever slipped into the page as markup,
+     it couldn't run a script or send anything to another site. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <title>ChatBridge</title>
 <style>html{background:#0f1115}.app{visibility:hidden}</style><!-- hidden until app.css loads, so there's never a flash of unstyled page -->
 <link rel="stylesheet" href="app.css">
