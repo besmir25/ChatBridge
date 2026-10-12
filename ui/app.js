@@ -38,7 +38,7 @@ function applySettings() {
 }
 /* ---------- rendering ---------- */
 const kfmt = n => n >= 10000 ? Math.round(n / 1000) + "k" : n >= 1000 ? (n / 1000).toFixed(1) + "k" : String(n || 0);
-const opts = () => ({auto: true, into_open: S.target !== null && typeof S.target === "number" && $("#intoOpen").checked});   // the app decides: private details hidden, long text shortened only when it needs to be
+const opts = () => ({auto: true, into_open: !$("#intoRow").hidden && $("#intoOpen").checked});   // the app decides: private details hidden, long text shortened only when it needs to be
 const selectedIds = () => [...S.sel].filter(id => S.chats.some(c => c.id === id));
 
 let estTimer, estSeq = 0;
@@ -208,7 +208,9 @@ $("#appGrid").addEventListener("click", e => {
   const t = e.target.closest(".app-tile");
   if (!t) return;
   const k = t.dataset.key;
-  S.target = /^\d+$/.test(k) ? Number(k) : k;
+  const next = /^\d+$/.test(k) ? Number(k) : k;
+  if (next !== S.target) $("#intoOpen").checked = false;       // "add to the open chat" is chosen per send, never carried over
+  S.target = next;
   api().save_settings({...S.settings, last_target: lastName()});
   renderApps(); renderSummary();
 });
