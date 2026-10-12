@@ -3,6 +3,8 @@
 Newest first. Add new entries under **Unreleased**; `python bump_version.py X.Y.Z` turns that section into the release.
 
 ## Unreleased
+- **No more scrolling to find the big button**: the screen fits the window, with the conversation list taking the free space and the app tiles on a single row
+- **Apps that were closed now work the first time**: ChatBridge notices when an app has to start up and waits for it to be ready (and to come back to the front) before pasting, so you no longer have to press the button twice
 - **Just part of a chat**: point at any conversation and press the ☰ button to see it as a notebook — numbered messages grouped under section headings (found automatically, with tags like Code, Decision, Problem, Files). Tick whole sections or single messages, rename sections, and press "Use these parts"
 - The new item can go anywhere (an app, a website, a file, the clipboard). It carries a short outline of the rest of the chat so the AI sees the bigger picture, and the AI is told it's an excerpt to add to the chat you're already having
 - **Add to the chat that's already open**: choose a desktop app and tick the new box, and ChatBridge pastes into the open conversation instead of starting a new one (still never pressing Enter)

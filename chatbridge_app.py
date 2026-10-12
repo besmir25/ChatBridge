@@ -67,6 +67,26 @@ def foreground_title():
     return buf.value.lower()
 
 
+def window_open(key):
+    """Is there a visible window whose title contains `key`? (Used to tell whether an app is already running.)"""
+    if not key:
+        return True
+    u = ctypes.windll.user32
+    found = []
+    enum_type = ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)
+
+    def visit(hwnd, _):
+        if u.IsWindowVisible(hwnd):
+            buf = ctypes.create_unicode_buffer(256)
+            u.GetWindowTextW(hwnd, buf, 256)
+            if key in buf.value.lower():
+                found.append(hwnd)
+                return False
+        return True
+    u.EnumWindows(enum_type(visit), 0)
+    return bool(found)
+
+
 def press(vks):
     u = ctypes.windll.user32
     for vk in vks:
@@ -213,7 +233,8 @@ class Api:
         self._update_fetch = fetch_latest_release   # replaced in tests
         self._made_files = set()                    # files we created, the only ones show_file may reveal
         self._capture_srv, self._capture_port = None, None
-        self._paste_delay = 2.5
+        self._paste_delay = 2.5      # seconds to let an app that is already open settle
+        self._cold_delay = 9.0       # an app that had to start from closed needs longer before its message box works
 
     # ---- updates
     def whats_new(self):
@@ -829,6 +850,7 @@ class Api:
             exe = cb.find_exe(app["name"])
         else:
             set_clipboard(test_marker or text)
+        warm = window_open(prof["title"])      # looked at before launching: was the app already open?
         if callable(app.get("launch_fn")):
             app["launch_fn"]()
         elif exe:
@@ -851,10 +873,19 @@ class Api:
         else:
             self._emit("warn", f"{app['name']} didn't come to the front. Click its message box and press Ctrl+V.")
             return False
-        time.sleep(self._paste_delay)  # let the app finish loading
+        if not warm:
+            self._emit("working", f"{app['name']} is starting up... this takes a few seconds the first time.")
+        time.sleep(self._paste_delay if warm else self._cold_delay)  # let the app finish loading
         if not front():
-            self._emit("warn", f"{app['name']} isn't in front any more. Click its message box and press Ctrl+V.")
-            return False
+            # a freshly started app often flashes a splash screen or loses focus once; give it a moment to come back
+            for _ in range(4 if warm else 30):
+                time.sleep(0.5)
+                if front():
+                    time.sleep(1.5 if not warm else 0.5)
+                    break
+            else:
+                self._emit("warn", f"{app['name']} isn't in front any more. Click its message box and press Ctrl+V.")
+                return False
         if keys:
             press(keys)
             time.sleep(1.2)
