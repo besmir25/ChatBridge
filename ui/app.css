@@ -299,3 +299,31 @@ h1{font-size:1.4em}
 .ic{width:38px;height:38px;border-radius:11px}
 .bar{padding-left:max(28px,calc((100% - 840px)/2 + 28px));padding-right:max(28px,calc((100% - 840px)/2 + 28px))}
 .sec .cell:not(.on) .chk{background:transparent;border-color:var(--mute);color:transparent}
+
+/* ---- option A: inbox style, conversations on the left, the open one on the right ---- */
+.app{height:100vh;overflow:hidden}
+.split{flex:1;min-height:0;display:grid;grid-template-columns:minmax(290px,34%) minmax(0,1fr)}
+.left{display:flex;flex-direction:column;min-height:0;gap:10px;padding:14px 12px 10px;background:var(--panel);border-right:1px solid var(--line)}
+.left .searchrow{margin:0}
+.left .list{flex:1;min-height:0;max-height:none;padding:2px 4px 4px 0}
+.left .links{margin:0;gap:16px}
+.left .card{padding:10px 12px;border-radius:12px;gap:10px}
+.left .card.focus{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}
+.left .card .t small{display:block}
+.left .more-row{display:flex;flex-direction:column;align-items:flex-start}
+.right{display:flex;flex-direction:column;min-height:0;min-width:0;padding:18px 24px 14px;gap:12px;overflow-y:auto}
+.detail{flex:1;min-height:0;display:flex;flex-direction:column}
+#cBody{display:flex;flex-direction:column;flex:1;min-height:0;gap:10px}
+.dhead{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+.dtext{min-width:0}
+.dtitle{font-size:1.25em;font-weight:600;line-height:1.3;overflow-wrap:anywhere}
+.dbtns{display:flex;gap:14px;flex:none}
+#partsBox{display:flex;flex-direction:column;flex:1;min-height:0;gap:8px}
+.parts-h{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.sec-links{display:flex;gap:14px}
+#secBody{flex:1;min-height:60px;overflow:auto;display:flex;flex-direction:column;gap:8px;padding-right:4px}
+.sec{flex:none}
+.dest{flex:none;border-top:1px solid var(--line);padding-top:12px}
+.dest .lbl{margin-bottom:8px}
+.right .empty{margin:auto}
+.bar{padding:12px 24px}

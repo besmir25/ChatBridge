@@ -1,6 +1,6 @@
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c]));
-const S = {chats: [], apps: [], web: [], settings: {theme: "light", font: "sans", size: 17}, sel: new Set(), target: null, site: 0, busy: false, scanning: true,
+const S = {chats: [], apps: [], web: [], settings: {theme: "light", font: "sans", size: 17}, sel: new Set(), target: null, focus: null, site: 0, busy: false, scanning: true,
            query: "", hits: {}, toolsChosen: false};
 /* "web" is the single "A website" tile; the site inside it is chosen in a small list ("none" = I'll open it myself) */
 const targetKey = () => S.target === "web" ? (S.site === "none" ? "web:none" : "web:" + S.site) : S.target;
@@ -45,7 +45,7 @@ let estTimer, estSeq = 0;
 function scheduleEstimate() { clearTimeout(estTimer); estTimer = setTimeout(refreshEstimate, 250); }
 async function refreshEstimate() {
   const ids = selectedIds(), box = $("#estimate"), seq = ++estSeq;
-  if (!ids.length) { box.innerHTML = ""; return; }
+  if (!ids.length || isPartial()) { box.innerHTML = ""; return; }
   const e = await api().estimate(ids, targetKey(), opts());
   if (seq !== estSeq || !e) return;
   /* say something only when there's something to say, in plain words */
@@ -82,15 +82,12 @@ function renderChats() {
   L.innerHTML = Object.entries(groups).filter(([, items]) => items.length).map(([name, items]) => `
     <div class="grp-head">${esc(name)}</div>
     ${items.map(c => `
-      <div class="card ${S.sel.has(c.id) ? "on" : ""}" data-id="${esc(c.id)}" draggable="true">
-        <span class="chk">✓</span>
+      <div class="card ${S.sel.has(c.id) ? "on" : ""} ${S.focus === c.id ? "focus" : ""}" data-id="${esc(c.id)}" draggable="true">
+        <span class="chk" data-tick title="Tick to send more than one conversation">✓</span>
         <div class="t"><b title="${esc(c.title)}">${esc(c.title)}</b><small class="when">${c.kind === "project" ? "Code project · " : ""}${["Today", "Yesterday"].includes(name) ? "" : esc(relDate(c.created)) + (c.source && c.kind !== "project" ? " · " : "")}${c.source && c.kind !== "project" ? esc(c.source) : ""}</small>${S.hits[c.id] && S.query.trim() ? `<span class="snip">${esc(S.hits[c.id])}</span>` : ""}</div>
-        <button class="eye" data-view="${esc(c.id)}" title="Read it">◉</button>
-        ${c.kind === "project" ? "" : `<button class="sbtn" data-sections="${esc(c.id)}" title="Pick just some parts of this conversation">☰</button>`}
-        <button class="ren" data-rename="${esc(c.id)}" title="Rename">✎</button>
-        ${c.saved ? `<button class="x" data-del="${esc(c.id)}" title="Remove from ChatBridge (the original stays where it is)">×</button>` : ""}
       </div>`).join("")}`).join("");
 }
+
 /* plain-language helpers for the list */
 const DATE_GROUPS = ["Today", "Yesterday", "Last 7 days", "Last 30 days", "Older"];
 function ageDays(s) {
@@ -152,7 +149,7 @@ function renderApps() {
 }
 
 function renderSummary() {
-  const n = selectedIds().length, items = n === 1 ? "this conversation" : `these ${n} conversations`;
+  const n = selectedIds().length, items = isPartial() ? "the parts you ticked" : n === 1 ? "this conversation" : `these ${n} conversations`;
   const t = S.target;
   const app = typeof t === "number" ? S.apps.find(a => a.key === t) : null;
   const site = t === "web" && S.site !== "none" ? S.web[S.site] : null;
@@ -174,36 +171,34 @@ function renderSummary() {
   $("#btnSend").classList.toggle("off", !ready || S.busy);
   $("#btnSend").dataset.ready = ready ? "1" : "";
   scheduleEstimate();
-}const renderAll = () => { renderChats(); renderApps(); renderSummary(); };
+}const renderAll = () => { renderChats(); renderDetail(); renderApps(); renderSummary(); };
 
 /* ---------- events ---------- */
-$("#chatList").addEventListener("click", async e => {
-  const del = e.target.closest("[data-del]"), view = e.target.closest("[data-view]"), grp = e.target.closest("[data-grp]"), card = e.target.closest(".card");
-  const secBtn = e.target.closest("[data-sections]");
-  if (secBtn) { e.stopPropagation(); return openSections(secBtn.dataset.sections); }
-  if (del) {
-    e.stopPropagation();
-    S.sel.delete(del.dataset.del);
-    S.chats = await api().delete_chats([del.dataset.del]);
-    return renderAll();
-  }
-  if (view) {
-    e.stopPropagation();
-    const p = await api().preview(view.dataset.view);
-    if (!p) return;
-    $("#vTitle").textContent = p.title;
-    $("#vSub").textContent = (p.source || "") + (p.kind === "project" ? " · project files" : "");
-    $("#vBody").innerHTML = p.messages.map(m => `<div class="bubble ${m.role === "user" ? "u" : "a"}">${esc(m.content)}</div>`).join("");
-    return open("#mPreview");
-  }
-  if (grp) {
-    const ids = S.chats.filter(c => c.source === grp.dataset.grp).map(c => c.id);
-    const allOn = ids.every(i => S.sel.has(i));
-    ids.forEach(i => allOn ? S.sel.delete(i) : S.sel.add(i));
-    return renderAll();
-  }
-  if (card) { const id = card.dataset.id; S.sel.has(id) ? S.sel.delete(id) : S.sel.add(id); renderAll(); }
+$("#chatList").addEventListener("click", e => {
+  const card = e.target.closest(".card");
+  if (!card) return;
+  const id = card.dataset.id;
+  if (e.target.closest("[data-tick]")) {                       // the small box: add or remove it from the ticked set
+    S.sel.has(id) ? S.sel.delete(id) : S.sel.add(id);
+    if (!S.focus || !S.sel.has(S.focus)) S.focus = S.sel.has(id) ? id : ([...S.sel][0] || null);
+  } else { S.focus = id; S.sel = new Set([id]); }              // the row itself: open just this one
+  renderAll();
 });
+/* Read / Rename / Remove for the open conversation */
+$("#cRead").onclick = async () => {
+  const p = await api().preview(S.focus);
+  if (!p) return;
+  $("#vTitle").textContent = p.title;
+  $("#vSub").textContent = (p.source || "") + (p.kind === "project" ? " · project files" : "");
+  $("#vBody").innerHTML = p.messages.map(m => `<div class="bubble ${m.role === "user" ? "u" : "a"}">${esc(m.content)}</div>`).join("");
+  open("#mPreview");
+};
+$("#cRemove").onclick = async () => {
+  const id = S.focus;
+  S.sel.delete(id); S.focus = null;
+  S.chats = await api().delete_chats([id]);
+  renderAll();
+};
 $("#appGrid").addEventListener("click", e => {
   const t = e.target.closest(".app-tile");
   if (!t) return;
@@ -237,7 +232,7 @@ $("#appGrid").addEventListener("drop", e => {
   const t = e.target.closest(".app-tile");
   if (!t || !dragId) return;
   e.preventDefault(); t.classList.remove("drop");
-  if (!S.sel.has(dragId)) { S.sel.clear(); S.sel.add(dragId); }       // dropping an unticked chat sends just that one
+  if (!S.sel.has(dragId)) { S.sel = new Set([dragId]); S.focus = dragId; }       // dropping an unticked chat sends just that one
   const k = t.dataset.key;
   S.target = /^\d+$/.test(k) ? Number(k) : k;
   renderAll(); doSend();
@@ -245,35 +240,60 @@ $("#appGrid").addEventListener("drop", e => {
 $("#btnHelp").onclick = () => open("#mHelp");
 $("#intoOpen").onchange = renderSummary;
 
-/* ---------- sections: a long chat as a notebook ---------- */
+/* ---------- the open conversation, as a notebook of sections ---------- */
 const SEC = {id: null, data: null, sel: new Set(), titles: {}, open: new Set()};
-async function openSections(id) {
-  const d = await api().sections(id);
-  if (d.error) return toast(d.error, "warn");
-  Object.assign(SEC, {id, data: d, sel: new Set(), titles: {}, open: new Set()});
-  $("#secTitle").textContent = "Choose parts of “" + d.title + "”";
-  renderSections(); open("#mSections");
-}
 const secCells = s => SEC.data.cells.slice(s.start, s.end);
+/* true when only some messages of the single open conversation are ticked */
+const isPartial = () => SEC.id === S.focus && SEC.sel.size > 0 && selectedIds().length === 1 && S.sel.has(S.focus);
+function renderDetail() {
+  const ids = selectedIds();
+  if (S.focus && !S.chats.some(c => c.id === S.focus)) S.focus = null;
+  if (!S.focus && ids.length) S.focus = ids[0];
+  const c = S.chats.find(c => c.id === S.focus);
+  $("#cEmpty").hidden = !!c; $("#cBody").hidden = !c;
+  if (!c) return;
+  $("#cTitle").textContent = c.title;
+  $("#cMeta").textContent = [c.kind === "project" ? "Code project" : c.count + " messages", pagesOf(c.tokens), c.source].filter(Boolean).join(" · ");
+  $("#cRemove").hidden = !c.saved;
+  const multi = ids.length > 1, proj = c.kind === "project";
+  $("#partsBox").hidden = multi || proj;
+  $("#multiNote").hidden = !(multi || proj);
+  $("#multiNote").textContent = multi ? `${ids.length} conversations are ticked, and each is sent whole. To send just part of one, click it without ticking the others.`
+                                      : "Code projects are sent as a whole. To change which files come along, use More options → Bring a code project.";
+  if (multi || proj) return;
+  if (SEC.id !== c.id) {                                         // a different conversation: read its sections
+    Object.assign(SEC, {id: c.id, data: null, sel: new Set(), titles: {}, open: new Set()});
+    api().sections(c.id).then(d => {
+      if (SEC.id !== c.id) return;
+      SEC.data = d.error ? {sections: [], cells: []} : d;
+      if (SEC.data.sections.length === 1) SEC.open.add(0);
+      renderSections(); renderSummary();
+    });
+  }
+  renderSections();
+}
 function renderSections() {
-  const d = SEC.data;
-  $("#secBody").innerHTML = d.sections.map((s, k) => {
+  const d = SEC.data, box = $("#secBody");
+  if (!$("#partsBox").hidden === false) return;
+  const partial = isPartial();
+  $("#partNote").textContent = partial ? `Sending ${SEC.sel.size} of ${d ? d.cells.length : "?"} messages` : "Sending the whole conversation — or tick parts of it";
+  $("#secClear").hidden = !partial; $("#outlineRow").hidden = !partial;
+  if (!d) { box.innerHTML = '<div class="empty" style="padding:14px">Reading the conversation…</div>'; return; }
+  if (!d.sections.length) { box.innerHTML = ""; return; }
+  box.innerHTML = d.sections.map((s, k) => {
     const cells = secCells(s), n = cells.filter(c => SEC.sel.has(c.i)).length;
     const state = n === 0 ? "" : n === cells.length ? "on" : "some";
     const isOpen = SEC.open.has(k);
-    return `<div class="sec ${state}" data-k="${k}" style="margin-bottom:10px">
+    return `<div class="sec ${state}" data-k="${k}">
       <div class="sec-head"><button class="arrow" data-toggle="${k}" title="Open or close">${isOpen ? "▾" : "▸"}</button>
         <span class="chk" data-pick="${k}" title="Tick this whole section">${n === cells.length ? "✓" : n ? "–" : "✓"}</span>
         <input class="sectitle" data-title="${k}" value="${esc(SEC.titles[k] ?? s.title)}" maxlength="100" aria-label="Section name">
         ${s.tags.map(t => `<span class="tagchip">${esc(t)}</span>`).join("")}
-        <span class="sec-meta">${cells.length} messages · ${esc(pagesOf(s.tokens))}</span></div>
+        <span class="sec-meta">${cells.length} messages</span></div>
       ${isOpen ? `<div class="cells">${cells.map(c => `<div class="cell ${SEC.sel.has(c.i) ? "on" : ""}" data-cell="${c.i}">
         <span class="chk">✓</span><span class="who">${c.role === "user" ? "You" : "AI"}</span><span class="txt">${esc(c.text)}${c.more ? "…" : ""}</span></div>`).join("")}</div>` : ""}
     </div>`;
   }).join("");
-  const total = d.cells.length;
-  $("#secCount").textContent = `${SEC.sel.size} of ${total} messages ticked`;
-  $("#secGo").classList.toggle("off", !SEC.sel.size);
 }
 $("#secBody").addEventListener("click", e => {
   if (e.target.matches("input.sectitle")) return;
@@ -284,29 +304,27 @@ $("#secBody").addEventListener("click", e => {
     cells.forEach(c => all ? SEC.sel.delete(c.i) : SEC.sel.add(c.i));
   } else if (cell) { const i = Number(cell.dataset.cell); SEC.sel.has(i) ? SEC.sel.delete(i) : SEC.sel.add(i); }
   else return;
-  renderSections();
+  renderSections(); renderSummary();
 });
 $("#secBody").addEventListener("change", e => { if (e.target.matches("input.sectitle")) SEC.titles[e.target.dataset.title] = e.target.value; });
-$("#secAll").onclick = () => { SEC.data.cells.forEach(c => SEC.sel.add(c.i)); renderSections(); };
-$("#secNone").onclick = () => { SEC.sel.clear(); renderSections(); };
-$("#secOpenAll").onclick = () => { SEC.data.sections.forEach((s, k) => SEC.open.add(k)); renderSections(); };
+$("#secClear").onclick = () => { SEC.sel.clear(); renderSections(); renderSummary(); };
+$("#secOpenAll").onclick = () => { if (SEC.data) SEC.data.sections.forEach((s, k) => SEC.open.add(k)); renderSections(); };
 $("#secCloseAll").onclick = () => { SEC.open.clear(); renderSections(); };
-$("#secGo").onclick = async () => {
-  if (!SEC.sel.size) return toast("Tick at least one section or message first.", "warn");
+/* if only some messages are ticked, make them into their own item first; returns the ids to send */
+async function idsToSend() {
+  if (!isPartial()) return selectedIds();
   const r = await api().make_part(SEC.id, [...SEC.sel], SEC.titles, $("#secOutline").checked);
-  if (r.error) return toast(r.error, "warn");
-  S.chats = r.chats; S.sel = new Set([r.id]); close("#mSections"); renderAll();
-  toast("Made a new item with just those parts. Now choose where it should go.", "good", 6000);
-};
+  if (r.error) { toast(r.error, "warn"); return []; }
+  S.chats = r.chats; renderChats();
+  return [r.id];
+}
 
 /* rename a chat to something you'll recognise */
 let renameId = null;
-$("#chatList").addEventListener("click", e => {
-  const b = e.target.closest("[data-rename]");
-  if (!b) return;
-  e.stopPropagation(); renameId = b.dataset.rename;
+$("#cRename").onclick = () => {
+  renameId = S.focus;
   $("#rnInput").value = (S.chats.find(c => c.id === renameId) || {}).title || ""; open("#mRename"); $("#rnInput").select();
-}, true);
+};
 const doRename = async () => {
   const r = await api().rename_chat(renameId, $("#rnInput").value);
   if (r.error) return toast(r.error, "warn");
@@ -365,7 +383,9 @@ $("#tlSave").onclick = async () => {
 };
 /* "A file": save the ticked conversations as a file you can attach on any AI website */
 async function saveAsFile() {
-  const r = await api().export_selected(selectedIds(), opts());
+  const ids = await idsToSend();
+  if (!ids.length) { S.busy = false; return renderSummary(); }
+  const r = await api().export_selected(ids, opts());
   S.busy = false; renderSummary();
   if (r.cancelled) return;
   if (r.error) return toast(r.error, "err");
@@ -383,6 +403,7 @@ $("#btnFile").onclick = async () => {
   const r = await api().import_files();
   S.chats = r.chats;
   (r.ids || []).forEach(i => S.sel.add(i));
+  if (r.ids && r.ids.length) S.focus = r.ids[0];
   renderAll();
   if (r.errors && r.errors.length) toast(r.errors.join("\n"), "err", 8000);
   else if (r.ids && r.ids.length) toast(`Added ${r.ids.length} chat${r.ids.length === 1 ? "" : "s"}.`, "good");
@@ -391,7 +412,7 @@ $("#btnPaste").onclick = () => { open("#mPaste"); $("#pText").focus(); };
 $("#pAdd").onclick = async () => {
   const r = await api().add_text($("#pTitle").value, $("#pSource").value, $("#pText").value);
   if (r.error) return toast(r.error, "err");
-  S.chats = r.chats; S.sel.add(r.id); $("#pText").value = ""; close("#mPaste"); renderAll(); toast("Chat added.", "good");
+  S.chats = r.chats; S.sel = new Set([r.id]); S.focus = r.id; $("#pText").value = ""; close("#mPaste"); renderAll(); toast("Chat added.", "good");
 };
 
 let prj = null;
@@ -446,7 +467,7 @@ $("#prjNone").onclick = () => { prj.on.clear(); renderPrj(); };
 $("#prjAdd").onclick = async () => {
   const r = await api().add_project([...prj.on], prjMode());
   if (r.error) return toast(r.error, "err");
-  S.chats = r.chats; S.sel.add(r.id); close("#mProject"); renderAll(); toast("Project added and ticked.", "good");
+  S.chats = r.chats; S.sel = new Set([r.id]); S.focus = r.id; close("#mProject"); renderAll(); toast("Project added and ticked.", "good");
 };
 
 $("#btnSettings").onclick = () => {
@@ -510,7 +531,7 @@ $("#sCopyToken").onclick = async () => {
 };
 $("#sExt").onclick = async () => { const r = await api().open_extension_folder(); if (r.error) toast(r.error, "warn"); };
 window.onCaptured = info => {          // a chat arrived from the browser extension
-  S.chats = info.chats; S.sel.add(info.id); renderAll();
+  S.chats = info.chats; S.sel = new Set([info.id]); S.focus = info.id; renderAll();
   toast(`Saved “${info.title}” from ${info.source}.`, "good", 6000);
 };
 $("#sTheme").onchange = () => { S.settings.theme = $("#sTheme").value; applySettings(); };
@@ -525,11 +546,12 @@ $("#sSave").onclick = async () => {
 /* ---------- sending ---------- */
 async function doSend() {
   if (S.busy) return;
-  const ids = selectedIds();
-  if (!ids.length) return toast("Pick a conversation first.", "warn");
+  if (!selectedIds().length) return toast("Pick a conversation first.", "warn");
   if (S.target === null) return toast("Choose where you want to continue it.", "warn");
   S.busy = true; renderSummary();
   if (S.target === "file") return saveAsFile();
+  const ids = await idsToSend();
+  if (!ids.length) { S.busy = false; return renderSummary(); }
   const r = await api().send(ids, targetKey(), opts());
   if (r.error) { S.busy = false; renderSummary(); return toast(r.error, "warn"); }
   S.chats = r.chats; S.settings = r.settings || S.settings; renderChats();
@@ -554,7 +576,7 @@ $("#histBody").onclick = e => {
   const live = h.ids.filter(id => S.chats.some(c => c.id === id));
   if (!live.length) return toast("Those chats aren’t in the list any more.", "warn");
   const app = S.apps.find(a => a.name === h.target), siteIx = S.web.findIndex(w => w.name === h.target);
-  S.sel = new Set(live); S.target = h.target_key === "copy" ? "copy" : app ? app.key : (siteIx >= 0 || h.target_key === "web:none") ? "web" : null;
+  S.sel = new Set(live); S.focus = live[0]; S.target = h.target_key === "copy" ? "copy" : app ? app.key : (siteIx >= 0 || h.target_key === "web:none") ? "web" : null;
   if (S.target === "web") S.site = siteIx >= 0 ? siteIx : "none";
   if (S.target === null) return toast(`${h.target} isn’t available right now.`, "warn");
   close("#mHistory"); renderAll(); doSend();

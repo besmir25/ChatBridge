@@ -21,43 +21,55 @@
     </div>
   </header>
 
-  <div class="scroll"><div class="page">
-    <div>
-      <h1>Continue a conversation somewhere new</h1>
-      <p class="lead">Pick a conversation, choose where it should go, and ChatBridge carries it over.</p>
-    </div>
-
-    <section class="block grow">
-      <h2><span class="num">1</span>Which conversation?</h2>
+  <main class="split">
+    <aside class="left">
       <div class="searchrow"><input type="search" id="chatSearch" placeholder="Search your conversations" autocomplete="off"><span class="note" id="searchNote"></span></div>
       <div class="list" id="chatList"></div>
       <div class="links">
         <button class="link" id="btnFile" title="Add a conversation you saved or exported as a file (for example from ChatGPT)">Add from a file</button>
         <button class="link" id="btnPaste" title="Paste a conversation you copied from anywhere">Paste text</button>
       </div>
-    </section>
+      <details class="more">
+        <summary>More options</summary>
+        <div class="more-row">
+          <button class="pill" id="btnProject" title="Bring a folder of code or documents along">Bring a code project</button>
+          <button class="pill" id="btnTools" title="Choose which AI apps appear on the right">Choose which apps to show</button>
+          <button class="pill" id="btnHistory" title="What you sent, and where">What I’ve sent</button>
+          <button class="pill" id="btnRefresh" title="Look again for newly installed AI apps and new conversations">Look again</button>
+        </div>
+      </details>
+    </aside>
 
-    <section class="block">
-      <h2><span class="num">2</span>Where do you want to continue it?</h2>
-      <div class="grid" id="appGrid"></div>
-      <div class="webpick" id="webPick" hidden>
-        <label for="webSite">Open</label><select id="webSite"></select>
-        <span class="note" id="webNote"></span>
+    <section class="right">
+      <div class="detail">
+        <div class="empty" id="cEmpty"><b>Pick a conversation</b>Choose one on the left to see what’s in it and where you can continue it.</div>
+        <div id="cBody" hidden>
+          <div class="dhead">
+            <div class="dtext"><div class="dtitle" id="cTitle"></div><div class="sub" id="cMeta"></div></div>
+            <div class="dbtns"><button class="link" id="cRead">Read</button><button class="link" id="cRename">Rename</button><button class="link" id="cRemove">Remove</button></div>
+          </div>
+          <div id="partsBox">
+            <div class="parts-h"><span class="lbl" id="partNote">Sending the whole conversation</span>
+              <span class="sec-links"><button class="link" id="secClear" hidden>Send the whole thing</button><button class="link" id="secOpenAll">Open all</button><button class="link" id="secCloseAll">Close all</button></span></div>
+            <div id="secBody"></div>
+            <label class="sw sm" id="outlineRow" hidden><input type="checkbox" id="secOutline" checked> Add a short outline of the rest, so the AI sees the bigger picture</label>
+          </div>
+          <div class="note" id="multiNote" hidden></div>
+        </div>
       </div>
-      <label class="sw into" id="intoRow" hidden><input type="checkbox" id="intoOpen"> Add it to the chat that’s already open in the app (instead of starting a new one)</label>
-      <div class="found" id="foundLine"></div>
-    </section>
 
-    <details class="more">
-      <summary>More options</summary>
-      <div class="more-row">
-        <button class="pill" id="btnProject" title="Bring a folder of code or documents along">Bring a code project</button>
-        <button class="pill" id="btnTools" title="Choose which AI apps appear above">Choose which apps to show</button>
-        <button class="pill" id="btnHistory" title="What you sent, and where">What I’ve sent</button>
-        <button class="pill" id="btnRefresh" title="Look again for newly installed AI apps and new conversations">Look again</button>
+      <div class="dest">
+        <div class="lbl">Continue it in</div>
+        <div class="grid" id="appGrid"></div>
+        <div class="webpick" id="webPick" hidden>
+          <label for="webSite">Open</label><select id="webSite"></select>
+          <span class="note" id="webNote"></span>
+        </div>
+        <label class="sw into" id="intoRow" hidden><input type="checkbox" id="intoOpen"> Add it to the chat that’s already open in the app (instead of starting a new one)</label>
+        <div class="found" id="foundLine"></div>
       </div>
-    </details>
-  </div></div>
+    </section>
+  </main>
 
   <footer class="bar">
     <div class="sum">
@@ -67,6 +79,7 @@
     <button class="go off" id="btnSend"><span id="sendLabel">Continue</span></button>
   </footer>
 </div>
+
 <div class="toast" id="toast"></div>
 
 <!-- paste text -->
@@ -191,19 +204,6 @@
     </div>
   </div>
   <div class="sheet-foot"><button class="btn primary" data-close>Got it</button></div>
-</div></div>
-
-<!-- sections: a long chat as a notebook -->
-<div class="modal" id="mSections" hidden><div class="sheet" style="width:min(840px,95vw)">
-  <div class="sheet-head" id="secTitle">Choose parts of this conversation</div>
-  <div class="sheet-sub">Tick whole sections or single messages. Click a section’s name to rename it.</div>
-  <div class="sheet-body">
-    <div class="sec-tools"><button class="link" id="secAll">Tick everything</button><button class="link" id="secNone">Clear</button>
-      <button class="link" id="secOpenAll">Open all</button><button class="link" id="secCloseAll">Close all</button><span class="note" id="secCount"></span></div>
-    <div id="secBody"></div>
-  </div>
-  <div class="sheet-foot"><label class="sw sm" style="margin-right:auto"><input type="checkbox" id="secOutline" checked> Add a short outline of the rest, so the AI sees the bigger picture</label>
-    <button class="btn" data-close>Cancel</button><button class="btn primary" id="secGo">Use these parts</button></div>
 </div></div>
 
 <!-- rename -->

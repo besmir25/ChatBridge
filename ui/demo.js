@@ -71,14 +71,14 @@ if (!window.pywebview && /[?&]demo/.test(location.search)) {
   }};
   /* ?demo&pick preselects two chats and Claude; ?demo&modal=project|history|settings opens that dialog */
   setTimeout(() => {
-    if (/[?&]pick/.test(location.search)) { S.sel = new Set(["1", "2"]); S.target = 0; renderAll(); }
+    if (/[?&]pick/.test(location.search)) { S.sel = new Set(["1"]); S.focus = "1"; S.target = 0; renderAll(); }
     const m = (location.search.match(/modal=(\w+)/) || [])[1];
     const btn = {project: "#btnProject", history: "#btnHistory", settings: "#btnSettings", choose: "#btnTools", help: "#btnHelp"}[m];
     if (/[?&]more/.test(location.search)) document.querySelector(".more").open = true;
         if (/[?&]search=/.test(location.search)) { const i = document.querySelector("#chatSearch"); i.value = decodeURIComponent(location.search.match(/search=([^&]+)/)[1]); i.dispatchEvent(new Event("input")); }
-    if (/[?&]webpick/.test(location.search)) { S.sel = new Set(["1", "2"]); S.target = "web"; S.site = 0; renderAll(); }
+    if (/[?&]webpick/.test(location.search)) { S.sel = new Set(["1"]); S.focus = "1"; S.target = "web"; S.site = 0; renderAll(); }
     if (btn) document.querySelector(btn).click();
     if (m === "update") document.querySelector("#chipUpdate").click();
-    if (m === "sections") { openSections("1").then(() => { SEC.open = new Set([1]); SEC.sel = new Set([4, 6]); renderSections(); }); }
+    if (/[?&]parts/.test(location.search)) { S.sel = new Set(["1"]); S.focus = "1"; S.target = 0; renderAll(); setTimeout(() => { SEC.open = new Set([1]); SEC.sel = new Set([4, 6]); renderSections(); renderSummary(); }, 600); }
   }, 1500);
 }

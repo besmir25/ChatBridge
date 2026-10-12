@@ -7,12 +7,14 @@
 You started a conversation in one AI and want to continue it in another — or hand a project to a new model. Today that means
 copying and pasting, losing context, and re-explaining everything. ChatBridge does it in three simple steps.
 
-![ChatBridge: pick a conversation, choose where it goes, press the big button](docs/screenshots/main.png)
+![ChatBridge: conversations on the left, the open one and where it can go on the right](docs/screenshots/main.png)
+
+![Sending just part of a conversation](docs/screenshots/parts.png)
 
 ## How it works
 
-1. **Which conversation?** — ChatBridge lists the conversations it found on your PC (add more from a file or by pasting text).
-2. **Where do you want to continue it?** — one of your AI apps (shown with its real icon), **a website** (ChatGPT, Claude.ai, Gemini and others), **a file**, or just copy it.
+1. **Pick a conversation** — ChatBridge lists the conversations it found on your PC on the left (add more from a file or by pasting text). Click one to open it.
+2. **Choose where to continue it** — on the right: one of your AI apps (shown with its real icon), **a website** (ChatGPT, Claude.ai, Gemini and others), **a file**, or just copy it.
 3. **Press the big button** — the app opens and the conversation is put in place. **You read it and press Enter yourself.**
 
 ## Features
