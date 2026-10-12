@@ -18,7 +18,11 @@ about to send before it does.
 
 ## Features
 
-- **Finds your AI apps** — Claude, ChatGPT, Copilot, Antigravity, local models such as Ollama, and more.
+- **Finds your AI apps** — Claude, ChatGPT, Copilot, Antigravity, local models such as Ollama, and more. Installed something
+  new? Press **Refresh**. **Choose tools** lets you decide which apps and websites show up.
+- **Sends to AI websites too** — ChatGPT, Claude.ai, Gemini and others: your chat is copied and saved as a file, and the site opens in
+  your browser. **Save as file…** exports chats as Markdown, text or a re-importable file.
+- **Easy to browse** — readable chat names, grouped by date or by app, with search that looks inside the conversations.
 - **Finds your chats** — those stored on this PC (Claude Code, Codex, Gemini CLI, LM Studio, Jan), and imports ChatGPT and Claude
   exports, pasted text and markdown.
 - **Saves web chats in one click** with the included browser extension (ChatGPT, Claude.ai, Gemini).
@@ -34,7 +38,8 @@ about to send before it does.
 
 | | |
 |---|---|
-| ![Send history](docs/screenshots/history.png) | ![Color themes](docs/screenshots/themes.png) |
+| ![Choose which tools to show](docs/screenshots/tools.png) | ![Send history](docs/screenshots/history.png) |
+| ![Color themes](docs/screenshots/themes.png) | |
 
 > The screenshots use sample data and placeholder icons. On your PC ChatBridge shows each app's real icon, taken from Windows.
 
@@ -43,8 +48,11 @@ about to send before it does.
 Download **`ChatBridge-Setup.exe`** from the [Releases](../../releases) page and run it. It installs for your Windows account
 only and needs no administrator rights. It also installs an uninstaller you can reach from *Settings → Apps*.
 
-> ChatBridge is new and not code-signed yet, so Windows may show an *unknown publisher* warning. Each release lists a SHA-256
-> checksum so you can verify the download.
+### If Windows says "Windows protected your PC"
+ChatBridge is new and not code-signed yet, so Windows SmartScreen shows a blue or red box for any program it hasn't seen
+many times before. It doesn't mean something is wrong. To continue, click **More info**, then **Run anyway**.
+Each release lists a SHA-256 checksum (`SHA256SUMS.txt`) if you want to verify the download first. Code signing is planned, which
+will remove the warning over time.
 
 **Requirements:** Windows 10 or 11 with the Microsoft Edge WebView2 runtime (already included in Windows 11).
 

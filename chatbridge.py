@@ -768,11 +768,37 @@ def _mtime(path):
     return time.strftime("%Y-%m-%d %H:%M", time.localtime(os.path.getmtime(path)))
 
 
+_AT_MENTION = re.compile(r'@"[^"]*"|@\S+')
+_URL_IN_TEXT = re.compile(r"https?://([^\s/?#]+)\S*")
+
+
+def _strip_tags(text):
+    """Remove hidden control markup like <environment_context>…</environment_context> that some apps put in their chats."""
+    text = re.sub(r"<([A-Za-z_][\w:.-]*)(?:\s[^>]*)?>.*?</\1>", " ", text or "", flags=re.S)
+    return re.sub(r"</?[A-Za-z_][\w:.-]*(?:\s[^>]*)?/?>", " ", text)
+
+
+def friendly_title(text, limit=64, fallback="Untitled chat"):
+    """A readable name for a chat made from its first message: no file paths or @mentions, links shortened to the site
+    name, the first sentence only, and not too long."""
+    t = _strip_tags(_AT_MENTION.sub(" ", text or ""))
+    t = _URL_IN_TEXT.sub(lambda m: m.group(1), t)
+    t = re.sub(r"\s+", " ", t).strip(" .,:;-—")
+    first = re.split(r"(?<=[.!?])\s", t, maxsplit=1)[0].strip(" .")
+    if len(first) >= 12:
+        t = first
+    if len(t) > limit:
+        cut = t[:limit].rsplit(" ", 1)[0] or t[:limit]
+        t = cut.rstrip(" .,;:-") + "…"
+    return (t[:1].upper() + t[1:]) if t else fallback
+
+
 def _title_from(msgs, fallback):
     for m in msgs:
         if m["role"] == "user":
-            line = m["content"].strip().splitlines()[0]
-            return line[:80] or fallback
+            t = friendly_title(m["content"], fallback="")
+            if len(t) >= 3:                 # skip messages that were only hidden markup
+                return t
     return fallback
 
 
@@ -813,7 +839,7 @@ def parse_codex(path):
                 continue
             if p.get("type") == "message" and p.get("role") in ("user", "assistant"):
                 text = _text_blocks(p.get("content")).strip()
-                if text and not text.startswith("<environment_context"):
+                if text and _strip_tags(text).strip():       # skip messages that are only hidden markup (no real words)
                     msgs.append({"role": p["role"], "content": text})
     return new_conv(_title_from(msgs, os.path.basename(path)), "Codex", msgs, _mtime(path))
 

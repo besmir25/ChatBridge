@@ -1,13 +1,15 @@
 /* Preview mode: open index.html?demo in any browser to see the screen with sample data (no Python needed). */
 if (!window.pywebview && /[?&]demo/.test(location.search)) {
+  const dayAgo = n => { const d = new Date(Date.now() - n * 86400000); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
   const svg = (bg, glyph, fg = "#0f1115") => "data:image/svg+xml;utf8," + encodeURIComponent(
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96"><rect width="96" height="96" rx="22" fill="${bg}"/><text x="48" y="64" font-size="50" font-family="Segoe UI,Arial" font-weight="600" text-anchor="middle" fill="${fg}">${glyph}</text></svg>`);
   let chats = [
-    {id: "1", title: "Resume builds for the job list", source: "Claude Code", created: "2026-10-11 15:36", count: 40, kind: "chat", saved: false, tokens: 9800, real_tokens: 1420000},
-    {id: "2", title: "ChatBridge: build an app to move chats", source: "Claude Code", created: "2026-10-11 15:36", count: 19, kind: "chat", saved: false, tokens: 4300},
-    {id: "3", title: "Fix a git setup problem on Windows", source: "Claude Code", created: "2026-06-13 14:17", count: 27, kind: "chat", saved: true, tokens: 1600},
-    {id: "4", title: "Project: chatbridge", source: "Project folder", created: "2026-10-11 16:40", count: 1, kind: "project", saved: true, tokens: 22800, mode: "outline"},
-    {id: "5", title: "Trip planning", source: "ChatGPT", created: "2026-09-02 10:12", count: 22, kind: "chat", saved: true, tokens: 5200},
+    {id: "1", title: "Update my resume for a job posting", source: "Claude Code", created: dayAgo(0) + " 15:36", count: 40, kind: "chat", saved: false, tokens: 9800, real_tokens: 1420000},
+    {id: "2", title: "Build an app to move chats between AIs", source: "Claude Code", created: dayAgo(0) + " 11:02", count: 19, kind: "chat", saved: false, tokens: 4300},
+    {id: "3", title: "Fix a git setup problem on Windows", source: "Claude Code", created: dayAgo(1) + " 14:17", count: 27, kind: "chat", saved: true, tokens: 1600},
+    {id: "4", title: "Project: my-website", source: "Project folder", created: dayAgo(3) + " 16:40", count: 1, kind: "project", saved: true, tokens: 22800, mode: "outline"},
+    {id: "5", title: "Plan a 5-day trip to Kyoto in April", source: "ChatGPT", created: dayAgo(12) + " 10:12", count: 22, kind: "chat", saved: true, tokens: 5200},
+    {id: "6", title: "Explain how mortgage rates work", source: "ChatGPT", created: dayAgo(80) + " 09:30", count: 8, kind: "chat", saved: true, tokens: 900},
   ];
   let apps = [
     {key: 0, name: "Claude", kind: "Desktop app", icon: svg("#d97757", "✺", "#fff"), models: [], tested: null},
@@ -16,12 +18,19 @@ if (!window.pywebview && /[?&]demo/.test(location.search)) {
     {key: 3, name: "Ollama", kind: "Local server", icon: null, models: ["llama3.2", "qwen2.5"], tested: null},
     {key: 4, name: "claude", kind: "CLI tool", icon: null, models: [], tested: null},
   ];
+  apps = apps.map(a => ({...a, enabled: true}));
+  let web = [["ChatGPT (website)", true], ["Claude.ai (website)", true], ["Gemini (website)", true], ["Copilot (website)", false], ["Perplexity (website)", false]]
+    .map(([name, enabled], i) => ({key: "web:" + i, name, url: "https://example.com/", kind: "Website", enabled}));
   const settings = {provider: "Anthropic", base_url: "https://api.anthropic.com", model: "claude-sonnet-5-5", has_key: false, autopaste: true,
     theme: (location.search.match(/theme=(\w+)/) || [0, "midnight"])[1], font: (location.search.match(/font=(\w+)/) || [0, "code"])[1], size: 16, providers: ["Anthropic", "OpenAI-compatible"]};
   const wait = ms => new Promise(r => setTimeout(r, ms));
   window.pywebview = {api: {
-    bootstrap: async () => ({chats, apps, settings, welcomed: !/welcome/.test(location.search)}),
-    scan_all: async () => { await wait(900); return {chats, apps}; },
+    bootstrap: async () => ({chats, apps, web, settings, welcomed: !/welcome/.test(location.search), tools_chosen: !/tools/.test(location.search)}),
+    scan_all: async () => { await wait(900); return {chats, apps, web, tools_chosen: !/tools/.test(location.search)}; },
+    set_tools: async names => { apps = apps.map(a => ({...a, enabled: names.includes(a.name)})); web = web.map(w => ({...w, enabled: names.includes(w.name)})); return {apps, web}; },
+    search_chats: async q => ({hits: /kyoto/i.test(q) ? {"5": "…Day 3 was Kyoto, then Osaka for two nights…"} : {}}),
+    rename_chat: async (id, title) => { chats = chats.map(c => c.id === id ? {...c, title, saved: true} : c); return {chats}; },
+    export_selected: async () => ({ok: true, path: "C:\\demo\\chat-handoff.md", name: "chat-handoff.md"}), show_file: async () => ({ok: true}),
     save_settings: async s => Object.assign(settings, s),
     set_provider: async () => ({}), delete_chats: async ids => (chats = chats.filter(c => !ids.includes(c.id))),
     preview: async id => ({title: "Preview", source: "Demo", kind: "chat", messages: [{role: "user", content: "Hello, can we pick up the itinerary?"}, {role: "assistant", content: "Yes. Day 3 was Kyoto."}]}),
@@ -52,7 +61,10 @@ if (!window.pywebview && /[?&]demo/.test(location.search)) {
   setTimeout(() => {
     if (/[?&]pick/.test(location.search)) { S.sel = new Set(["1", "2"]); S.target = 0; renderAll(); }
     const m = (location.search.match(/modal=(\w+)/) || [])[1];
-    const btn = {project: "#btnProject", history: "#btnHistory", settings: "#btnSettings"}[m];
+    const btn = {project: "#btnProject", history: "#btnHistory", settings: "#btnSettings", choose: "#btnTools", help: "#btnHelp"}[m];
+    if (/[?&]byapp/.test(location.search)) { S.settings.group_by = "app"; renderAll(); }
+    if (/[?&]search=/.test(location.search)) { const i = document.querySelector("#chatSearch"); i.value = decodeURIComponent(location.search.match(/search=([^&]+)/)[1]); i.dispatchEvent(new Event("input")); }
+    if (/[?&]webpick/.test(location.search)) { S.sel = new Set(["1", "2"]); S.target = "web:0"; renderAll(); }
     if (btn) document.querySelector(btn).click();
     if (m === "update") document.querySelector("#chipUpdate").click();
   }, 1500);

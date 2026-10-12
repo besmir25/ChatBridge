@@ -25,7 +25,7 @@ import chatbridge as cb
 from icons import fetch_icons
 from release_tools import changelog_between
 
-VERSION = "1.0.1"
+VERSION = "1.1.0"
 REPO = "besmir25/ChatBridge"   # GitHub "owner/name" that hosts the releases (change here if the repo is named differently)
 # When packaged by PyInstaller the screen files sit next to the code inside _MEIPASS; otherwise next to this file.
 HERE = getattr(sys, "_MEIPASS", None) or os.path.dirname(os.path.abspath(__file__))
@@ -73,6 +73,20 @@ def press(vks):
         u.keybd_event(vk, 0, 0, 0)
     for vk in reversed(vks):
         u.keybd_event(vk, 0, 2, 0)
+
+
+# ---------------------------------------------------------------- AI websites you can send a chat to
+# (name, address, shown by default). The chat is copied and saved as a file, then the site opens in your normal browser.
+WEB_TOOLS = [
+    ("ChatGPT (website)", "https://chatgpt.com/", True),
+    ("Claude.ai (website)", "https://claude.ai/new", True),
+    ("Gemini (website)", "https://gemini.google.com/app", True),
+    ("Copilot (website)", "https://copilot.microsoft.com/", False),
+    ("Perplexity (website)", "https://www.perplexity.ai/", False),
+    ("Grok (website)", "https://grok.com/", False),
+    ("DeepSeek (website)", "https://chat.deepseek.com/", False),
+    ("Mistral Le Chat (website)", "https://chat.mistral.ai/chat", False),
+]
 
 
 # ---------------------------------------------------------------- update check
@@ -197,6 +211,7 @@ class Api:
         self._busy = threading.Lock()
         self._lock = threading.RLock()
         self._update_fetch = fetch_latest_release   # replaced in tests
+        self._made_files = set()                    # files we created, the only ones show_file may reveal
         self._capture_srv, self._capture_port = None, None
         self._paste_delay = 2.5
 
@@ -338,8 +353,26 @@ class Api:
             out.append({"key": i, "name": a["name"], "kind": a["kind"], "icon": icon, "models": a.get("models", []),
                         "info": a.get("info", ""), "tested": (compat.get(a["name"]) or {}).get("ok"),
                         "note": cb.profile_for(a["name"]).get("note", "")})
+        chosen = self._cfg.get("enabled_tools")          # None = the person hasn't picked yet: show everything we found
+        known = set(self._cfg.get("known_tools", []))    # tools that were on the list when they last chose
+        for o in out:                                    # a tool installed since then is shown by default, not hidden
+            o["enabled"] = chosen is None or o["name"] in chosen or o["name"] not in known
         order = {"Desktop app": 0, "Local server": 1, "CLI tool": 2, "Possible AI app": 3}
         return sorted(out, key=lambda x: (order.get(x["kind"], 9), x["name"].lower()))
+
+    def _web_out(self):
+        chosen = self._cfg.get("enabled_tools")
+        return [{"key": f"web:{i}", "name": n, "url": u, "kind": "Website",
+                 "enabled": (n in chosen) if chosen is not None else default}
+                for i, (n, u, default) in enumerate(WEB_TOOLS)]
+
+    def set_tools(self, names):
+        """Which tools the person wants to see (installed apps and websites). Saved so the choice sticks."""
+        names = [n for n in (names if isinstance(names, list) else []) if isinstance(n, str)][:200]
+        self._cfg["enabled_tools"], self._cfg["tools_chosen"] = names, True
+        self._cfg["known_tools"] = [a["name"] for a in self._apps] + [w[0] for w in WEB_TOOLS]
+        cb.save_json(cb.CFG_PATH, self._cfg)
+        return {"apps": self._apps_out(), "web": self._web_out()}
 
     def _settings(self):
         c = self._cfg
@@ -350,12 +383,13 @@ class Api:
                 "price_in": c.get("price_in", ""), "price_out": c.get("price_out", ""),
                 "compact": c.get("compact", False), "scrub": c.get("scrub", True), "last_target": c.get("last_target"),
                 "capture_port": self._capture_port, "capture_token": self._capture_token(),
-                "update_check": c.get("update_check", True), "version": VERSION}
+                "update_check": c.get("update_check", True), "version": VERSION,
+                "group_by": c.get("group_by") if c.get("group_by") in ("app", "date") else "date"}
 
     # ---- startup and scanning
     def bootstrap(self):
-        return {"chats": self._chats(), "apps": self._apps_out(), "settings": self._settings(),
-                "welcomed": bool(self._cfg.get("welcomed"))}
+        return {"chats": self._chats(), "apps": self._apps_out(), "web": self._web_out(), "settings": self._settings(),
+                "welcomed": bool(self._cfg.get("welcomed")), "tools_chosen": bool(self._cfg.get("tools_chosen"))}
 
     def scan_all(self):
         apps = cb.scan_apps()
@@ -364,7 +398,28 @@ class Api:
         self._apps = apps
         cb.save_json(SCAN_CACHE, {"apps": [{k: v for k, v in a.items() if k != "launch_fn"} for a in apps]})
         self._found = cb.discover_chats()
-        return {"chats": self._chats(), "apps": self._apps_out()}
+        return {"chats": self._chats(), "apps": self._apps_out(), "web": self._web_out(),
+                "tools_chosen": bool(self._cfg.get("tools_chosen"))}
+
+    def search_chats(self, query):
+        """Which chats mention the text? (Titles are matched in the page; this looks inside the messages too.)"""
+        q = (query or "").strip().lower()[:100]
+        if len(q) < 2:
+            return {"hits": {}}
+        hits = {}
+        for c in self._pool():
+            try:
+                for m in c["messages"]:
+                    at = m["content"].lower().find(q)
+                    if at >= 0:
+                        s = max(0, at - 40)
+                        hits[c["id"]] = ("…" if s else "") + m["content"][s:at + len(q) + 60].replace("\n", " ").strip() + "…"
+                        break
+            except (KeyError, TypeError, AttributeError):
+                continue
+            if len(hits) >= 200:
+                break
+        return {"hits": hits}
 
     def mark_welcomed(self):
         self._cfg["welcomed"] = True
@@ -453,6 +508,26 @@ class Api:
             self._save()
         return {"id": c["id"], "chats": self._chats()}
 
+    def rename_chat(self, cid, title):
+        """Give a chat a name you'll recognise. A chat found on this PC is kept in the library once it has your name on it."""
+        title = " ".join(str(title or "").split())[:120]
+        if not title:
+            return {"error": "Type a name first."}
+        with self._lock:
+            conv = next((c for c in self._lib if c["id"] == cid), None)
+            if conv is None:
+                found = next((c for c in self._found if c["id"] == cid), None)
+                if found is None:
+                    return {"error": "That chat isn't in the list any more."}
+                conv = cb.clean_conv(found, trusted=True)
+                conv["id"], conv["origin"] = found["id"], found.get("origin", "")   # same item, now saved (so it isn't listed twice)
+                if not conv["origin"]:
+                    conv.pop("origin")
+                self._lib.insert(0, conv)
+            conv["title"] = title
+            self._save()
+        return {"chats": self._chats()}
+
     def delete_chats(self, ids):
         gone = {i for i in (ids if isinstance(ids, list) else []) if isinstance(i, str)}
         with self._lock:
@@ -471,7 +546,7 @@ class Api:
     def save_settings(self, s):
         self._cfg.update({"autopaste": bool(s["autopaste"]), "theme": s["theme"], "font": s.get("font", "code"),
                           "ui_size": int(s["size"])})
-        for k in ("about_me", "price_in", "price_out", "compact", "scrub", "last_target", "update_check"):
+        for k in ("about_me", "price_in", "price_out", "compact", "scrub", "last_target", "update_check", "group_by"):
             if k in s:
                 self._cfg[k] = s[k]
         cb.save_json(cb.CFG_PATH, self._cfg)
@@ -532,7 +607,17 @@ class Api:
                 return name, cb.profile_for(name).get("window")
             except IndexError:
                 pass
+        if isinstance(target, str) and target.startswith("web:"):
+            tool = self._web_tool(target)
+            return (tool[0] if tool else None), None
         return ("the clipboard" if target == "copy" else None), None
+
+    @staticmethod
+    def _web_tool(key):
+        try:
+            return WEB_TOOLS[int(str(key).split(":", 1)[1])]
+        except (ValueError, IndexError):
+            return None
 
     def estimate(self, ids, target, opts):
         """Size of what would be sent: tokens, share of the target's window, savings, and cost if a price is set."""
@@ -596,6 +681,8 @@ class Api:
             if target == "copy":
                 set_clipboard(text)
                 self._emit("done", "Copied. Paste it anywhere with Ctrl+V.")
+            elif isinstance(target, str) and target.startswith("web:"):
+                self._deliver_web(target, title, text)
             else:
                 app = self._apps[int(target)]
                 if app["kind"] == "Local server":
@@ -612,6 +699,56 @@ class Api:
                     self._deliver_desktop(app, title, text)
         except Exception as e:
             self._emit("error", f"Something went wrong: {e}")
+
+    def _deliver_web(self, target, title, text):
+        """Websites: copy the chat, also keep it as a file (for sites that won't take a long paste), open the site."""
+        tool = self._web_tool(target)
+        if not tool:
+            return self._emit("error", "That website isn't in the list.")
+        name, url, _ = tool
+        set_clipboard(text)
+        path = cb.save_handoff_file(text, title)
+        self._made_files.add(os.path.normcase(os.path.abspath(path)))
+        import webbrowser
+        webbrowser.open(url)   # only ever an address from WEB_TOOLS above
+        self._emit("done", f"Copied, and {name} is opening in your browser. Click its message box and press Ctrl+V. "
+                           "If it says the text is too long, attach the saved file instead.", file=path)
+
+    def show_file(self, path):
+        """Show a file ChatBridge made, in Explorer. Only files we created ourselves."""
+        p = os.path.normcase(os.path.abspath(str(path)))
+        if p in self._made_files and os.path.isfile(p):
+            subprocess.Popen(["explorer", "/select,", p])
+            return {"ok": True}
+        return {"error": "That file isn't one ChatBridge made."}
+
+    def export_selected(self, ids, opts=None):
+        """Save the ticked chats/projects as a file you can attach to any AI website (.md or .txt), or as a ChatBridge .json."""
+        convs = self._by_ids(ids if isinstance(ids, list) else [])
+        if not convs:
+            return {"error": "Tick at least one chat first."}
+        fd = getattr(webview, "FileDialog", None)
+        res = self._window.create_file_dialog(
+            fd.SAVE if fd else webview.SAVE_DIALOG, save_filename="chat-handoff.md",
+            file_types=("Markdown (*.md)", "Text (*.txt)", "ChatBridge chats (*.json)"))
+        if not res:
+            return {"cancelled": True}
+        path = res if isinstance(res, str) else res[0]
+        try:
+            with open(path, "w", encoding="utf-8") as f:
+                f.write(self.export_text(convs, path, opts))
+        except OSError as e:
+            return {"error": f"Couldn't save the file: {e}"}
+        self._made_files.add(os.path.normcase(os.path.abspath(path)))
+        return {"ok": True, "path": path, "name": os.path.basename(path)}
+
+    def export_text(self, convs, path, opts=None):
+        if path.lower().endswith(".json"):
+            items, _, _ = self._prepared(convs, opts)
+            keep = ("title", "source", "created", "summary", "messages", "kind", "mode")
+            return json.dumps({"format": "chatbridge", "conversations": [{k: c[k] for k in keep if k in c} for c in items]},
+                              ensure_ascii=False, indent=1)
+        return self._build(convs, opts)[0]
 
     def _deliver_desktop(self, app, title, text, force_full=False, test_marker=None):
         prof = cb.profile_for(app["name"])

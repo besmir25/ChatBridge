@@ -41,6 +41,7 @@ args = ["--noconfirm", "--clean", "--onefile", "--windowed", "--name", "ChatBrid
         "--icon", os.path.join(HERE, "assets", "chatbridge.ico"), "--version-file", VERSION_FILE,
         "--add-data", f"{payload};.", "--add-data", f"{os.path.join(build, 'version.txt')};.",
         "--add-data", f"{os.path.join(HERE, 'assets', 'chatbridge.png')};assets",
+        *[a for n in (48, 96, 144, 192) for a in ("--add-data", f"{os.path.join(HERE, 'assets', f'installer-logo-{n}.png')};assets")],
         "--distpath", os.path.join(HERE, "dist"), "--workpath", os.path.join(build, "work"), "--specpath", build]
 for m in EXCLUDE:
     args += ["--exclude-module", m]

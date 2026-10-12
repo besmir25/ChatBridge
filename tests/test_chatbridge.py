@@ -682,6 +682,129 @@ class ReviewFixes(unittest.TestCase):
         self.assertIn("connect-src 'self'", html)
 
 
+class SearchWebExportTools(unittest.TestCase):
+    def setUp(self):
+        import chatbridge_app
+        self.m = chatbridge_app
+        self.api = chatbridge_app.Api()
+        self.events = []
+        self.api._emit = lambda state, msg="", **extra: self.events.append((state, msg, extra))
+
+    def test_search_looks_inside_the_messages(self):
+        r = self.api.add_text("Trip", "Test", "User: planning a Kyoto visit in April\nAssistant: Great, book temples early")
+        self.api.add_text("Other", "Test", "User: tax questions")
+        hits = self.api.search_chats("kyoto")["hits"]
+        self.assertEqual(list(hits), [r["id"]])
+        self.assertIn("Kyoto", hits[r["id"]])
+        self.assertEqual(self.api.search_chats("k"), {"hits": {}})            # too short to be useful
+        self.assertEqual(self.api.search_chats("zzzz-not-there")["hits"], {})
+
+    def test_sending_to_a_website_copies_saves_a_file_and_opens_only_listed_sites(self):
+        from unittest import mock
+        copied, opened = [], []
+        with mock.patch.object(self.m, "set_clipboard", copied.append), mock.patch("webbrowser.open", opened.append):
+            self.api._deliver_web("web:1", "My chat", "THE HANDOFF TEXT")
+            self.api._deliver_web("web:99", "x", "x")                          # not in the list
+            self.api._deliver_web("web:abc", "x", "x")
+        self.assertEqual(copied, ["THE HANDOFF TEXT"])
+        self.assertEqual(opened, [self.m.WEB_TOOLS[1][1]])
+        done = [e for e in self.events if e[0] == "done"][0]
+        path = done[2]["file"]
+        self.assertTrue(os.path.isfile(path))
+        self.assertEqual(open(path, encoding="utf-8").read().strip(), "THE HANDOFF TEXT")
+        self.assertEqual([e[0] for e in self.events].count("error"), 2)
+        for url in (u for _, u, _ in self.m.WEB_TOOLS):
+            self.assertTrue(url.startswith("https://"), url)
+        with mock.patch("subprocess.Popen") as popen:
+            self.assertTrue(self.api.show_file(path).get("ok"))
+            self.assertIn("error", self.api.show_file(r"C:\Windows\System32\cmd.exe"))   # only files we made
+            self.assertEqual(popen.call_count, 1)
+        os.remove(path)
+
+    def test_target_info_names_a_website(self):
+        self.assertEqual(self.api._target_info("web:0")[0], "ChatGPT (website)")
+        self.assertEqual(self.api._target_info("web:42"), (None, None))
+
+    def test_choosing_tools_and_a_tool_installed_later(self):
+        self.api._cfg.pop("enabled_tools", None)
+        self.api._cfg.pop("known_tools", None)
+        self.api._apps = [{"name": "Alpha", "kind": "Desktop app", "launch": None, "models": []},
+                          {"name": "Beta", "kind": "Desktop app", "launch": None, "models": []}]
+        self.assertTrue(all(a["enabled"] for a in self.api._apps_out()))           # nothing chosen yet: show all
+        self.assertEqual([w["name"] for w in self.api._web_out() if w["enabled"]],
+                         [n for n, _, on in self.m.WEB_TOOLS if on])                   # a few popular sites by default
+        out = self.api.set_tools(["Alpha", "Claude.ai (website)", 5, None])
+        self.assertEqual({a["name"]: a["enabled"] for a in out["apps"]}, {"Alpha": True, "Beta": False})
+        self.assertEqual([w["name"] for w in out["web"] if w["enabled"]], ["Claude.ai (website)"])
+        self.api._apps.append({"name": "Gamma", "kind": "Desktop app", "launch": None, "models": []})   # installed afterwards
+        self.assertEqual({a["name"]: a["enabled"] for a in self.api._apps_out()}, {"Alpha": True, "Beta": False, "Gamma": True})
+        self.assertTrue(self.api._cfg["tools_chosen"])
+
+    def test_export_formats_and_roundtrip(self):
+        key = "sk-" + "c" * 30
+        r = self.api.add_text("Exported", "Test", f"User: my key is {key}\nAssistant: noted")
+        convs = self.api._by_ids([r["id"]])
+        md = self.api.export_text(convs, "x.md", {"scrub": True})
+        self.assertIn("You are picking up", md)
+        self.assertNotIn(key, md)
+        js = self.api.export_text(convs, "x.json", {"scrub": True})
+        self.assertNotIn(key, js)
+        back = cb.parse_json(json.loads(js))                                   # a .json export can be imported again
+        self.assertEqual((len(back), back[0]["title"], len(back[0]["messages"])), (1, "Exported", 2))
+
+
+class FriendlyList(unittest.TestCase):
+    def test_titles_read_like_names_not_paths(self):
+        f = cb.friendly_title
+        t = f('@"C:\\Users\\Jo\\Downloads\\Resume.pdf" update this resume for the job at https://jobs.example.com/posting/123456789')
+        self.assertNotIn("C:\\", t)
+        self.assertNotIn("https", t)
+        self.assertTrue(t.startswith("Update this resume"))
+        self.assertLessEqual(len(t), 66)
+        self.assertEqual(f("Can you help me plan a trip? I like temples."), "Can you help me plan a trip?")
+        self.assertEqual(f(""), "Untitled chat")
+        self.assertEqual(f("hi"), "Hi")
+        self.assertTrue(f("word " * 60).endswith("\u2026"))
+
+    def test_hidden_markup_from_the_chatgpt_desktop_app_is_skipped(self):
+        self.assertEqual(cb.friendly_title('<external_codex_apps_open_page>{"page_id":null}</external_codex_apps_open_page>'), "Untitled chat")
+        self.assertEqual(cb.friendly_title("<environment_context><cwd>C:\\x</cwd></environment_context> how do I use agents?"),
+                         "How do I use agents?")
+        p = os.path.join(_TMP, "cx.jsonl")
+        rows = [("developer", "<app-context>stuff</app-context>"), ("user", "<environment_context>\n<cwd>C:\\x</cwd>\n</environment_context>"),
+                ("user", '<external_codex_apps_open_page>{"page_id":null}</external_codex_apps_open_page>'),
+                ("user", "how do i get multi agents to work on a project?"), ("assistant", "Here is how.")]
+        with open(p, "w", encoding="utf-8") as f:
+            for role, text in rows:
+                f.write(json.dumps({"type": "response_item", "payload": {"type": "message", "role": role,
+                                                                       "content": [{"type": "input_text", "text": text}]}}) + "\n")
+        c = cb.parse_codex(p)
+        self.assertEqual([m["role"] for m in c["messages"]], ["user", "assistant"])      # only the real conversation
+        self.assertEqual(c["title"], "How do i get multi agents to work on a project?")
+
+    def test_claude_code_chats_get_friendly_titles(self):
+        p = os.path.join(_TMP, "ft.jsonl")
+        with open(p, "w", encoding="utf-8") as f:
+            f.write(json.dumps({"type": "user", "message": {"role": "user", "content": '@"C:\\x\\a.pdf" please summarise this contract. It is long.'}}) + "\n")
+            f.write(json.dumps({"type": "assistant", "message": {"role": "assistant", "content": [{"type": "text", "text": "ok"}]}}) + "\n")
+        self.assertEqual(cb.parse_claude_code(p)["title"], "Please summarise this contract")
+
+    def test_rename_keeps_a_found_chat_without_listing_it_twice(self):
+        import chatbridge_app
+        api = chatbridge_app.Api()
+        found = cb.new_conv("Original", "Claude Code", [{"role": "user", "content": "hello there"}])
+        found["origin"] = r"C:\fake\session.jsonl"
+        api._found = [found]
+        before = len(api._chats())
+        out = api.rename_chat(found["id"], "  My   better   name ")
+        titles = [c["title"] for c in out["chats"]]
+        self.assertIn("My better name", titles)
+        self.assertEqual(len(out["chats"]), before)                    # same number of chats: no duplicate
+        self.assertTrue(next(c for c in out["chats"] if c["id"] == found["id"])["saved"])
+        self.assertIn("error", api.rename_chat(found["id"], "   "))
+        self.assertIn("error", api.rename_chat("nope", "x"))
+
+
 class InstallerSafety(unittest.TestCase):
     def setUp(self):
         import installer

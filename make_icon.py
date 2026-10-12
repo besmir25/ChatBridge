@@ -30,6 +30,8 @@ d.polygon([(x0 - head, yb), (x0 + head // 2, yb - head), (x0 + head // 2, yb + h
 
 img.save(os.path.join(here, "assets", "chatbridge.ico"), sizes=[(s, s) for s in (16, 24, 32, 48, 64, 128, 256)])
 img.resize((512, 512), Image.LANCZOS).save(os.path.join(here, "assets", "chatbridge.png"))
+for s in (48, 96, 144, 192):   # crisp logos for the installer window at different screen scalings
+    img.resize((s, s), Image.LANCZOS).save(os.path.join(here, "assets", f"installer-logo-{s}.png"))
 os.makedirs(os.path.join(here, "extension", "icons"), exist_ok=True)
 for s in (16, 48, 128):
     img.resize((s, s), Image.LANCZOS).save(os.path.join(here, "extension", "icons", f"{s}.png"))

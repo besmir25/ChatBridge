@@ -2,6 +2,18 @@
 
 Newest first. Add new entries under **Unreleased**; `python bump_version.py X.Y.Z` turns that section into the release.
 
+## 1.1.0 (2026-10-11)
+- **Refresh** button: look again for AI apps you've just installed and for new chats, without restarting
+- **Search** your chats by title or by what was said inside them
+- **Choose your tools** screen: tick which AI apps and websites you want on the right, and add one that's missing; a tool you install later appears by itself
+- **Send to AI websites** (ChatGPT, Claude.ai, Gemini, Copilot, Perplexity, Grok, DeepSeek, Mistral): the chat is copied and saved as a file, and the site opens in your browser
+- **Save as file…** exports the ticked chats as Markdown, text, or a ChatBridge file you can import again
+- A friendlier chat list: readable titles instead of file paths, "Today / Yesterday / Last 7 days" groups (or group by app), "about 6 pages" and "3 days ago" instead of token counts and dates, and a rename button
+- Chats from the ChatGPT desktop app stored on your PC are listed with proper names (hidden control text in them is ignored)
+- **Help** window with plain answers; plainer wording throughout ("Shorten long text", "Hide private details")
+- A redesigned installer: dark title bar, crisp text, a progress bar, a clear "ready" screen, and a clearer remove screen
+- "Test this app" moved into Choose tools
+
 ## 1.0.1 (2026-10-11)
 - Safer imports: chat files are now checked when you import them, so a booby-trapped file can't run anything inside the app, and the app's page has a strict security policy that blocks scripts from running or sending data elsewhere
 - Safer uninstall and install: the uninstaller only ever removes a folder named ChatBridge that setup itself created, and setup always installs into a ChatBridge folder (it won't clear out `D:\Games`)
