@@ -2,7 +2,7 @@
 
 Newest first. Add new entries under **Unreleased**; `python bump_version.py X.Y.Z` turns that section into the release.
 
-## Unreleased
+## 1.3.0 (2026-10-12)
 - **A new two-pane layout**: your conversations in a list on the left; click one and it opens on the right with its sections, and the places you can continue it are right below — so the whole job happens on one screen. Tick the small box on a row to send several conversations together
 - The sections of the open conversation are shown right there (no separate window): leave everything unticked to send the whole conversation, or tick sections or single messages to send just those
 - **No more scrolling to find the big button**: the screen fits the window, with the conversation list taking the free space and the app tiles on a single row
