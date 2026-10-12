@@ -244,7 +244,7 @@ h1{font-size:1.85em;line-height:1.2;margin:0;font-weight:650;letter-spacing:-.01
 .sec{border:1px solid var(--line);border-radius:14px;background:var(--panel);overflow:hidden}
 .sec.on{border-color:var(--accent)}
 .sec-head{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--panel2)}
-.sec-head .chk{cursor:pointer}.sec.some .chk{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.sec-head .chk{cursor:pointer}.sec.some>.sec-head .chk{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 .sec-head .arrow{width:24px;height:24px;border-radius:8px;color:var(--mute)}.sec-head .arrow:hover{background:var(--chip)}
 .sec-head input.sectitle{flex:1;min-width:0;background:transparent;border:1px solid transparent;border-radius:8px;padding:5px 8px;font-weight:600;font-size:.98em}
 .sec-head input.sectitle:hover{border-color:var(--line)}.sec-head input.sectitle:focus{border-color:var(--accent);background:var(--panel)}
@@ -298,3 +298,4 @@ h1{font-size:1.4em}
 .app-tile b{font-size:.86em}
 .ic{width:38px;height:38px;border-radius:11px}
 .bar{padding-left:max(28px,calc((100% - 840px)/2 + 28px));padding-right:max(28px,calc((100% - 840px)/2 + 28px))}
+.sec .cell:not(.on) .chk{background:transparent;border-color:var(--mute);color:transparent}

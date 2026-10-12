@@ -1,4 +1,4 @@
-/* Preview mode: open index.html?demo in any browser to see the screen with sample data (no Python needed). */
+﻿/* Preview mode: open index.html?demo in any browser to see the screen with sample data (no Python needed). */
 if (!window.pywebview && /[?&]demo/.test(location.search)) {
   const dayAgo = n => { const d = new Date(Date.now() - n * 86400000); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
   const svg = (bg, glyph, fg = "#0f1115") => "data:image/svg+xml;utf8," + encodeURIComponent(
@@ -79,6 +79,6 @@ if (!window.pywebview && /[?&]demo/.test(location.search)) {
     if (/[?&]webpick/.test(location.search)) { S.sel = new Set(["1", "2"]); S.target = "web"; S.site = 0; renderAll(); }
     if (btn) document.querySelector(btn).click();
     if (m === "update") document.querySelector("#chipUpdate").click();
-    if (m === "sections") { openSections("1").then(() => { SEC.open = new Set([1]); SEC.sel = new Set([4, 5, 6, 7]); renderSections(); }); }
+    if (m === "sections") { openSections("1").then(() => { SEC.open = new Set([1]); SEC.sel = new Set([4, 6]); renderSections(); }); }
   }, 1500);
 }
