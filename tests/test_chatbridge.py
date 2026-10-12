@@ -765,6 +765,64 @@ class SearchWebExportTools(unittest.TestCase):
         s = self.api.bootstrap()["settings"]                                   # the person's own choice sticks afterwards
         self.assertEqual((s["theme"], s["font"]), ("nord", "code"))
 
+    # ---- sections and parts of a chat
+    MIXED = [("user", "Fix my git setup on Windows, push is rejected"), ("assistant", "The error is about the private email. Use the noreply address."),
+             ("user", "ok that worked, thanks"), ("assistant", "Great."),
+             ("user", "Now let's write a resume for a nursing job posting at the hospital"), ("assistant", "Here is a draft ```text```"),
+             ("user", "Make the summary shorter and mention ICU experience"), ("assistant", "Done: shortened."),
+             ("user", "Also plan a trip to Kyoto in April with temples"), ("assistant", "Day 1 temples"),
+             ("user", "Add food places near Gion"), ("assistant", "Sure: here are places.")]
+
+    def _mixed(self):
+        text = "\n".join(("User: " if r == "user" else "Assistant: ") + t for r, t in self.MIXED)
+        cid = self.api.add_text("Mixed chat", "Test", text)["id"]
+        self.addCleanup(lambda: self.api.delete_chats([c["id"] for c in list(self.api._lib)
+                                                       if c["title"].startswith(("Mixed chat", "Part of: Mixed chat"))]))
+        return cid
+
+    def test_sections_split_a_chat_by_topic_and_cover_every_message_once(self):
+        import chatbridge as cb
+        msgs = [{"role": r, "content": t} for r, t in self.MIXED]
+        secs = cb.split_sections(msgs)
+        self.assertEqual([(s["start"], s["end"]) for s in secs], [(0, 4), (4, 8), (8, 12)])
+        self.assertEqual(secs[1]["title"], "write a resume for a nursing job posting at the hospital".capitalize())
+        self.assertIn("Code", secs[1]["tags"])
+        self.assertEqual(cb.split_sections([]), [])
+        one = cb.split_sections([{"role": "user", "content": "hi"}])
+        self.assertEqual((one[0]["start"], one[0]["end"]), (0, 1))
+        long_chat = [{"role": "user" if i % 2 == 0 else "assistant", "content": "same topic words repeated here " * 3} for i in range(80)]
+        covered = sorted(i for s in cb.split_sections(long_chat) for i in range(s["start"], s["end"]))
+        self.assertEqual(covered, list(range(80)))                                # long chats are still cut into manageable parts
+
+    def test_make_part_keeps_only_the_ticked_messages_and_adds_an_outline(self):
+        import chatbridge as cb
+        cid = self._mixed()
+        d = self.api.sections(cid)
+        self.assertEqual(len(d["sections"]), 3)
+        r = self.api.make_part(cid, [4, 5, 6, 7], {"1": "The resume"}, True)
+        part = next(c for c in self.api._lib if c["id"] == r["id"])
+        self.assertEqual(len(part["messages"]), 4)
+        self.assertTrue(part["excerpt"])
+        self.assertIn("2. ► The resume", part["summary"])
+        self.assertIn("1.   Fix my git setup", part["summary"])
+        text = cb.build_handoff(part, 0, "full", "")
+        self.assertIn("<excerpt>", text)
+        self.assertIn("adding it to the conversation we are already having", text)
+        self.assertNotIn("Kyoto", text.split("</outline_of_the_full_conversation>")[1])     # unticked parts are not sent in full
+        self.assertIn("error", self.api.make_part(cid, [], {}, True))
+        self.assertIn("error", self.api.make_part(cid, ["x", -1, 999, True], {}, True))   # only real message numbers count
+        self.assertNotIn("<outline", cb.build_handoff(self.api._by_ids([self.api.make_part(cid, [0], {}, False)["id"]])[0], 0, "full", ""))
+
+    def test_a_part_survives_export_and_reimport_as_a_part(self):
+        import chatbridge as cb
+        cid = self._mixed()
+        r = self.api.make_part(cid, [8, 9], {}, True)
+        part = self.api._by_ids([r["id"]])[0]
+        data = json.loads(self.api.export_text([part], "x.json", {}))
+        back = cb.parse_json(data)[0]
+        self.assertTrue(back.get("excerpt"))
+        self.assertEqual(len(back["messages"]), 2)
+
     def test_target_info_names_a_website(self):
         self.assertEqual(self.api._target_info("web:0")[0], "ChatGPT (website)")
         self.assertEqual(self.api._target_info("web:42"), (None, None))

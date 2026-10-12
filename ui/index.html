@@ -44,6 +44,7 @@
         <label for="webSite">Open</label><select id="webSite"></select>
         <span class="note" id="webNote"></span>
       </div>
+      <label class="sw into" id="intoRow" hidden><input type="checkbox" id="intoOpen"> Add it to the chat that’s already open in the app (instead of starting a new one)</label>
       <div class="found" id="foundLine"></div>
     </section>
 
@@ -190,6 +191,19 @@
     </div>
   </div>
   <div class="sheet-foot"><button class="btn primary" data-close>Got it</button></div>
+</div></div>
+
+<!-- sections: a long chat as a notebook -->
+<div class="modal" id="mSections" hidden><div class="sheet" style="width:min(840px,95vw)">
+  <div class="sheet-head" id="secTitle">Choose parts of this conversation</div>
+  <div class="sheet-sub">Tick whole sections or single messages. Click a section’s name to rename it.</div>
+  <div class="sheet-body">
+    <div class="sec-tools"><button class="link" id="secAll">Tick everything</button><button class="link" id="secNone">Clear</button>
+      <button class="link" id="secOpenAll">Open all</button><button class="link" id="secCloseAll">Close all</button><span class="note" id="secCount"></span></div>
+    <div id="secBody"></div>
+  </div>
+  <div class="sheet-foot"><label class="sw sm" style="margin-right:auto"><input type="checkbox" id="secOutline" checked> Add a short outline of the rest, so the AI sees the bigger picture</label>
+    <button class="btn" data-close>Cancel</button><button class="btn primary" id="secGo">Use these parts</button></div>
 </div></div>
 
 <!-- rename -->

@@ -531,6 +531,43 @@ class Api:
             self._save()
         return {"chats": self._chats()}
 
+    # ---- sections: work with part of a long chat
+    def sections(self, cid):
+        """The chat as a notebook: numbered messages ("cells") grouped under section headings."""
+        found = self._by_ids([cid])
+        if not found or found[0].get("kind") == "project":
+            return {"error": "Sections work for chats, not project folders."}
+        conv = found[0]
+        msgs = conv["messages"]
+        return {"id": cid, "title": str(conv["title"]), "source": str(conv.get("source") or ""),
+                "sections": cb.split_sections(msgs),
+                "cells": [{"i": i, "role": m["role"], "text": m["content"][:1500], "more": len(m["content"]) > 1500}
+                          for i, m in enumerate(msgs)]}
+
+    def make_part(self, cid, cells, titles=None, with_outline=True):
+        """Turn the ticked messages into a new item (an excerpt) that can go anywhere, outline of the rest optional."""
+        found = self._by_ids([cid])
+        if not found or found[0].get("kind") == "project":
+            return {"error": "That chat isn't in the list any more."}
+        conv = found[0]
+        msgs = conv["messages"]
+        chosen = sorted(self._valid_indices(cells, len(msgs)))
+        if not chosen:
+            return {"error": "Tick at least one section or message first."}
+        secs = cb.split_sections(msgs)
+        if isinstance(titles, dict):                          # names the person gave the sections
+            for k, v in titles.items():
+                if str(k).isdigit() and int(k) < len(secs) and isinstance(v, str) and v.strip():
+                    secs[int(k)]["title"] = " ".join(v.split())[:100]
+        part = cb.clean_conv({"title": f"Part of: {conv['title']}"[:120], "source": str(conv.get("source") or "Chat")[:40],
+                              "created": time.strftime("%Y-%m-%d %H:%M"), "excerpt": True,
+                              "summary": cb.chat_outline(str(conv["title"]), msgs, secs, set(chosen)) if with_outline else "",
+                              "messages": [msgs[i] for i in chosen]})
+        with self._lock:
+            self._lib.insert(0, part)
+            self._save()
+        return {"id": part["id"], "chats": self._chats()}
+
     def delete_chats(self, ids):
         gone = {i for i in (ids if isinstance(ids, list) else []) if isinstance(i, str)}
         with self._lock:
@@ -684,6 +721,7 @@ class Api:
                 self._lib = new + self._lib
                 self._save()
         auto = bool((opts or {}).get("auto"))
+        into_open = bool((opts or {}).get("into_open"))       # paste into the chat that's already open, not a new one
         opts, _ = self._resolve_opts(convs, target, opts)
         text, counts, saved = self._build(convs, opts)
         title = convs[0]["title"] if len(convs) == 1 else f"{len(convs)} items"
@@ -695,13 +733,13 @@ class Api:
         cb.add_history({"id": uuid.uuid4().hex, "time": time.strftime("%Y-%m-%d %H:%M"), "target": name or "?",
                         "target_key": target, "titles": [c["title"] for c in convs], "ids": ids, "opts": opts or {},
                         "tokens": cb.estimate_tokens(text)})
-        threading.Thread(target=self._deliver, args=(target, text, title, ids), daemon=True).start()
+        threading.Thread(target=self._deliver, args=(target, text, title, ids, into_open), daemon=True).start()
         return {"ok": True, "chats": self._chats(), "settings": self._settings()}
 
     def get_history(self):
         return cb.load_json(cb.HISTORY_PATH, [])
 
-    def _deliver(self, target, text, title, ids):
+    def _deliver(self, target, text, title, ids, into_open=False):
         try:
             if target == "copy":
                 set_clipboard(text)
@@ -721,7 +759,7 @@ class Api:
                     subprocess.Popen(["cmd", "/k", app["name"]], creationflags=0x10)
                     self._emit("done", f"{app['name']} opened in a terminal. Right-click there to paste.")
                 else:
-                    self._deliver_desktop(app, title, text)
+                    self._deliver_desktop(app, title, text, into_open=into_open)
         except Exception as e:
             self._emit("error", f"Something went wrong: {e}")
 
@@ -773,14 +811,15 @@ class Api:
     def export_text(self, convs, path, opts=None):
         if path.lower().endswith(".json"):
             items, _, _ = self._prepared(convs, opts)
-            keep = ("title", "source", "created", "summary", "messages", "kind", "mode")
+            keep = ("title", "source", "created", "summary", "messages", "kind", "mode", "excerpt")
             return json.dumps({"format": "chatbridge", "conversations": [{k: c[k] for k in keep if k in c} for c in items]},
                               ensure_ascii=False, indent=1)
         return self._build(convs, opts)[0]
 
-    def _deliver_desktop(self, app, title, text, force_full=False, test_marker=None):
+    def _deliver_desktop(self, app, title, text, force_full=False, test_marker=None, into_open=False):
         prof = cb.profile_for(app["name"])
-        keys = cb.parse_keys(prof["new_chat"]) if prof["new_chat"] else None
+        keys = cb.parse_keys(prof["new_chat"]) if prof["new_chat"] and not into_open else None   # no "new chat" when adding to the open one
+        force_full = force_full or into_open
         exe = folder = None
         if prof["paste"] == "file" and not force_full:
             path = cb.save_handoff_file(text, title)

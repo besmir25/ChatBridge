@@ -55,6 +55,19 @@ if (!window.pywebview && /[?&]demo/.test(location.search)) {
     check_update: async () => /modal=update/.test(location.search) ? {status: "available", current: "1.0.0", version: "1.1.0",
       url: "https://github.com/besmir25/ChatBridge/releases/tag/v1.1.0", notes: "## ChatBridge 1.1.0\n\n- New: send a chat to two apps at once\n- The project picker remembers your last choice\n\n### Install\nDownload **ChatBridge-Setup.exe** below and run it."} : {status: "current", current: "1.0.0"},
     open_release: async () => ({ok: true}),
+    sections: async id => {
+      const rows = [["user", "Fix my git setup on Windows, push is rejected"], ["assistant", "The error is about your private email. Use the noreply address GitHub shows in Settings → Emails."],
+        ["user", "ok that worked, thanks"], ["assistant", "Great — your first push is done."],
+        ["user", "Now let's write a resume for a nursing job posting at the hospital"], ["assistant", "Here is a first draft:\n\n```\nSummary: Registered nurse with 6 years…\n```"],
+        ["user", "Make the summary shorter and mention ICU experience"], ["assistant", "Done: the summary is now three lines and leads with ICU."],
+        ["user", "Also plan a trip to Kyoto in April with temples"], ["assistant", "Day 1: Fushimi Inari. We'll use the regional rail pass for Day 2–4."],
+        ["user", "Add food places near Gion"], ["assistant", "Here are five places near Gion, from casual to special occasion."]];
+      return {id, title: "Resume, git and a trip", source: "Claude Code",
+        sections: [{title: "Fix my git setup on Windows", start: 0, end: 4, tags: ["Problem"], tokens: 900}, {title: "Write a resume for a nursing job posting", start: 4, end: 8, tags: ["Code"], tokens: 2600},
+                   {title: "Plan a trip to Kyoto in April", start: 8, end: 12, tags: ["Decision"], tokens: 1900}],
+        cells: rows.map(([role, text], i) => ({i, role, text, more: false}))};
+    },
+    make_part: async () => { chats = [{id: "10", title: "Part of: Resume, git and a trip", source: "Claude Code", created: dayAgo(0) + " 16:00", count: 4, kind: "chat", saved: true, tokens: 700}, ...chats]; return {id: "10", chats}; },
   }};
   /* ?demo&pick preselects two chats and Claude; ?demo&modal=project|history|settings opens that dialog */
   setTimeout(() => {
@@ -66,5 +79,6 @@ if (!window.pywebview && /[?&]demo/.test(location.search)) {
     if (/[?&]webpick/.test(location.search)) { S.sel = new Set(["1", "2"]); S.target = "web"; S.site = 0; renderAll(); }
     if (btn) document.querySelector(btn).click();
     if (m === "update") document.querySelector("#chipUpdate").click();
+    if (m === "sections") { openSections("1").then(() => { SEC.open = new Set([1]); SEC.sel = new Set([4, 5, 6, 7]); renderSections(); }); }
   }, 1500);
 }

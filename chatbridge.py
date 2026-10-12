@@ -680,6 +680,8 @@ def clean_conv(d, trusted=False):
     if d.get("kind") == "project":
         c["kind"] = "project"
         c["mode"] = d.get("mode") if d.get("mode") in ("full", "outline", "tree") else "full"
+    if d.get("excerpt") is True:
+        c["excerpt"] = True       # a part cut out of a longer chat (see make_part)
     if isinstance(d.get("usage"), dict):
         c["usage"] = {k: int(v) for k, v in d["usage"].items() if k in ("in", "out", "cache_read", "cache_create") and isinstance(v, int)}
     if trusted:
@@ -928,8 +930,88 @@ def _about_block(about):
     return f"\n\n<about_me>\nBackground the user wants you to know:\n{about.strip()}\n</about_me>" if (about or "").strip() else ""
 
 
+# ---------------------------------------------------------------- sections: break a long chat into readable parts
+_SHIFT = re.compile(r"^\W*(?:ok(?:ay)?\W+|alright\W+|great\W+|thanks?\W+)?(?:now|next|new topic|separate(?:ly)?|different|moving on|"
+                    r"switching|let'?s (?:move|talk|work|try|do|start|build|look|switch)|also\b|one more thing|another (?:question|thing)|"
+                    r"on another note|btw)\b", re.I)
+_STOPWORDS = set("""the and but for with that this from have has had was were are been being you your yours can could should would
+                    will just then than not out into over also very more some what when where which who how why please okay
+                    about like make made want need lets let get got use using one""".split())
+_TAGS = [("Code", re.compile(r"```|\bdef \w+\(|\bfunction\b|\bclass \w+|=>|#include|\bimport \w+")),
+         ("Decision", re.compile(r"\b(?:we(?:'ll| will) (?:use|go with)|let'?s (?:go with|use)|decided|decision|going with|settled on|i(?:'ll| will) go with)\b", re.I)),
+         ("Problem", re.compile(r"traceback|\berror\b|exception|\bfailed\b|doesn'?t work|not working|\bbug\b", re.I)),
+         ("Files", re.compile(r"\b[\w./\\-]+\.(?:py|js|ts|tsx|jsx|md|json|html|css|ya?ml|cs|java|go|rs|cpp|txt|toml|sql)\b"))]
+
+
+def _keywords(text):
+    return {w for w in re.findall(r"[a-z][a-z0-9_]{3,}", (text or "").lower()) if w not in _STOPWORDS}
+
+
+def split_sections(messages, min_turns=2, max_turns=14):
+    """Cut a chat into sections, like headings in a notebook. Works offline from the text alone: a new section starts at a
+    request that opens with a switch phrase ("now let's...", "also...", "different question") or that shares few words with
+    what came before. Returns [{"title", "start", "end" (exclusive), "tags", "tokens"}] covering every message once."""
+    n = len(messages)
+    if not n:
+        return []
+    starts = [i for i, m in enumerate(messages) if m["role"] == "user"]
+    if not starts or starts[0] != 0:
+        starts = [0] + starts                      # replies before the first request belong to the opening
+    cuts, run, recent = [0], 1, _keywords(" ".join(m["content"][:1500] for m in messages[starts[0]:starts[1] if len(starts) > 1 else n]))
+    for k in range(1, len(starts)):
+        i = starts[k]
+        end = starts[k + 1] if k + 1 < len(starts) else n
+        mine = _keywords(messages[i]["content"][:1500])
+        shift = bool(_SHIFT.match(messages[i]["content"][:120]))
+        low = len(mine) >= 5 and len(mine & recent) / len(mine) < 0.08
+        if run >= max_turns or (run >= min_turns and (shift or low)):
+            cuts.append(i)
+            run, recent = 0, set()
+        run += 1
+        recent = (recent | _keywords(" ".join(m["content"][:1500] for m in messages[i:end]))) if run > 1 else _keywords(
+            " ".join(m["content"][:1500] for m in messages[i:end]))
+    out = []
+    for j, a in enumerate(cuts):
+        b = cuts[j + 1] if j + 1 < len(cuts) else n
+        part = messages[a:b]
+        first = next((m for m in part if m["role"] == "user"), part[0])
+        text = "\n".join(m["content"] for m in part)
+        ask = first["content"]
+        m = _SHIFT.match(ask[:120])
+        if m and len(ask[m.end():].strip(" ,.:;-")) >= 12:
+            ask = re.sub(r"^(?:let'?s|lets|let us)\s+", "", ask[m.end():].strip(" ,.:;-"), flags=re.I)   # "Now let's write a resume" -> "write a resume"
+        out.append({"title": friendly_title(ask, limit=70, fallback=f"Part {j + 1}"), "start": a, "end": b,
+                    "tags": [name for name, rx in _TAGS if rx.search(text)][:4],
+                    "tokens": estimate_tokens(text)})
+    return out
+
+
+def chat_outline(conv_title, messages, sections, included):
+    """A short table of contents for the whole chat; sections with a ► are included in full further down."""
+    lines = [f'Outline of the full conversation "{conv_title}" ({len(messages)} messages, {len(sections)} sections). '
+             f"Sections marked ► are included in full below; the others are only listed here for context."]
+    for k, s in enumerate(sections, 1):
+        mark = "►" if any(i in included for i in range(s["start"], s["end"])) else " "
+        outcome = ""
+        last_ai = next((m for m in reversed(messages[s["start"]:s["end"]]) if m["role"] != "user"), None)
+        if last_ai:
+            outcome = friendly_title(last_ai["content"], limit=110, fallback="")
+        tags = f" [{', '.join(s['tags'])}]" if s["tags"] else ""
+        lines.append(f"{k}. {mark} {s['title']}{tags}" + (f" — ended with: {outcome}" if outcome else ""))
+    return "\n".join(lines)
+
+
 def build_handoff(conv, last_n, mode, extra, about=""):
     msgs = conv["messages"]
+    if conv.get("excerpt"):
+        head = (f"Below is an excerpt from an earlier conversation with another AI assistant ({conv.get('source') or 'unknown'}). "
+                f"I am adding it to the conversation we are already having. Use it as background for what I ask next. "
+                f"Do not summarise it back to me; just reply briefly that you have read it, then wait for my next instruction.")
+        if extra.strip():
+            head += "\n\nAdditional instructions: " + extra.strip()
+        outline = ("<outline_of_the_full_conversation>\n" + conv["summary"].strip() + "\n</outline_of_the_full_conversation>\n\n"
+                   if conv.get("summary", "").strip() else "")
+        return head + _about_block(about) + "\n\n" + outline + "<excerpt>\n" + _fmt(msgs) + "\n</excerpt>\n"
     if mode == "summary" and conv.get("summary", "").strip():
         msgs = msgs[-(last_n or 6):]
         body = ("<summary_of_earlier_conversation>\n" + conv["summary"].strip() +
@@ -957,6 +1039,10 @@ def build_handoff_many(convs, last_n, extra, about=""):
             parts.append(f'<project name="{c["title"]}">\n{c["messages"][0]["content"]}\n</project>')
             continue
         msgs = c["messages"][-last_n:] if last_n else c["messages"]
+        if c.get("excerpt"):
+            outline = f"<outline_of_the_full_conversation>\n{c['summary'].strip()}\n</outline_of_the_full_conversation>\n" if c.get("summary", "").strip() else ""
+            parts.append(f'<excerpt title="{c["title"]}" source="{c.get("source", "unknown")}">\n{outline}{_fmt(msgs)}\n</excerpt>')
+            continue
         parts.append(f'<conversation title="{c["title"]}" source="{c.get("source", "unknown")}">\n{_fmt(msgs)}\n</conversation>')
     if has_project:
         head = (f"You are picking up earlier work from other AI assistants. Below are {len(convs)} item(s): project files "

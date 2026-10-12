@@ -2,6 +2,11 @@
 
 Newest first. Add new entries under **Unreleased**; `python bump_version.py X.Y.Z` turns that section into the release.
 
+## Unreleased
+- **Just part of a chat**: point at any conversation and press the ☰ button to see it as a notebook — numbered messages grouped under section headings (found automatically, with tags like Code, Decision, Problem, Files). Tick whole sections or single messages, rename sections, and press "Use these parts"
+- The new item can go anywhere (an app, a website, a file, the clipboard). It carries a short outline of the rest of the chat so the AI sees the bigger picture, and the AI is told it's an excerpt to add to the chat you're already having
+- **Add to the chat that's already open**: choose a desktop app and tick the new box, and ChatBridge pastes into the open conversation instead of starting a new one (still never pressing Enter)
+
 ## 1.2.0 (2026-10-11)
 - **A much simpler, friendlier screen**: one column with two questions — "Which conversation?" and "Where do you want to continue it?" — and one big button
 - **One "A website" choice** instead of eight: pick ChatGPT, Claude.ai, Gemini and more from a small list (it remembers your pick), or choose "I'll open it myself". The conversation is copied and saved as a file either way

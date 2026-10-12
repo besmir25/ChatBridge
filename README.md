@@ -25,6 +25,8 @@ copying and pasting, losing context, and re-explaining everything. ChatBridge do
 - **Finds your chats** — those stored on this PC (Claude Code, Codex, Gemini CLI, LM Studio, Jan), and imports ChatGPT and Claude
   exports, pasted text and markdown.
 - **Saves web chats in one click** with the included browser extension (ChatGPT, Claude.ai, Gemini).
+- **Moves just part of a chat** — a long conversation opens as a notebook of sections you can tick, rename and send on their own,
+  with a short outline of the rest; it can be pasted into a chat you already have open.
 - **Moves whole projects** — code, markdown, YAML and other config files, with a folder tree, a live size meter, and a choice of
   *full files*, *outlines of big files*, or *structure only* (*More options → Bring a code project*).
 - **Looks after you** — passwords, keys, emails and your Windows user name are hidden automatically, and very long conversations are

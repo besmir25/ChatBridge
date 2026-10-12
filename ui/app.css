@@ -238,3 +238,26 @@ h1{font-size:1.85em;line-height:1.2;margin:0;font-weight:650;letter-spacing:-.01
 .toast{bottom:104px}
 .grp-head{cursor:default}.grp-head:hover{color:var(--mute)}
 .ic[style*="var(--chip)"]{color:var(--text)}
+
+/* ---- sections (the notebook view) ---- */
+.sec-tools{display:flex;gap:16px;align-items:center;flex-wrap:wrap}.sec-tools .note{margin-left:auto}
+.sec{border:1px solid var(--line);border-radius:14px;background:var(--panel);overflow:hidden}
+.sec.on{border-color:var(--accent)}
+.sec-head{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--panel2)}
+.sec-head .chk{cursor:pointer}.sec.some .chk{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.sec-head .arrow{width:24px;height:24px;border-radius:8px;color:var(--mute)}.sec-head .arrow:hover{background:var(--chip)}
+.sec-head input.sectitle{flex:1;min-width:0;background:transparent;border:1px solid transparent;border-radius:8px;padding:5px 8px;font-weight:600;font-size:.98em}
+.sec-head input.sectitle:hover{border-color:var(--line)}.sec-head input.sectitle:focus{border-color:var(--accent);background:var(--panel)}
+.sec-meta{color:var(--mute);font-size:.8em;white-space:nowrap}
+.tagchip{font-size:.7em;padding:2px 9px;border-radius:99px;background:var(--sel);color:var(--accent);white-space:nowrap}
+.cells{display:flex;flex-direction:column;gap:6px;padding:10px 14px 14px}
+.cell{display:flex;gap:10px;align-items:flex-start;padding:8px 10px;border-radius:10px;border:1px solid transparent;cursor:pointer;font-size:.9em}
+.cell:hover{background:var(--panel2)}.cell.on{background:var(--sel);border-color:var(--accent)}
+.cell .who{flex:none;width:34px;font-size:.75em;color:var(--mute);padding-top:2px}
+.cell .txt{white-space:pre-wrap;word-break:break-word;min-width:0;display:-webkit-box;-webkit-line-clamp:6;-webkit-box-orient:vertical;overflow:hidden}
+.cell.open .txt{-webkit-line-clamp:unset;display:block}
+.cell .chk{margin-top:2px}
+.card .sbtn{opacity:0;width:24px;height:24px;border-radius:8px;color:var(--mute);font-size:.9em}
+.card:hover .sbtn{opacity:1}.sbtn:hover{background:var(--chip);color:var(--text)}
+.into{margin-top:12px;font-size:.9em}
+.sec-head input.sectitle{font-family:inherit;color:var(--text)}

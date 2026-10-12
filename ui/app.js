@@ -38,7 +38,7 @@ function applySettings() {
 }
 /* ---------- rendering ---------- */
 const kfmt = n => n >= 10000 ? Math.round(n / 1000) + "k" : n >= 1000 ? (n / 1000).toFixed(1) + "k" : String(n || 0);
-const opts = () => ({auto: true});   // the app decides: private details hidden, long text shortened only when it needs to be
+const opts = () => ({auto: true, into_open: S.target !== null && typeof S.target === "number" && $("#intoOpen").checked});   // the app decides: private details hidden, long text shortened only when it needs to be
 const selectedIds = () => [...S.sel].filter(id => S.chats.some(c => c.id === id));
 
 let estTimer, estSeq = 0;
@@ -86,6 +86,7 @@ function renderChats() {
         <span class="chk">✓</span>
         <div class="t"><b title="${esc(c.title)}">${esc(c.title)}</b><small class="when">${c.kind === "project" ? "Code project · " : ""}${["Today", "Yesterday"].includes(name) ? "" : esc(relDate(c.created)) + (c.source && c.kind !== "project" ? " · " : "")}${c.source && c.kind !== "project" ? esc(c.source) : ""}</small>${S.hits[c.id] && S.query.trim() ? `<span class="snip">${esc(S.hits[c.id])}</span>` : ""}</div>
         <button class="eye" data-view="${esc(c.id)}" title="Read it">◉</button>
+        ${c.kind === "project" ? "" : `<button class="sbtn" data-sections="${esc(c.id)}" title="Pick just some parts of this conversation">☰</button>`}
         <button class="ren" data-rename="${esc(c.id)}" title="Rename">✎</button>
         ${c.saved ? `<button class="x" data-del="${esc(c.id)}" title="Remove from ChatBridge (the original stays where it is)">×</button>` : ""}
       </div>`).join("")}`).join("");
@@ -134,6 +135,8 @@ function renderApps() {
   tiles.push(appTile("file", "A file", "💾", "var(--chip)"));
   tiles.push(appTile("copy", "Just copy it", "⧉", "var(--chip)"));
   $("#appGrid").innerHTML = tiles.join("");
+  const ta = typeof S.target === "number" ? S.apps.find(a => a.key === S.target) : null;
+  $("#intoRow").hidden = !(ta && ta.kind === "Desktop app");      // only desktop apps have a chat that can already be open
   /* the small list under the tiles, only while "A website" is chosen */
   const pick = $("#webPick");
   pick.hidden = S.target !== "web";
@@ -176,6 +179,8 @@ function renderSummary() {
 /* ---------- events ---------- */
 $("#chatList").addEventListener("click", async e => {
   const del = e.target.closest("[data-del]"), view = e.target.closest("[data-view]"), grp = e.target.closest("[data-grp]"), card = e.target.closest(".card");
+  const secBtn = e.target.closest("[data-sections]");
+  if (secBtn) { e.stopPropagation(); return openSections(secBtn.dataset.sections); }
   if (del) {
     e.stopPropagation();
     S.sel.delete(del.dataset.del);
@@ -236,6 +241,61 @@ $("#appGrid").addEventListener("drop", e => {
   renderAll(); doSend();
 });
 $("#btnHelp").onclick = () => open("#mHelp");
+$("#intoOpen").onchange = renderSummary;
+
+/* ---------- sections: a long chat as a notebook ---------- */
+const SEC = {id: null, data: null, sel: new Set(), titles: {}, open: new Set()};
+async function openSections(id) {
+  const d = await api().sections(id);
+  if (d.error) return toast(d.error, "warn");
+  Object.assign(SEC, {id, data: d, sel: new Set(), titles: {}, open: new Set()});
+  $("#secTitle").textContent = "Choose parts of “" + d.title + "”";
+  renderSections(); open("#mSections");
+}
+const secCells = s => SEC.data.cells.slice(s.start, s.end);
+function renderSections() {
+  const d = SEC.data;
+  $("#secBody").innerHTML = d.sections.map((s, k) => {
+    const cells = secCells(s), n = cells.filter(c => SEC.sel.has(c.i)).length;
+    const state = n === 0 ? "" : n === cells.length ? "on" : "some";
+    const isOpen = SEC.open.has(k);
+    return `<div class="sec ${state}" data-k="${k}" style="margin-bottom:10px">
+      <div class="sec-head"><button class="arrow" data-toggle="${k}" title="Open or close">${isOpen ? "▾" : "▸"}</button>
+        <span class="chk" data-pick="${k}" title="Tick this whole section">${n === cells.length ? "✓" : n ? "–" : "✓"}</span>
+        <input class="sectitle" data-title="${k}" value="${esc(SEC.titles[k] ?? s.title)}" maxlength="100" aria-label="Section name">
+        ${s.tags.map(t => `<span class="tagchip">${esc(t)}</span>`).join("")}
+        <span class="sec-meta">${cells.length} messages · ${esc(pagesOf(s.tokens))}</span></div>
+      ${isOpen ? `<div class="cells">${cells.map(c => `<div class="cell ${SEC.sel.has(c.i) ? "on" : ""}" data-cell="${c.i}">
+        <span class="chk">✓</span><span class="who">${c.role === "user" ? "You" : "AI"}</span><span class="txt">${esc(c.text)}${c.more ? "…" : ""}</span></div>`).join("")}</div>` : ""}
+    </div>`;
+  }).join("");
+  const total = d.cells.length;
+  $("#secCount").textContent = `${SEC.sel.size} of ${total} messages ticked`;
+  $("#secGo").classList.toggle("off", !SEC.sel.size);
+}
+$("#secBody").addEventListener("click", e => {
+  if (e.target.matches("input.sectitle")) return;
+  const tog = e.target.closest("[data-toggle]"), pick = e.target.closest("[data-pick]"), cell = e.target.closest("[data-cell]");
+  if (tog) { const k = Number(tog.dataset.toggle); SEC.open.has(k) ? SEC.open.delete(k) : SEC.open.add(k); }
+  else if (pick) {
+    const cells = secCells(SEC.data.sections[Number(pick.dataset.pick)]), all = cells.every(c => SEC.sel.has(c.i));
+    cells.forEach(c => all ? SEC.sel.delete(c.i) : SEC.sel.add(c.i));
+  } else if (cell) { const i = Number(cell.dataset.cell); SEC.sel.has(i) ? SEC.sel.delete(i) : SEC.sel.add(i); }
+  else return;
+  renderSections();
+});
+$("#secBody").addEventListener("change", e => { if (e.target.matches("input.sectitle")) SEC.titles[e.target.dataset.title] = e.target.value; });
+$("#secAll").onclick = () => { SEC.data.cells.forEach(c => SEC.sel.add(c.i)); renderSections(); };
+$("#secNone").onclick = () => { SEC.sel.clear(); renderSections(); };
+$("#secOpenAll").onclick = () => { SEC.data.sections.forEach((s, k) => SEC.open.add(k)); renderSections(); };
+$("#secCloseAll").onclick = () => { SEC.open.clear(); renderSections(); };
+$("#secGo").onclick = async () => {
+  if (!SEC.sel.size) return toast("Tick at least one section or message first.", "warn");
+  const r = await api().make_part(SEC.id, [...SEC.sel], SEC.titles, $("#secOutline").checked);
+  if (r.error) return toast(r.error, "warn");
+  S.chats = r.chats; S.sel = new Set([r.id]); close("#mSections"); renderAll();
+  toast("Made a new item with just those parts. Now choose where it should go.", "good", 6000);
+};
 
 /* rename a chat to something you'll recognise */
 let renameId = null;
