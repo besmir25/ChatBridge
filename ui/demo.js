@@ -19,10 +19,10 @@ if (!window.pywebview && /[?&]demo/.test(location.search)) {
     {key: 4, name: "claude", kind: "CLI tool", icon: null, models: [], tested: null},
   ];
   apps = apps.map(a => ({...a, enabled: true}));
-  let web = [["ChatGPT (website)", true], ["Claude.ai (website)", true], ["Gemini (website)", true], ["Copilot (website)", false], ["Perplexity (website)", false]]
+  let web = [["ChatGPT (website)", true], ["Claude.ai (website)", true], ["Gemini (website)", true], ["Copilot (website)", true], ["Perplexity (website)", true], ["Grok (website)", true], ["DeepSeek (website)", true], ["Mistral Le Chat (website)", true]]
     .map(([name, enabled], i) => ({key: "web:" + i, name, url: "https://example.com/", kind: "Website", enabled}));
   const settings = {provider: "Anthropic", base_url: "https://api.anthropic.com", model: "claude-sonnet-5-5", has_key: false, autopaste: true,
-    theme: (location.search.match(/theme=(\w+)/) || [0, "midnight"])[1], font: (location.search.match(/font=(\w+)/) || [0, "code"])[1], size: 16, providers: ["Anthropic", "OpenAI-compatible"]};
+    theme: (location.search.match(/theme=(\w+)/) || [0, "light"])[1], font: (location.search.match(/font=(\w+)/) || [0, "sans"])[1], size: 17, scrub: true, compact: false, providers: ["Anthropic", "OpenAI-compatible"]};
   const wait = ms => new Promise(r => setTimeout(r, ms));
   window.pywebview = {api: {
     bootstrap: async () => ({chats, apps, web, settings, welcomed: !/welcome/.test(location.search), tools_chosen: !/tools/.test(location.search)}),
@@ -34,9 +34,8 @@ if (!window.pywebview && /[?&]demo/.test(location.search)) {
     save_settings: async s => Object.assign(settings, s),
     set_provider: async () => ({}), delete_chats: async ids => (chats = chats.filter(c => !ids.includes(c.id))),
     preview: async id => ({title: "Preview", source: "Demo", kind: "chat", messages: [{role: "user", content: "Hello, can we pick up the itinerary?"}, {role: "assistant", content: "Yes. Day 3 was Kyoto."}]}),
-    estimate: async (ids, target, o) => ({tokens: 18240 - (o.compact ? 4100 : 0), chars: 70000, saved: o.compact ? 4100 : 0,
-      scrubbed: o.scrub ? {keys: 1, emails: 2, phones: 0, paths: 3} : {}, window: target === 0 ? 200000 : null,
-      pct: target === 0 ? Math.round((18240 - (o.compact ? 4100 : 0)) / 200) / 10 : null, cost: null, target: target === 0 ? "Claude" : "Antigravity"}),
+    estimate: async (ids, target, o) => ({tokens: 18240, chars: 70000, saved: 0, scrubbed: {}, window: target === 0 ? 200000 : null,
+      pct: /[?&]long/.test(location.search) ? 130 : 9, auto_compact: /[?&]long/.test(location.search), cost: null, target: target === 0 ? "Claude" : "Antigravity"}),
     get_history: async () => [{time: "2026-10-11 17:30", target: "Claude", target_key: 0, titles: ["Resume builds for the job list", "ChatBridge: build an app"], ids: ["1", "2"], opts: {compact: true, scrub: true}, tokens: 14140},
                               {time: "2026-10-11 16:05", target: "the clipboard", target_key: "copy", titles: ["Project: chatbridge"], ids: ["4"], opts: {}, tokens: 22800}],
     project_size: async (idx, mode) => ({tokens: Math.round(idx.length * (mode === "tree" ? 120 : mode === "outline" ? 900 : 3200))}),
@@ -62,9 +61,9 @@ if (!window.pywebview && /[?&]demo/.test(location.search)) {
     if (/[?&]pick/.test(location.search)) { S.sel = new Set(["1", "2"]); S.target = 0; renderAll(); }
     const m = (location.search.match(/modal=(\w+)/) || [])[1];
     const btn = {project: "#btnProject", history: "#btnHistory", settings: "#btnSettings", choose: "#btnTools", help: "#btnHelp"}[m];
-    if (/[?&]byapp/.test(location.search)) { S.settings.group_by = "app"; renderAll(); }
-    if (/[?&]search=/.test(location.search)) { const i = document.querySelector("#chatSearch"); i.value = decodeURIComponent(location.search.match(/search=([^&]+)/)[1]); i.dispatchEvent(new Event("input")); }
-    if (/[?&]webpick/.test(location.search)) { S.sel = new Set(["1", "2"]); S.target = "web:0"; renderAll(); }
+    if (/[?&]more/.test(location.search)) document.querySelector(".more").open = true;
+        if (/[?&]search=/.test(location.search)) { const i = document.querySelector("#chatSearch"); i.value = decodeURIComponent(location.search.match(/search=([^&]+)/)[1]); i.dispatchEvent(new Event("input")); }
+    if (/[?&]webpick/.test(location.search)) { S.sel = new Set(["1", "2"]); S.target = "web"; S.site = 0; renderAll(); }
     if (btn) document.querySelector(btn).click();
     if (m === "update") document.querySelector("#chipUpdate").click();
   }, 1500);

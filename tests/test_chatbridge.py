@@ -721,6 +721,50 @@ class SearchWebExportTools(unittest.TestCase):
             self.assertEqual(popen.call_count, 1)
         os.remove(path)
 
+    def test_a_website_you_open_yourself_copies_and_saves_but_opens_nothing(self):
+        from unittest import mock
+        copied, opened = [], []
+        with mock.patch.object(self.m, "set_clipboard", copied.append), mock.patch("webbrowser.open", opened.append):
+            self.api._deliver_web("web:none", "My chat", "TEXT")
+        self.assertEqual((copied, opened), (["TEXT"], []))
+        done = [e for e in self.events if e[0] == "done"][0]
+        self.assertTrue(os.path.isfile(done[2]["file"]))
+        os.remove(done[2]["file"])
+
+    def test_automatic_options_hide_private_details_and_shorten_only_when_needed(self):
+        short = self.api.add_text("Short", "Test", "User: hello\nAssistant: hi there")
+        self.api._cfg.update({"scrub": True, "compact": False})
+        convs = self.api._by_ids([short["id"]])
+        opts, needed = self.api._resolve_opts(convs, 0, {"auto": True})
+        self.assertEqual((opts, needed), ({"scrub": True, "compact": False}, False))
+        big = "User: question\nAssistant: " + ("lots of words here " * 40000)
+        long_ = self.api.add_text("Long", "Test", big)
+        opts, needed = self.api._resolve_opts(self.api._by_ids([long_["id"]]), "copy", {"auto": True})
+        self.assertTrue(opts["compact"] and needed)
+        self.api._cfg["scrub"] = False
+        self.assertFalse(self.api._resolve_opts(convs, "copy", {"auto": True})[0]["scrub"])
+        self.api._cfg["scrub"] = True
+        self.assertEqual(self.api._resolve_opts(convs, "copy", {"compact": True}), ({"compact": True}, False))   # explicit options pass through
+        est = self.api.estimate([long_["id"]], "copy", {"auto": True})
+        self.assertTrue(est["auto_compact"])
+
+    def test_automatic_choices_are_not_saved_as_settings(self):
+        from unittest import mock
+        conv = self.api.add_text("Keep", "Test", "User: a\nAssistant: b")
+        self.api._cfg.update({"scrub": False, "compact": False})
+        with mock.patch.object(self.m.threading, "Thread"):
+            self.api.send([conv["id"]], "copy", {"auto": True})
+        self.assertEqual((self.api._cfg["scrub"], self.api._cfg["compact"]), (False, False))
+
+    def test_first_start_of_the_friendly_look_switches_to_light_once(self):
+        self.api._cfg.pop("ui_v2", None)
+        self.api._cfg.update({"theme": "midnight", "font": "code"})
+        s = self.api.bootstrap()["settings"]
+        self.assertEqual((s["theme"], s["font"]), ("light", "sans"))
+        self.api.save_settings({"autopaste": True, "theme": "nord", "font": "code", "size": 16})
+        s = self.api.bootstrap()["settings"]                                   # the person's own choice sticks afterwards
+        self.assertEqual((s["theme"], s["font"]), ("nord", "code"))
+
     def test_target_info_names_a_website(self):
         self.assertEqual(self.api._target_info("web:0")[0], "ChatGPT (website)")
         self.assertEqual(self.api._target_info("web:42"), (None, None))

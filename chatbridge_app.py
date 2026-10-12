@@ -25,7 +25,7 @@ import chatbridge as cb
 from icons import fetch_icons
 from release_tools import changelog_between
 
-VERSION = "1.1.0"
+VERSION = "1.2.0"
 REPO = "besmir25/ChatBridge"   # GitHub "owner/name" that hosts the releases (change here if the repo is named differently)
 # When packaged by PyInstaller the screen files sit next to the code inside _MEIPASS; otherwise next to this file.
 HERE = getattr(sys, "_MEIPASS", None) or os.path.dirname(os.path.abspath(__file__))
@@ -377,8 +377,8 @@ class Api:
     def _settings(self):
         c = self._cfg
         return {"provider": c["provider"], "base_url": c["base_url"], "model": c["model"], "has_key": bool(c["api_key"]),
-                "autopaste": c.get("autopaste", True), "size": c.get("ui_size", 16),
-                "theme": {"dark": "midnight"}.get(c.get("theme"), c.get("theme", "midnight")), "font": c.get("font", "code"),
+                "autopaste": c.get("autopaste", True), "size": c.get("ui_size", 17),
+                "theme": {"dark": "midnight"}.get(c.get("theme"), c.get("theme", "light")), "font": c.get("font", "sans"),
                 "providers": list(cb.PROVIDERS), "about_me": c.get("about_me", ""),
                 "price_in": c.get("price_in", ""), "price_out": c.get("price_out", ""),
                 "compact": c.get("compact", False), "scrub": c.get("scrub", True), "last_target": c.get("last_target"),
@@ -388,6 +388,9 @@ class Api:
 
     # ---- startup and scanning
     def bootstrap(self):
+        if not self._cfg.get("ui_v2"):      # the friendlier look is the default once; after that the person's choice wins
+            self._cfg.update({"ui_v2": True, "theme": "light", "font": "sans", "ui_size": 17})
+            cb.save_json(cb.CFG_PATH, self._cfg)
         return {"chats": self._chats(), "apps": self._apps_out(), "web": self._web_out(), "settings": self._settings(),
                 "welcomed": bool(self._cfg.get("welcomed")), "tools_chosen": bool(self._cfg.get("tools_chosen"))}
 
@@ -614,16 +617,35 @@ class Api:
 
     @staticmethod
     def _web_tool(key):
+        if key == "web:none":     # "I'll open it myself": copy and save, but open nothing
+            return ("a website", None, False)
         try:
             return WEB_TOOLS[int(str(key).split(":", 1)[1])]
         except (ValueError, IndexError):
             return None
+
+    LONG_TOKENS = 120000      # with no known window, a conversation longer than this gets shortened
+
+    def _resolve_opts(self, convs, target, opts):
+        """{"auto": True} means: hide private details (unless turned off in Settings) and shorten long text only
+        when it won't fit. Anything else is used as given. Returns (opts to use, whether shortening was needed)."""
+        if not (opts or {}).get("auto"):
+            return opts or {}, False
+        scrub = self._cfg.get("scrub", True)
+        shorten = bool(self._cfg.get("compact", False))
+        needed = False
+        if not shorten and any(c.get("kind") != "project" for c in convs):
+            tokens = cb.estimate_tokens(self._build(convs, {"scrub": scrub})[0])
+            window = self._target_info(target)[1]
+            needed = tokens > (window * 0.85 if window else self.LONG_TOKENS)
+        return {"scrub": scrub, "compact": shorten or needed}, needed
 
     def estimate(self, ids, target, opts):
         """Size of what would be sent: tokens, share of the target's window, savings, and cost if a price is set."""
         convs = self._by_ids(ids)
         if not convs:
             return {"tokens": 0}
+        opts, auto_compact = self._resolve_opts(convs, target, opts)
         text, counts, saved = self._build(convs, opts)
         tokens = cb.estimate_tokens(text)
         name, window = self._target_info(target)
@@ -633,7 +655,8 @@ class Api:
         except ValueError:
             cost = None
         return {"tokens": tokens, "chars": len(text), "saved": saved, "scrubbed": counts, "window": window,
-                "pct": round(tokens / window * 100, 1) if window else None, "cost": cost, "target": name}
+                "pct": round(tokens / window * 100, 1) if window else None, "cost": cost, "target": name,
+                "auto_compact": auto_compact}
 
     def usage_summary(self, ids):
         """Real token usage recorded by Claude Code for the chosen chats, plus cost if the user entered prices."""
@@ -660,11 +683,13 @@ class Api:
             if new:
                 self._lib = new + self._lib
                 self._save()
+        auto = bool((opts or {}).get("auto"))
+        opts, _ = self._resolve_opts(convs, target, opts)
         text, counts, saved = self._build(convs, opts)
         title = convs[0]["title"] if len(convs) == 1 else f"{len(convs)} items"
         name, _ = self._target_info(target)
         self._cfg["last_target"] = name if target != "copy" else "copy"
-        if opts:
+        if opts and not auto:     # automatic choices are never saved as the person's own settings
             self._cfg["compact"], self._cfg["scrub"] = bool(opts.get("compact")), bool(opts.get("scrub"))
         cb.save_json(cb.CFG_PATH, self._cfg)
         cb.add_history({"id": uuid.uuid4().hex, "time": time.strftime("%Y-%m-%d %H:%M"), "target": name or "?",
@@ -709,6 +734,8 @@ class Api:
         set_clipboard(text)
         path = cb.save_handoff_file(text, title)
         self._made_files.add(os.path.normcase(os.path.abspath(path)))
+        if not url:
+            return self._emit("done", "Copied, and saved as a file. Open any AI website and press Ctrl+V in its message box.", file=path)
         import webbrowser
         webbrowser.open(url)   # only ever an address from WEB_TOOLS above
         self._emit("done", f"Copied, and {name} is opening in your browser. Click its message box and press Ctrl+V. "
@@ -726,7 +753,8 @@ class Api:
         """Save the ticked chats/projects as a file you can attach to any AI website (.md or .txt), or as a ChatBridge .json."""
         convs = self._by_ids(ids if isinstance(ids, list) else [])
         if not convs:
-            return {"error": "Tick at least one chat first."}
+            return {"error": "Pick a conversation first."}
+        opts, _ = self._resolve_opts(convs, None, opts)
         fd = getattr(webview, "FileDialog", None)
         res = self._window.create_file_dialog(
             fd.SAVE if fd else webview.SAVE_DIALOG, save_filename="chat-handoff.md",

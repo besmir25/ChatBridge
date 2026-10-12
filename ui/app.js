@@ -1,7 +1,9 @@
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c]));
-const S = {chats: [], apps: [], web: [], settings: {theme: "dark", size: 16}, sel: new Set(), target: null, busy: false, scanning: true,
+const S = {chats: [], apps: [], web: [], settings: {theme: "light", font: "sans", size: 17}, sel: new Set(), target: null, site: 0, busy: false, scanning: true,
            query: "", hits: {}, toolsChosen: false};
+/* "web" is the single "A website" tile; the site inside it is chosen in a small list ("none" = I'll open it myself) */
+const targetKey = () => S.target === "web" ? (S.site === "none" ? "web:none" : "web:" + S.site) : S.target;
 const api = () => window.pywebview.api;
 const PALETTE = ["#f0997b", "#93c5fd", "#5dcaa5", "#ed93b1", "#afa9ec", "#fac775", "#85b7eb"];
 const colorFor = n => PALETTE[[...String(n)].reduce((a, c) => a + c.charCodeAt(0), 0) % PALETTE.length];
@@ -25,22 +27,18 @@ const iconFor = source => {
   const a = S.apps.find(a => a.icon && a.name.toLowerCase().split(" ")[0] === first);
   return a ? `<img src="${a.icon}" alt="">` : ({"project": "▤", "pasted": "⎘"}[first] || esc(String(source)[0] || "?").toUpperCase());
 };
-const THEMES = {midnight: "Midnight (teal)", tokyo: "Tokyo Night (blue)", gruvbox: "Gruvbox (amber)", nord: "Nord (ice)", light: "Paper (light)"};
-const FONTS = {code: "Cascadia Code (code style)", consolas: "Consolas (code style)", sans: "Segoe UI (plain)"};
+const THEMES = {light: "Light", midnight: "Dark (teal)", tokyo: "Dark (blue)", gruvbox: "Dark (amber)", nord: "Dark (ice)"};
+const FONTS = {sans: "Easy to read (Segoe UI)", code: "Programmer style (Cascadia Code)", consolas: "Programmer style (Consolas)"};
+const SIZES = {14: "Smaller", 16: "Normal", 17: "Comfortable", 19: "Large", 22: "Extra large"};
 function applySettings() {
   const s = S.settings;
-  document.documentElement.dataset.theme = THEMES[s.theme] ? s.theme : "midnight";
-  document.documentElement.dataset.font = FONTS[s.font] ? s.font : "code";
-  document.documentElement.style.setProperty("--fs", (s.size || 16) + "px");
+  document.documentElement.dataset.theme = THEMES[s.theme] ? s.theme : "light";
+  document.documentElement.dataset.font = FONTS[s.font] ? s.font : "sans";
+  document.documentElement.style.setProperty("--fs", (s.size || 17) + "px");
 }
-async function persistLook() {
-  const s = S.settings;
-  S.settings = await api().save_settings({autopaste: s.autopaste, theme: s.theme, font: s.font, size: s.size});
-}
-
 /* ---------- rendering ---------- */
 const kfmt = n => n >= 10000 ? Math.round(n / 1000) + "k" : n >= 1000 ? (n / 1000).toFixed(1) + "k" : String(n || 0);
-const opts = () => ({compact: $("#oCompact").checked, scrub: $("#oScrub").checked});
+const opts = () => ({auto: true});   // the app decides: private details hidden, long text shortened only when it needs to be
 const selectedIds = () => [...S.sel].filter(id => S.chats.some(c => c.id === id));
 
 let estTimer, estSeq = 0;
@@ -48,15 +46,13 @@ function scheduleEstimate() { clearTimeout(estTimer); estTimer = setTimeout(refr
 async function refreshEstimate() {
   const ids = selectedIds(), box = $("#estimate"), seq = ++estSeq;
   if (!ids.length) { box.innerHTML = ""; return; }
-  const e = await api().estimate(ids, S.target, opts());
+  const e = await api().estimate(ids, targetKey(), opts());
   if (seq !== estSeq || !e) return;
-  const parts = [`<b title="Tokens are how AI measures length: roughly 650 per page">${pagesOf(e.tokens)} (~${e.tokens.toLocaleString()} tokens)</b>`];
-  if (e.pct != null) parts.push(`<span class="${e.pct > 70 ? "warn" : "good"}">${e.pct > 100 ? "too long for " + esc(e.target) + " — turn on “Shorten long text”" : e.pct > 70 ? "close to " + esc(e.target) + "’s limit" : "fits comfortably in " + esc(e.target)}</span>`);
-  if (e.saved > 0) parts.push(`shortened by ${e.saved.toLocaleString()} tokens`);
-  const s = e.scrubbed || {}, removed = (s.keys || 0) + (s.emails || 0) + (s.phones || 0) + (s.paths || 0);
-  if (removed) parts.push(`hid ${removed} private detail${removed === 1 ? "" : "s"}`);
-  if (e.cost != null) parts.push(`≈ $${e.cost} as API input`);
-  box.innerHTML = parts.join(" · ");
+  /* say something only when there's something to say, in plain words */
+  const who = e.target ? esc(e.target.replace(" (website)", "")) : "the app";
+  if (e.pct != null && e.pct > 100) box.innerHTML = `<span class="warn">This is a lot of text, even after shortening — ${who} may cut part of it off. Try fewer conversations.</span>`;
+  else if (e.auto_compact) box.innerHTML = "It’s a long conversation, so ChatBridge will trim big blocks of code or output first.";
+  else box.innerHTML = "";
 }
 
 /* the chats that match the search box (or all of them when it's empty) */
@@ -68,39 +64,32 @@ function visibleChats() {
 function renderChats() {
   const L = $("#chatList");
   const n = S.chats.length;
-  $("#chipChats").textContent = S.scanning && !n ? "Looking for chats…" : `${n} chat${n === 1 ? "" : "s"} & projects`;
   if (!n) {
-    L.innerHTML = '<div class="empty"><b>No chats yet</b>Add a chat file, paste some text, or bring a project folder with the buttons above.</div>';
+    L.innerHTML = S.scanning ? '<div class="empty"><b>Looking for your conversations…</b></div>'
+      : '<div class="empty"><b>No conversations yet</b>Add one from a file, or paste some text, with the links below.</div>';
     return;
   }
   const shown = visibleChats();
   $("#searchNote").textContent = S.query.trim() ? `${shown.length} of ${n}` : "";
   if (!shown.length) {
-    L.innerHTML = `<div class="empty"><b>No chats match “${esc(S.query.trim())}”</b>Try a different word, or clear the search box.</div>`;
+    L.innerHTML = `<div class="empty"><b>Nothing matches “${esc(S.query.trim())}”</b>Try a different word, or clear the search box.</div>`;
     return;
   }
-  const byDate = (S.settings.group_by || "date") === "date";
   const sorted = [...shown].sort((a, b) => String(b.created).localeCompare(String(a.created)));   // newest first
   const groups = {};
-  if (byDate) {
-    for (const g of DATE_GROUPS) groups[g] = [];
-    sorted.forEach(c => groups[dateGroup(c.created)].push(c));
-  } else {
-    sorted.forEach(c => (groups[c.source] = groups[c.source] || []).push(c));
-  }
-  $("#groupSeg").querySelectorAll("button").forEach(b => b.classList.toggle("on", b.dataset.g === (byDate ? "date" : "app")));
+  for (const g of DATE_GROUPS) groups[g] = [];
+  sorted.forEach(c => groups[dateGroup(c.created)].push(c));
   L.innerHTML = Object.entries(groups).filter(([, items]) => items.length).map(([name, items]) => `
-    <button class="grp-head" data-grp="${esc(name)}" title="Click to tick or untick this whole group">${byDate ? "" : `<span class="gicon">${iconFor(name)}</span>`}${byDate ? esc(name) : "From " + esc(name)} <span class="count">${items.length}</span></button>
+    <div class="grp-head">${esc(name)}</div>
     ${items.map(c => `
       <div class="card ${S.sel.has(c.id) ? "on" : ""}" data-id="${esc(c.id)}" draggable="true">
         <span class="chk">✓</span>
-        <div class="t"><b title="${esc(c.title)}">${esc(c.title)}</b><small title="${tipFor(c)}">${c.kind === "project" ? "Code project" + (c.mode && c.mode !== "full" ? " (" + esc(c.mode) + ")" : "") : Number(c.count) + " messages"} · ${esc(pagesOf(c.tokens))} · <span class="when">${esc(relDate(c.created))}</span>${byDate ? "" : ""}</small>${S.hits[c.id] && S.query.trim() ? `<span class="snip">${esc(S.hits[c.id])}</span>` : ""}</div>
-        <button class="eye" data-view="${esc(c.id)}" title="Read this chat">◉</button>
+        <div class="t"><b title="${esc(c.title)}">${esc(c.title)}</b><small class="when">${c.kind === "project" ? "Code project · " : ""}${["Today", "Yesterday"].includes(name) ? "" : esc(relDate(c.created)) + (c.source && c.kind !== "project" ? " · " : "")}${c.source && c.kind !== "project" ? esc(c.source) : ""}</small>${S.hits[c.id] && S.query.trim() ? `<span class="snip">${esc(S.hits[c.id])}</span>` : ""}</div>
+        <button class="eye" data-view="${esc(c.id)}" title="Read it">◉</button>
         <button class="ren" data-rename="${esc(c.id)}" title="Rename">✎</button>
         ${c.saved ? `<button class="x" data-del="${esc(c.id)}" title="Remove from ChatBridge (the original stays where it is)">×</button>` : ""}
       </div>`).join("")}`).join("");
 }
-
 /* plain-language helpers for the list */
 const DATE_GROUPS = ["Today", "Yesterday", "Last 7 days", "Last 30 days", "Older"];
 function ageDays(s) {
@@ -129,51 +118,60 @@ const pagesOf = t => {            // "about 6 pages" reads better than a token c
 const tipFor = c => c.real_tokens ? `About ${(c.tokens || 0).toLocaleString()} tokens (how AI measures length). Claude Code recorded ${c.real_tokens.toLocaleString()} tokens processed while this chat was running.`
                                   : `About ${(c.tokens || 0).toLocaleString()} tokens. Tokens are how AI measures length: roughly 650 per page.`;
 
-function appTile(key, name, sub, iconHtml, bg) {
+function appTile(key, name, iconHtml, bg) {
   const on = S.target === key ? "on" : "";
   const ic = iconHtml ? `<span class="ic" style="background:${bg || "transparent"}">${iconHtml}</span>`
                       : `<span class="ic" style="background:${colorFor(name)}">${esc(name[0].toUpperCase())}</span>`;
-  return `<button class="app-tile ${on}" data-key="${esc(key)}">${ic}<b>${esc(name)}</b><small>${sub}</small></button>`;
+  return `<button class="app-tile ${on}" data-key="${esc(key)}">${ic}<b>${esc(name)}</b></button>`;
 }
+const siteName = w => w.name.replace(" (website)", "");
 function renderApps() {
-  const kindSub = {"Desktop app": "Installed", "Possible AI app": "Might be an AI app", "CLI tool": "Terminal tool", "Local server": "Runs on this PC"};
   const tiles = S.apps.filter(a => a.enabled !== false).map(a => {
-    let sub = esc(kindSub[a.kind] || a.kind);
-    if (a.kind === "Local server") sub += ` · ${a.models.length} model${a.models.length === 1 ? "" : "s"}`;
-    if (a.tested === true) sub = '<span class="ok">tested ✓</span> · ' + sub;
-    if (a.tested === false) sub = '<span class="bad">didn’t work yet</span>';
-    if (a.icon) return appTile(a.key, a.name, sub, `<img src="${a.icon}" alt="">`);
-    return appTile(a.key, a.name, sub, a.kind === "CLI tool" ? "&gt;_" : "", a.kind === "CLI tool" ? "#b4b2a9" : "");
+    if (a.icon) return appTile(a.key, a.name, `<img src="${a.icon}" alt="">`);
+    return appTile(a.key, a.name, a.kind === "CLI tool" ? "&gt;_" : "", a.kind === "CLI tool" ? "#b4b2a9" : "");
   });
-  S.web.filter(w => w.enabled).forEach(w => tiles.push(appTile(w.key, w.name.replace(" (website)", ""), "Website · opens in your browser", "")));
-  tiles.push(appTile("copy", "Copy only", "Paste it anywhere", "⧉", "#b4b2a9"));
+  tiles.push(appTile("web", "A website", "🌐", "var(--chip)"));
+  tiles.push(appTile("file", "A file", "💾", "var(--chip)"));
+  tiles.push(appTile("copy", "Just copy it", "⧉", "var(--chip)"));
   $("#appGrid").innerHTML = tiles.join("");
-  const real = S.apps.filter(a => a.kind === "Desktop app" || a.kind === "Local server").length;
-  $("#dotApps").classList.toggle("spin", S.scanning);
-  $("#chipApps").textContent = S.scanning && !S.apps.length ? "Looking for your AI apps…" : `${S.apps.length} app${S.apps.length === 1 ? "" : "s"} found`;
+  /* the small list under the tiles, only while "A website" is chosen */
+  const pick = $("#webPick");
+  pick.hidden = S.target !== "web";
+  if (!pick.hidden) {
+    $("#webSite").innerHTML = S.web.map((w, i) => `<option value="${i}" ${S.site === i ? "selected" : ""}>${esc(siteName(w))}</option>`).join("")
+      + `<option value="none" ${S.site === "none" ? "selected" : ""}>I’ll open it myself</option>`;
+  }
+  const real = S.apps.filter(a => a.enabled !== false && (a.kind === "Desktop app" || a.kind === "Local server")).map(a => a.name);
+  const list = real.length > 1 ? real.slice(0, -1).join(", ") + " and " + real[real.length - 1] : real[0];
+  $("#foundLine").innerHTML = S.scanning && !S.apps.length ? "Looking for AI apps on your computer…"
+    : real.length ? `We found ${esc(list)} on your computer. <button class="link" id="btnNotRight">Not right?</button>`
+    : `We didn’t find an AI app on your computer. <button class="link" id="btnNotRight">Add one</button>`;
 }
 
 function renderSummary() {
-  const ids = [...S.sel].filter(id => S.chats.some(c => c.id === id));
-  const n = ids.length, items = `${n} chat${n === 1 ? "" : "s"}`;
-  const app = typeof S.target === "number" ? S.apps.find(a => a.key === S.target) : null;
-  const web = typeof S.target === "string" && S.target.startsWith("web:") ? S.web.find(w => w.key === S.target) : null;
-  const name = S.target === "copy" ? "the clipboard" : app ? app.name : web ? web.name.replace(" (website)", "") : null;
-  let msg, label = "Send", ready = n > 0 && S.target !== null;
-  if (!n) msg = "Tick a chat on the left and choose where it should go.";
-  else if (!name) msg = `<b>${items}</b> ticked. Now choose where to send ${n === 1 ? "it" : "them"}.`;
-  else if (web) { msg = `<b>${items}</b> will be copied and <b>${esc(name)}</b> opens in your browser. Click its message box and press Ctrl+V — or attach the saved file.`; label = "Open " + name; }
-  else if (S.target === "copy") { msg = `<b>${items}</b> will be copied. Paste ${n === 1 ? "it" : "them"} anywhere with Ctrl+V.`; label = "Copy"; }
-  else if (app && app.kind === "Local server") { msg = `<b>${items}</b> will load into <b>${esc(name)}</b> and you’ll keep chatting right here.`; label = "Continue here"; }
-  else if (app && app.kind === "CLI tool") { msg = `<b>${items}</b> will be copied and <b>${esc(name)}</b> opens in a terminal. Right-click there to paste.`; label = "Send to " + name; }
-  else { msg = `<b>${items}</b> → <b>${esc(name)}</b>. It opens and the chat is pasted in. You press Enter.`; label = "Send to " + name; }
+  const n = selectedIds().length, items = n === 1 ? "this conversation" : `these ${n} conversations`;
+  const t = S.target;
+  const app = typeof t === "number" ? S.apps.find(a => a.key === t) : null;
+  const site = t === "web" && S.site !== "none" ? S.web[S.site] : null;
+  let msg, label = "Continue", ready = n > 0 && t !== null;
+  if (!n) msg = "Pick a conversation to get started.";
+  else if (t === null) msg = "Now choose where you want to continue it.";
+  else if (t === "web") {
+    if (site) { msg = `ChatBridge copies ${items} and opens ${esc(siteName(site))}. Click its message box and press Ctrl+V.`; label = "Copy and open " + siteName(site); }
+    else { msg = `ChatBridge copies ${items} and saves it as a file. Paste it into any AI website with Ctrl+V.`; label = "Copy it"; }
+  }
+  else if (t === "file") { msg = `ChatBridge saves ${items} as a file you can attach anywhere.`; label = "Save as a file…"; }
+  else if (t === "copy") { msg = `ChatBridge copies ${items}. Paste it anywhere with Ctrl+V.`; label = "Copy it"; }
+  else if (app && app.kind === "Local server") { msg = `${items[0].toUpperCase() + items.slice(1)} loads into ${esc(app.name)} and you keep chatting right here.`; label = "Continue with " + app.name; }
+  else if (app && app.kind === "CLI tool") { msg = `ChatBridge copies ${items} and opens ${esc(app.name)} in a terminal. Right-click there to paste.`; label = "Continue in " + app.name; }
+  else if (app) { msg = `${app.name} opens with ${items} ready to go. You press Enter when you’re ready.`; label = "Continue in " + app.name; }
+  else msg = "Now choose where you want to continue it.";
   $("#summary").innerHTML = msg;
   $("#sendLabel").textContent = S.busy ? "Working…" : label;
   $("#btnSend").classList.toggle("off", !ready || S.busy);
   $("#btnSend").dataset.ready = ready ? "1" : "";
   scheduleEstimate();
-}
-const renderAll = () => { renderChats(); renderApps(); renderSummary(); };
+}const renderAll = () => { renderChats(); renderApps(); renderSummary(); };
 
 /* ---------- events ---------- */
 $("#chatList").addEventListener("click", async e => {
@@ -206,8 +204,17 @@ $("#appGrid").addEventListener("click", e => {
   if (!t) return;
   const k = t.dataset.key;
   S.target = /^\d+$/.test(k) ? Number(k) : k;
+  api().save_settings({...S.settings, last_target: lastName()});
   renderApps(); renderSummary();
 });
+$("#webSite").onchange = e => {
+  S.site = e.target.value === "none" ? "none" : Number(e.target.value);
+  api().save_settings({...S.settings, last_target: lastName()});
+  renderSummary();
+};
+/* what we remember as "the last place you sent something" */
+function lastName() { return S.target === "web" ? (S.site === "none" ? "a website" : (S.web[S.site] || {}).name) : S.target === "file" ? null : typeof S.target === "number" ? (S.apps.find(a => a.key === S.target) || {}).name : S.target; }
+document.addEventListener("click", e => { if (e.target.id === "btnNotRight") openTools(false); });
 /* drag a chat onto an app to send it straight away */
 let dragId = null;
 $("#chatList").addEventListener("dragstart", e => {
@@ -227,17 +234,6 @@ $("#appGrid").addEventListener("drop", e => {
   const k = t.dataset.key;
   S.target = /^\d+$/.test(k) ? Number(k) : k;
   renderAll(); doSend();
-});
-$("#oCompact").onchange = $("#oScrub").onchange = () => { renderSummary(); api().save_settings({...S.settings, compact: $("#oCompact").checked, scrub: $("#oScrub").checked}); };
-
-$("#btnAll").onclick = () => { visibleChats().forEach(c => S.sel.add(c.id)); renderAll(); };   // while searching, only the matches
-
-/* how the list is arranged, remembered between visits */
-$("#groupSeg").addEventListener("click", async e => {
-  const b = e.target.closest("[data-g]");
-  if (!b) return;
-  S.settings.group_by = b.dataset.g; renderChats();
-  api().save_settings({...S.settings, group_by: b.dataset.g});
 });
 $("#btnHelp").onclick = () => open("#mHelp");
 
@@ -288,11 +284,9 @@ document.addEventListener("click", e => {
   close("#mTools"); S.target = Number(b.dataset.test); renderAll(); runTest(S.target);
 }, true);
 function openTools(first) {
-  $("#tlTitle").textContent = first ? "Which AI tools do you use?" : "Choose your AI tools";
-  $("#tlSub").textContent = first ? "ChatBridge looked on this PC and found these. Tick the ones you want to send chats to — you can change this any time."
-                                  : "Tick the ones you want to send chats to. Missing one? Add it at the bottom.";
-  $("#tlApps").innerHTML = S.apps.length ? S.apps.map(a => toolRow(a, a.icon)).join("") : '<div class="empty" style="padding:14px">Nothing found yet. Install an AI app and press ↻ Refresh.</div>';
-  $("#tlWeb").innerHTML = S.web.map(w => toolRow(w, null)).join("");
+  $("#tlTitle").textContent = "Which AI apps do you use?";
+  $("#tlSub").textContent = "Tick the ones you want to see. Missing one? Add it at the bottom.";
+  $("#tlApps").innerHTML = S.apps.length ? S.apps.map(a => toolRow(a, a.icon)).join("") : '<div class="empty" style="padding:14px">Nothing found yet. Install an AI app, then open More options and press Look again.</div>';
   $("#tlCancel").hidden = !!first;
   open("#mTools");
 }
@@ -301,35 +295,21 @@ $("#tlAll").onclick = () => document.querySelectorAll("#mTools input[type=checkb
 $("#tlNone").onclick = () => document.querySelectorAll("#mTools input[type=checkbox]").forEach(c => c.checked = false);
 $("#tlSave").onclick = async () => {
   const names = [...document.querySelectorAll("#mTools input[type=checkbox]:checked")].map(c => c.dataset.name);
-  const r = await api().set_tools(names);
+  const r = await api().set_tools([...names, ...S.web.map(w => w.name)]);
   S.apps = r.apps; S.web = r.web; S.toolsChosen = true;
   if (typeof S.target === "number" && !(S.apps.find(a => a.key === S.target) || {}).enabled) S.target = null;
-  if (typeof S.target === "string" && S.target.startsWith("web:") && !(S.web.find(w => w.key === S.target) || {}).enabled) S.target = null;
   close("#mTools"); renderAll();
-  toast(names.length ? `Showing ${names.length} tool${names.length === 1 ? "" : "s"}.` : "No tools ticked — only “Copy only” will show.", "good", 3000);
+  toast(names.length ? `Showing ${names.length} app${names.length === 1 ? "" : "s"}.` : "No apps ticked — you can still use a website, a file, or copy.", "good", 3000);
 };
-const maybeAskTools = () => {   // once per session, and never on top of the welcome or what's-new windows
-  if (!S.toolsChosen && (S.apps.length || S.web.length) && !S.askedTools && $("#mWelcome").hidden && $("#mNew").hidden) { S.askedTools = true; openTools(true); }
-};
-
-/* save the ticked chats as a file you can attach on any AI website */
-$("#btnExport").onclick = async () => {
-  const ids = selectedIds();
-  if (!ids.length) return toast("Tick at least one chat on the left first.", "warn");
-  const r = await api().export_selected(ids, opts());
+/* "A file": save the ticked conversations as a file you can attach on any AI website */
+async function saveAsFile() {
+  const r = await api().export_selected(selectedIds(), opts());
+  S.busy = false; renderSummary();
   if (r.cancelled) return;
   if (r.error) return toast(r.error, "err");
-  toast(`Saved ${r.name}. Attach it on any AI website, or import the .json back into ChatBridge later.`, "good", 10000,
+  toast(`Saved ${r.name}. Attach it on any AI website, or add it back to ChatBridge later.`, "good", 10000,
         {label: "Show file", fn: () => api().show_file(r.path)});
-};
-$("#btnNone").onclick = () => { S.sel.clear(); renderAll(); };
-$("#btnTheme").onclick = () => {
-  const keys = Object.keys(THEMES);
-  S.settings.theme = keys[(keys.indexOf(S.settings.theme) + 1) % keys.length];
-  applySettings(); persistLook(); toast("Theme: " + THEMES[S.settings.theme], "", 1800);
-};
-$("#btnBigger").onclick = () => { S.settings.size = Math.min(26, (S.settings.size || 16) + 1); applySettings(); persistLook(); };
-$("#btnSmaller").onclick = () => { S.settings.size = Math.max(11, (S.settings.size || 16) - 1); applySettings(); persistLook(); };
+}
 $("#aEdit").onclick = () => api().edit_profiles();
 $("#aAdd").onclick = async () => {
   const r = await api().add_app($("#aName").value);
@@ -411,6 +391,8 @@ $("#btnSettings").onclick = () => {
   const s = S.settings;
   $("#sTheme").innerHTML = Object.entries(THEMES).map(([k, v]) => `<option value="${k}" ${k === s.theme ? "selected" : ""}>${esc(v)}</option>`).join("");
   $("#sFont").innerHTML = Object.entries(FONTS).map(([k, v]) => `<option value="${k}" ${k === s.font ? "selected" : ""}>${esc(v)}</option>`).join("");
+  $("#sSize").innerHTML = Object.entries(SIZES).map(([k, v]) => `<option value="${k}" ${Number(k) === s.size ? "selected" : ""}>${esc(v)}</option>`).join("");
+  $("#sScrub").checked = s.scrub !== false; $("#sCompact").checked = !!s.compact;
   $("#sAuto").checked = s.autopaste !== false;
   $("#sUpdate").checked = s.update_check !== false; $("#sVersion").textContent = "You have version " + (s.version || "");
   $("#sToken").value = s.capture_token || ""; $("#sPort").textContent = s.capture_port || "not running";
@@ -423,7 +405,7 @@ function showUpdate(info, manual) {
     const c = $("#chipUpdate");
     c.hidden = false; c.textContent = "Update available: " + info.version; c.dataset.url = info.url;
     c.dataset.version = info.version; c.dataset.notes = info.notes || "";
-    if (manual) toast(`Version ${info.version} is available. Click the chip at the top to download it.`, "good", 7000);
+    if (manual) toast(`Version ${info.version} is available. Click “Update available” at the top to download it.`, "good", 7000);
   } else if (manual) {
     toast(!info || info.status === "offline" ? "Couldn't reach GitHub. Check your internet connection."
           : info.status === "none" ? "No releases have been published yet." : `You're up to date (version ${info.current}).`,
@@ -467,12 +449,13 @@ $("#sCopyToken").onclick = async () => {
 $("#sExt").onclick = async () => { const r = await api().open_extension_folder(); if (r.error) toast(r.error, "warn"); };
 window.onCaptured = info => {          // a chat arrived from the browser extension
   S.chats = info.chats; S.sel.add(info.id); renderAll();
-  toast(`Saved “${info.title}” from ${info.source} (${info.count} messages).`, "good", 6000);
+  toast(`Saved “${info.title}” from ${info.source}.`, "good", 6000);
 };
 $("#sTheme").onchange = () => { S.settings.theme = $("#sTheme").value; applySettings(); };
 $("#sFont").onchange = () => { S.settings.font = $("#sFont").value; applySettings(); };
+$("#sSize").onchange = () => { S.settings.size = Number($("#sSize").value); applySettings(); };
 $("#sSave").onclick = async () => {
-  S.settings = await api().save_settings({autopaste: $("#sAuto").checked, theme: $("#sTheme").value, font: $("#sFont").value, size: S.settings.size,
+  S.settings = await api().save_settings({autopaste: $("#sAuto").checked, theme: $("#sTheme").value, font: $("#sFont").value, size: Number($("#sSize").value), scrub: $("#sScrub").checked, compact: $("#sCompact").checked,
     update_check: $("#sUpdate").checked, about_me: $("#sAbout").value, price_in: $("#sPriceIn").value.trim(), price_out: $("#sPriceOut").value.trim()});
   close("#mSettings"); toast("Settings saved.", "good"); scheduleEstimate();
 };
@@ -481,10 +464,11 @@ $("#sSave").onclick = async () => {
 async function doSend() {
   if (S.busy) return;
   const ids = selectedIds();
-  if (!ids.length) return toast("Tick at least one chat on the left first.", "warn");
-  if (S.target === null) return toast("Choose where to send it on the right.", "warn");
+  if (!ids.length) return toast("Pick a conversation first.", "warn");
+  if (S.target === null) return toast("Choose where you want to continue it.", "warn");
   S.busy = true; renderSummary();
-  const r = await api().send(ids, S.target, opts());
+  if (S.target === "file") return saveAsFile();
+  const r = await api().send(ids, targetKey(), opts());
   if (r.error) { S.busy = false; renderSummary(); return toast(r.error, "warn"); }
   S.chats = r.chats; S.settings = r.settings || S.settings; renderChats();
   toast("Working…", "work", 0);
@@ -495,7 +479,7 @@ $("#btnSend").onclick = doSend;
 $("#btnHistory").onclick = async () => {
   const h = await api().get_history();
   $("#histBody").innerHTML = h.length ? h.map((e, i) => `
-    <div class="hrow"><div class="t"><b>${esc(e.titles.join(", "))}</b><small>${esc(e.time)} → ${esc(e.target)} · ~${(e.tokens || 0).toLocaleString()} tokens${e.opts && e.opts.compact ? " · compact" : ""}${e.opts && e.opts.scrub ? " · scrubbed" : ""}</small></div>
+    <div class="hrow"><div class="t"><b>${esc(e.titles.join(", "))}</b><small>${esc(e.time)} → ${esc(e.target)}</small></div>
       <button class="btn" data-again="${i}">Send again</button></div>`).join("")
     : '<div class="empty"><b>Nothing sent yet</b>Chats you send will be listed here.</div>';
   $("#histBody").dataset.items = JSON.stringify(h);
@@ -507,10 +491,10 @@ $("#histBody").onclick = e => {
   const h = JSON.parse($("#histBody").dataset.items)[Number(b.dataset.again)];
   const live = h.ids.filter(id => S.chats.some(c => c.id === id));
   if (!live.length) return toast("Those chats aren’t in the list any more.", "warn");
-  const app = S.apps.find(a => a.name === h.target), site = S.web.find(w => w.name === h.target);
-  S.sel = new Set(live); S.target = h.target_key === "copy" ? "copy" : app ? app.key : site ? site.key : null;
+  const app = S.apps.find(a => a.name === h.target), siteIx = S.web.findIndex(w => w.name === h.target);
+  S.sel = new Set(live); S.target = h.target_key === "copy" ? "copy" : app ? app.key : (siteIx >= 0 || h.target_key === "web:none") ? "web" : null;
+  if (S.target === "web") S.site = siteIx >= 0 ? siteIx : "none";
   if (S.target === null) return toast(`${h.target} isn’t available right now.`, "warn");
-  $("#oCompact").checked = !!(h.opts || {}).compact; $("#oScrub").checked = !!(h.opts || {}).scrub;
   close("#mHistory"); renderAll(); doSend();
 };
 async function runTest(key) {   // started from the "Test" link next to an installed app in Choose tools
@@ -573,7 +557,7 @@ $("#dInput").addEventListener("keydown", e => { if (e.key === "Enter" && e.ctrlK
 /* ---------- startup ---------- */
 async function rescan(manual = false) {
   S.scanning = true; renderApps();
-  const btn = $("#btnRefresh"); btn.classList.add("busy"); btn.textContent = "↻ Looking…";
+  const btn = $("#btnRefresh"); btn.classList.add("busy"); btn.textContent = "Looking…";
   const keep = typeof S.target === "number" ? (S.apps.find(a => a.key === S.target) || {}).name : null;  // app numbers can change on a rescan
   const had = new Set(S.apps.map(a => a.name)), hadChats = new Set(S.chats.map(c => c.id));
   try {
@@ -582,18 +566,17 @@ async function rescan(manual = false) {
   } catch (e) { toast("Scan problem: " + e, "err"); }
   if (keep) { const a = S.apps.find(a => a.name === keep); S.target = a ? a.key : null; }
   S.scanning = false; rememberTarget(); renderAll();
-  btn.classList.remove("busy"); btn.textContent = "↻ Refresh";
+  btn.classList.remove("busy"); btn.textContent = "Look again";
   if (manual) {
     const newApps = S.apps.filter(a => !had.has(a.name)).map(a => a.name), newChats = S.chats.filter(c => !hadChats.has(c.id)).length;
     toast(newApps.length || newChats
       ? `Found ${newApps.length ? "new tool" + (newApps.length > 1 ? "s" : "") + ": " + newApps.join(", ") : ""}${newApps.length && newChats ? " and " : ""}${newChats ? newChats + " new chat" + (newChats > 1 ? "s" : "") : ""}.`
       : `Nothing new — ${S.apps.length} tool${S.apps.length === 1 ? "" : "s"} and ${S.chats.length} chat${S.chats.length === 1 ? "" : "s"} found.`, "good", 5000);
-  } else maybeAskTools();
+  }
 }
 async function start() {
   const b = await api().bootstrap();
   S.chats = b.chats; S.apps = b.apps; S.web = b.web || []; S.settings = b.settings; S.toolsChosen = !!b.tools_chosen;
-  $("#oCompact").checked = !!b.settings.compact; $("#oScrub").checked = b.settings.scrub !== false;
   applySettings(); rememberTarget(); renderAll();
   if (!b.welcomed) { open("#mWelcome"); } else { showWhatsNew(); }   // new users get the welcome; people who updated get what's new
   if (!b.welcomed) api().whats_new();                                  // just records the version so it isn't "new" next time
@@ -604,8 +587,10 @@ async function start() {
 function rememberTarget() {
   const last = S.settings.last_target;
   if (S.target !== null || !last) return;
-  const a = S.apps.find(a => a.name === last && a.enabled !== false), w = S.web.find(w => w.name === last && w.enabled);
-  if (last === "copy") S.target = "copy"; else if (a) S.target = a.key; else if (w) S.target = w.key;
+  const a = S.apps.find(a => a.name === last && a.enabled !== false), wi = S.web.findIndex(w => w.name === last);
+  if (last === "copy") S.target = "copy";
+  else if (a) S.target = a.key;
+  else if (wi >= 0 || last === "a website") { S.target = "web"; S.site = wi >= 0 ? wi : "none"; }
 }
-$("#wGo").onclick = () => { close("#mWelcome"); api().mark_welcomed(); maybeAskTools(); };
+$("#wGo").onclick = () => { close("#mWelcome"); api().mark_welcomed(); };
 if (window.pywebview && window.pywebview.api) start(); else window.addEventListener("pywebviewready", start);

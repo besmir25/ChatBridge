@@ -1,45 +1,43 @@
-# ChatBridge
+﻿# ChatBridge
 
 **Move a conversation — or a whole code project — from one AI app to another, without starting over.**
 
 ![License: MIT](https://img.shields.io/badge/license-MIT-2dd4bf) ![Platform: Windows 10/11](https://img.shields.io/badge/platform-Windows%2010%2F11-60a5fa) ![Runs locally](https://img.shields.io/badge/data-stays%20on%20your%20PC-34d399)
 
 You started a conversation in one AI and want to continue it in another — or hand a project to a new model. Today that means
-copying and pasting, losing context, and re-explaining everything. ChatBridge does it in three steps and shows what it's
-about to send before it does.
+copying and pasting, losing context, and re-explaining everything. ChatBridge does it in three simple steps.
 
-![ChatBridge: pick chats on the left, pick an app on the right, press Send](docs/screenshots/main.png)
+![ChatBridge: pick a conversation, choose where it goes, press the big button](docs/screenshots/main.png)
 
 ## How it works
 
-1. **Pick your chats** — chats ChatBridge found on your PC, plus anything you add (a chat file, pasted text, or a project folder).
-2. **Choose where they go** — your installed AI apps appear as tiles, with their real icons.
-3. **Press Send** — the app opens and the chat is pasted in. **You read it and press Enter yourself.**
+1. **Which conversation?** — ChatBridge lists the conversations it found on your PC (add more from a file or by pasting text).
+2. **Where do you want to continue it?** — one of your AI apps (shown with its real icon), **a website** (ChatGPT, Claude.ai, Gemini and others), **a file**, or just copy it.
+3. **Press the big button** — the app opens and the conversation is put in place. **You read it and press Enter yourself.**
 
 ## Features
 
-- **Finds your AI apps** — Claude, ChatGPT, Copilot, Antigravity, local models such as Ollama, and more. Installed something
-  new? Press **Refresh**. **Choose tools** lets you decide which apps and websites show up.
-- **Sends to AI websites too** — ChatGPT, Claude.ai, Gemini and others: your chat is copied and saved as a file, and the site opens in
-  your browser. **Save as file…** exports chats as Markdown, text or a re-importable file.
-- **Easy to browse** — readable chat names, grouped by date or by app, with search that looks inside the conversations.
+- **Finds your AI apps** — Claude, ChatGPT, Copilot, Antigravity, local models such as Ollama, and more. Installed something new? Open
+  *More options* and press **Look again**.
+- **Websites and files** — pick a site from a short list and the conversation is copied (and saved as a file in case a site won't take
+  a long paste); or save it as Markdown, text or a re-importable file.
+- **Easy to browse** — readable names, grouped by date, with search that looks inside the conversations.
 - **Finds your chats** — those stored on this PC (Claude Code, Codex, Gemini CLI, LM Studio, Jan), and imports ChatGPT and Claude
   exports, pasted text and markdown.
 - **Saves web chats in one click** with the included browser extension (ChatGPT, Claude.ai, Gemini).
 - **Moves whole projects** — code, markdown, YAML and other config files, with a folder tree, a live size meter, and a choice of
-  *full files*, *outlines of big files*, or *structure only*. Quick filters for code, config, docs and tests.
-- **Shows the size before you send** — estimated tokens and the share of the app's context window.
-- **Compact** trims long code/output blocks and repeats to save tokens. **Scrub private info** removes API keys, passwords,
-  emails, phone numbers and your Windows user name.
-- **History**, **drag and drop** (drag a chat onto an app), and the app you used last is remembered.
-- **Five color themes** and a code-style font: Midnight, Tokyo Night, Gruvbox, Nord and Paper (light).
+  *full files*, *outlines of big files*, or *structure only* (*More options → Bring a code project*).
+- **Looks after you** — passwords, keys, emails and your Windows user name are hidden automatically, and very long conversations are
+  shortened only when they need to be.
+- **History** and **drag and drop** (drag a conversation onto an app); the place you used last is remembered.
+- **Light by default**, with dark colors and a code-style font in Settings.
 
 ![Bringing a project folder along](docs/screenshots/project.png)
 
 | | |
 |---|---|
 | ![Choose which tools to show](docs/screenshots/tools.png) | ![Send history](docs/screenshots/history.png) |
-| ![Color themes](docs/screenshots/themes.png) | |
+| ![A dark look, from Settings](docs/screenshots/themes.png) | |
 
 > The screenshots use sample data and placeholder icons. On your PC ChatBridge shows each app's real icon, taken from Windows.
 
@@ -85,7 +83,7 @@ Python 3.9+ on Windows:
 ```bash
 pip install pywebview pyinstaller pillow
 python chatbridge_app.py                      # run it
-python -m unittest discover -s tests -v       # 40+ tests
+python -m unittest discover -s tests -v       # 80 tests
 python make_release.py                        # tests, then build the app and the installer into release/
 ```
 

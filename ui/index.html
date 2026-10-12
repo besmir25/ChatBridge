@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="light" data-font="sans">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -7,67 +7,65 @@
      it couldn't run a script or send anything to another site. -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <title>ChatBridge</title>
-<style>html{background:#0f1115}.app{visibility:hidden}</style><!-- hidden until app.css loads, so there's never a flash of unstyled page -->
+<style>html{background:#f6f7f9}.app{visibility:hidden}</style><!-- hidden until app.css loads, so there's never a flash of unstyled page -->
 <link rel="stylesheet" href="app.css">
 </head>
 <body>
 <div class="app">
   <header>
     <div class="logo"><span class="mark">⇄</span><span>ChatBridge</span></div>
-    <div class="chips">
-      <span class="chip"><span class="dot spin" id="dotApps"></span><span id="chipApps">Looking for your AI apps…</span></span>
-      <span class="chip" id="chipChats">Looking for chats…</span>
-      <a class="chip upd" id="chipUpdate" hidden href="#" title="Opens the download page in your browser">Update available</a>
-    </div>
     <div class="tools">
-      <button id="btnHelp" title="How ChatBridge works, and answers to common questions">? Help</button>
-      <button id="btnRefresh" title="Look again for newly installed AI apps and new chats">↻ Refresh</button>
-      <button id="btnTheme" title="Next color theme">Theme</button>
-      <button id="btnHistory" title="What you sent, and where">History</button>
-      <button id="btnSmaller" title="Smaller text">A−</button>
-      <button id="btnBigger" title="Bigger text">A+</button>
+      <a class="chip upd" id="chipUpdate" hidden href="#" title="Opens the release notes">Update available</a>
+      <button id="btnHelp" title="How ChatBridge works, and answers to common questions">Help</button>
       <button id="btnSettings">Settings</button>
     </div>
   </header>
 
-  <main>
-    <section class="col">
-      <div class="col-head"><span class="lbl">1 · Your chats</span>
-        <div class="acts"><span class="seg" id="groupSeg" title="How the list is arranged"><button data-g="date">By date</button><button data-g="app">By app</button></span>
-          <button class="link" id="btnAll">Select all</button><button class="link" id="btnNone">None</button></div></div>
-      <div class="adders">
-        <button class="pill" id="btnFile" title="Add a chat you saved or exported as a file (for example from ChatGPT)">+ Open a chat file</button>
-        <button class="pill" id="btnPaste" title="Paste a conversation you copied from anywhere">+ Paste text</button>
-        <button class="pill" id="btnProject" title="Bring a folder of code or documents along">+ Code project</button>
-      </div>
-      <div class="searchrow"><input type="search" id="chatSearch" placeholder="Search your chats — titles and what was said" autocomplete="off"><span class="note" id="searchNote"></span></div>
+  <div class="scroll"><div class="page">
+    <div>
+      <h1>Continue a conversation somewhere new</h1>
+      <p class="lead">Pick a conversation, choose where it should go, and ChatBridge carries it over.</p>
+    </div>
+
+    <section class="block">
+      <h2><span class="num">1</span>Which conversation?</h2>
+      <div class="searchrow"><input type="search" id="chatSearch" placeholder="Search your conversations" autocomplete="off"><span class="note" id="searchNote"></span></div>
       <div class="list" id="chatList"></div>
+      <div class="links">
+        <button class="link" id="btnFile" title="Add a conversation you saved or exported as a file (for example from ChatGPT)">Add from a file</button>
+        <button class="link" id="btnPaste" title="Paste a conversation you copied from anywhere">Paste text</button>
+      </div>
     </section>
 
-    <div class="divider" aria-hidden="true"><i>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-    </i></div>
-
-    <section class="col">
-      <div class="col-head"><span class="lbl">2 · Send them to</span>
-        <div class="acts"><button class="link" id="btnTools" title="Choose which AI apps and websites appear here">Choose tools</button><button class="link" id="btnExport" title="Save the ticked chats as a file you can attach on any AI website">Save as file…</button></div></div>
+    <section class="block">
+      <h2><span class="num">2</span>Where do you want to continue it?</h2>
       <div class="grid" id="appGrid"></div>
+      <div class="webpick" id="webPick" hidden>
+        <label for="webSite">Open</label><select id="webSite"></select>
+        <span class="note" id="webNote"></span>
+      </div>
+      <div class="found" id="foundLine"></div>
     </section>
-  </main>
+
+    <details class="more">
+      <summary>More options</summary>
+      <div class="more-row">
+        <button class="pill" id="btnProject" title="Bring a folder of code or documents along">Bring a code project</button>
+        <button class="pill" id="btnTools" title="Choose which AI apps appear above">Choose which apps to show</button>
+        <button class="pill" id="btnHistory" title="What you sent, and where">What I’ve sent</button>
+        <button class="pill" id="btnRefresh" title="Look again for newly installed AI apps and new conversations">Look again</button>
+      </div>
+    </details>
+  </div></div>
 
   <footer class="bar">
     <div class="sum">
-      <div id="summary">Tick a chat on the left and choose where it should go.</div>
+      <div id="summary">Pick a conversation to get started.</div>
       <div id="estimate" class="est"></div>
     </div>
-    <div class="opts">
-      <label class="sw sm" title="Trims very long pieces (like big blocks of code or output) so the chat is shorter and easier for the AI to handle"><input type="checkbox" id="oCompact"> Shorten long text</label>
-      <label class="sw sm" title="Removes passwords, keys, email addresses, phone numbers and your Windows user name before sending"><input type="checkbox" id="oScrub"> Hide private details</label>
-    </div>
-    <button class="go off" id="btnSend"><span id="sendLabel">Send</span></button>
+    <button class="go off" id="btnSend"><span id="sendLabel">Continue</span></button>
   </footer>
 </div>
-
 <div class="toast" id="toast"></div>
 
 <!-- paste text -->
@@ -106,9 +104,12 @@
   <div class="sheet-head">Settings</div>
   <div class="sheet-sub">Look and feel, and how sending behaves.</div>
   <div class="sheet-body">
-    <div class="row"><label class="f">Color theme<select id="sTheme"></select></label>
-    <label class="f">Font<select id="sFont"></select></label></div>
+    <div class="row"><label class="f">Colors<select id="sTheme"></select></label>
+    <label class="f">Text style<select id="sFont"></select></label>
+    <label class="f">Text size<select id="sSize"></select></label></div>
     <label class="sw"><input type="checkbox" id="sAuto"> Paste into the app automatically after opening it</label>
+    <label class="sw"><input type="checkbox" id="sScrub"> Hide passwords, keys and personal details (recommended)</label>
+    <label class="sw"><input type="checkbox" id="sCompact"> Always shorten long text <span class="note">(otherwise only when it’s too long)</span></label>
     <label class="f">About me (optional) — added to every send, so a new AI knows who you are
       <textarea id="sAbout" style="min-height:90px" placeholder="e.g. I'm a nurse learning Python. Keep answers short and explain jargon."></textarea></label>
     <div class="row"><label class="f">Price per 1M input tokens, $ (optional)<input type="text" id="sPriceIn" placeholder="leave blank to hide costs"></label>
@@ -134,9 +135,9 @@
   <div class="sheet-head">Welcome to ChatBridge</div>
   <div class="sheet-sub">Pick up any AI conversation in a different AI, without starting over.</div>
   <div class="sheet-body"><div class="steps">
-    <div class="step"><span class="num">1</span><div><b>Pick your chats</b><div class="note">Chats ChatBridge found on this PC are on the left. You can also add a file, paste text, or bring a whole project folder.</div></div></div>
-    <div class="step"><span class="num">2</span><div><b>Choose where they go</b><div class="note">Your installed AI apps are on the right. Not sure one works? Open “Choose tools” and press “Test” next to it.</div></div></div>
-    <div class="step"><span class="num">3</span><div><b>Press Send</b><div class="note">The app opens and your chat is pasted in. You read it and press Enter yourself.</div></div></div>
+    <div class="step"><span class="num">1</span><div><b>Pick a conversation</b><div class="note">ChatBridge lists the conversations it found on this PC. You can also add a file or paste text.</div></div></div>
+    <div class="step"><span class="num">2</span><div><b>Choose where to continue it</b><div class="note">An AI app on your PC, a website, a file, or just copy it.</div></div></div>
+    <div class="step"><span class="num">3</span><div><b>Press the big button</b><div class="note">Your conversation is put in place. You read it and press Enter yourself.</div></div></div>
   </div></div>
   <div class="sheet-foot"><button class="btn primary" id="wGo">Got it</button></div>
 </div></div>
@@ -155,8 +156,6 @@
   <div class="sheet-body">
     <div class="lbl">Found on this PC</div>
     <div class="files" id="tlApps"></div>
-    <div class="lbl" style="margin-top:6px">AI websites <span style="text-transform:none;letter-spacing:0;font-weight:400">(your chat is copied and the site opens in your browser)</span></div>
-    <div class="files" id="tlWeb"></div>
     <div style="border-top:1px solid var(--line);padding-top:12px;display:flex;flex-direction:column;gap:8px">
       <label class="f">Missing something you installed? Add it by its name in the Start menu<input type="text" id="aName" placeholder="e.g. Perplexity"></label>
       <div class="row"><button class="btn" id="aAdd">Add and look again</button><button class="btn" id="aEdit">Open the app rules in Notepad</button></div>
@@ -179,15 +178,15 @@
   <div class="sheet-sub">Continue a conversation in a different AI, without starting over.</div>
   <div class="sheet-body">
     <div class="steps">
-      <div class="step"><span class="num">1</span><div><b>Pick your chats</b><div class="note">The list on the left shows chats ChatBridge found on this computer. Click a chat to tick it. Use <b>Open a chat file</b> or <b>Paste text</b> for anything else.</div></div></div>
-      <div class="step"><span class="num">2</span><div><b>Choose where they go</b><div class="note">The tiles on the right are your AI apps and websites. Click one. Missing yours? Press <b>Refresh</b>, or <b>Choose tools</b>.</div></div></div>
-      <div class="step"><span class="num">3</span><div><b>Press the big button</b><div class="note">The app opens and your chat is pasted in. <b>Read it, then press Enter yourself.</b> ChatBridge never sends anything for you.</div></div></div>
+      <div class="step"><span class="num">1</span><div><b>Pick a conversation</b><div class="note">Click a conversation to tick it. Use <b>Add from a file</b> or <b>Paste text</b> for anything else.</div></div></div>
+      <div class="step"><span class="num">2</span><div><b>Choose where to continue it</b><div class="note">Click an app, <b>A website</b>, <b>A file</b>, or <b>Just copy it</b>. Missing your app? Open <b>More options</b> and press <b>Look again</b>.</div></div></div>
+      <div class="step"><span class="num">3</span><div><b>Press the big button</b><div class="note">Your conversation is put in place. <b>Read it, then press Enter yourself.</b> ChatBridge never sends anything for you.</div></div></div>
     </div>
     <div style="border-top:1px solid var(--line);padding-top:12px;display:flex;flex-direction:column;gap:10px">
       <div><b>Is my information safe?</b><div class="note">Everything stays on this computer. ChatBridge has no account and no servers. The only thing it ever looks up online is whether a newer version exists, and you can turn that off in Settings.</div></div>
-      <div><b>I don’t see my ChatGPT, Claude.ai or Gemini chats.</b><div class="note">Those live on the websites, not on your computer. Either install the ChatBridge browser extension (Settings → Browser capture) and click <b>Save to ChatBridge</b> on a chat, or export your data from the website and use <b>Open a chat file</b>.</div></div>
-      <div><b>The app opened but nothing was pasted.</b><div class="note">Click in the app’s message box and press <b>Ctrl+V</b>. The chat is on your clipboard. For websites, you can also use <b>Save as file…</b> and attach the file.</div></div>
-      <div><b>What do “Shorten long text” and “Hide private details” do?</b><div class="note">The first trims very long pieces so the chat is easier for the AI to handle. The second removes passwords, keys, email addresses, phone numbers and your Windows user name before sending.</div></div>
+      <div><b>I don’t see my ChatGPT, Claude.ai or Gemini chats.</b><div class="note">Those live on the websites, not on your computer. Either install the ChatBridge browser extension (Settings → Browser capture) and click <b>Save to ChatBridge</b> on a chat, or export your data from the website and use <b>Add from a file</b>.</div></div>
+      <div><b>The app opened but nothing was pasted.</b><div class="note">Click in the app’s message box and press <b>Ctrl+V</b>. The conversation is on your clipboard. For websites, you can also attach the file ChatBridge saved.</div></div>
+      <div><b>What does ChatBridge change in my conversation?</b><div class="note">It removes passwords, keys, email addresses, phone numbers and your Windows user name. If a conversation is very long, it trims big blocks of code or output so the AI can handle it, and tells you when it does. You can change both in Settings.</div></div>
     </div>
   </div>
   <div class="sheet-foot"><button class="btn primary" data-close>Got it</button></div>

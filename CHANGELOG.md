@@ -2,6 +2,15 @@
 
 Newest first. Add new entries under **Unreleased**; `python bump_version.py X.Y.Z` turns that section into the release.
 
+## 1.2.0 (2026-10-11)
+- **A much simpler, friendlier screen**: one column with two questions — "Which conversation?" and "Where do you want to continue it?" — and one big button
+- **One "A website" choice** instead of eight: pick ChatGPT, Claude.ai, Gemini and more from a small list (it remembers your pick), or choose "I'll open it myself". The conversation is copied and saved as a file either way
+- New **"A file"** and **"Just copy it"** choices; the button now says what will happen ("Continue in Claude", "Copy and open ChatGPT")
+- Light, easy-to-read look by default (other colors and the code-style font are still in Settings, along with text size)
+- Private details are always hidden, and long conversations are shortened automatically only when they need it; ChatBridge says so in plain words. Both can be changed in Settings
+- Less clutter: token counts, "tested" labels and the header chips are gone; Refresh, history, code projects and "Choose which apps" live under **More options**; ChatBridge says which AI apps it found, with a "Not right?" link
+- Calmer conversation list: title and date, with read, rename and remove appearing when you point at one
+
 ## 1.1.0 (2026-10-11)
 - **Refresh** button: look again for AI apps you've just installed and for new chats, without restarting
 - **Search** your chats by title or by what was said inside them
