@@ -54,7 +54,7 @@ if (!window.pywebview && /[?&]demo/.test(location.search)) {
       {version: "1.0.1", body: "- Fixed: Copilot sometimes opened without the chat\n- **Faster** start-up"}]} : {show: false},
     check_update: async () => /modal=update/.test(location.search) ? {status: "available", current: "1.0.0", version: "1.1.0",
       url: "https://github.com/besmir25/ChatBridge/releases/tag/v1.1.0", notes: "## ChatBridge 1.1.0\n\n- New: send a chat to two apps at once\n- The project picker remembers your last choice\n\n### Install\nDownload **ChatBridge-Setup.exe** below and run it."} : {status: "current", current: "1.0.0"},
-    open_release: async () => ({ok: true}),
+    open_release: async () => ({ok: true}), problem_report: async () => ({ok: true, chars: 900}),
     sections: async id => {
       const rows = [["user", "Fix my git setup on Windows, push is rejected"], ["assistant", "The error is about your private email. Use the noreply address GitHub shows in Settings → Emails."],
         ["user", "ok that worked, thanks"], ["assistant", "Great — your first push is done."],

@@ -66,7 +66,7 @@ function renderChats() {
   const n = S.chats.length;
   if (!n) {
     L.innerHTML = S.scanning ? '<div class="empty"><b>Looking for your conversations…</b></div>'
-      : '<div class="empty"><b>No conversations yet</b>Add one from a file, or paste some text, with the links below.</div>';
+      : '<div class="empty"><b>No conversations found on this PC yet</b>Chats from ChatGPT, Claude.ai and Gemini live online, so add them from a file, paste some text, or use the browser extension (Settings). Chats from Claude Code, Codex and similar tools appear here by themselves.</div>';
     return;
   }
   const shown = visibleChats();
@@ -238,6 +238,10 @@ $("#appGrid").addEventListener("drop", e => {
   renderAll(); doSend();
 });
 $("#btnHelp").onclick = () => open("#mHelp");
+$("#btnReport").onclick = async () => {
+  const r = await api().problem_report();
+  toast(r.error || "Copied. Paste it into an email or a GitHub issue — it has no conversation text in it.", r.error ? "warn" : "good", 6000);
+};
 $("#intoOpen").onchange = renderSummary;
 
 /* ---------- the open conversation, as a notebook of sections ---------- */

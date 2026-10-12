@@ -823,6 +823,29 @@ class SearchWebExportTools(unittest.TestCase):
         self.assertTrue(back.get("excerpt"))
         self.assertEqual(len(back["messages"]), 2)
 
+    def test_old_parts_are_cleared_so_the_list_does_not_fill_up(self):
+        cid = self._mixed()
+        for _ in range(self.api.MAX_PARTS + 5):
+            self.api.make_part(cid, [0, 1], {}, True)
+        parts = [c for c in self.api._lib if c.get("excerpt")]
+        self.assertEqual(len(parts), self.api.MAX_PARTS)
+        self.assertTrue(any(c["id"] == cid for c in self.api._lib))           # the real conversation is never touched
+
+    def test_problem_report_has_no_conversation_text_and_hides_private_details(self):
+        from unittest import mock
+        copied = []
+        self.api.add_text("Secret plans", "Test", "User: my password is hunter2-ZZZ-unique\nAssistant: ok")
+        with open(self.m.LOG_PATH, "a", encoding="utf-8") as f:
+            f.write("2026-01-01 ERROR failed for sk-abcdefghijklmnopqrstuvwxyz0123456789 at C:\\Users\\%s\\x\n" % os.environ.get("USERNAME", "someone"))
+        with mock.patch.object(self.m, "set_clipboard", copied.append):
+            r = self.api.problem_report()
+        self.assertTrue(r["ok"])
+        text = copied[0]
+        self.assertIn("ChatBridge " + self.m.VERSION, text)
+        self.assertNotIn("hunter2-ZZZ-unique", text)
+        self.assertNotIn("Secret plans", text)
+        self.assertNotIn("sk-abcdefghijklmnopqrstuvwxyz0123456789", text)
+
     def test_target_info_names_a_website(self):
         self.assertEqual(self.api._target_info("web:0")[0], "ChatGPT (website)")
         self.assertEqual(self.api._target_info("web:42"), (None, None))

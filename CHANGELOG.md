@@ -2,6 +2,12 @@
 
 Newest first. Add new entries under **Unreleased**; `python bump_version.py X.Y.Z` turns that section into the release.
 
+## Unreleased
+- **Help → Copy a problem report**: copies a short report (version, Windows, apps found, recent log with private details hidden) with no conversation text, ready to paste into an email or GitHub issue
+- A clearer message when ChatBridge finds no conversations on a PC, explaining that web chats come in from a file or the browser extension
+- Saved "Part of…" items are tidied automatically (the newest 12 are kept)
+- The window no longer flashes dark while it loads
+
 ## 1.3.0 (2026-10-12)
 - **A new two-pane layout**: your conversations in a list on the left; click one and it opens on the right with its sections, and the places you can continue it are right below — so the whole job happens on one screen. Tick the small box on a row to send several conversations together
 - The sections of the open conversation are shown right there (no separate window): leave everything unticked to send the whole conversation, or tick sections or single messages to send just those

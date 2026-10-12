@@ -565,6 +565,8 @@ class Api:
                 "cells": [{"i": i, "role": m["role"], "text": m["content"][:1500], "more": len(m["content"]) > 1500}
                           for i, m in enumerate(msgs)]}
 
+    MAX_PARTS = 12
+
     def make_part(self, cid, cells, titles=None, with_outline=True):
         """Turn the ticked messages into a new item (an excerpt) that can go anywhere, outline of the rest optional."""
         found = self._by_ids([cid])
@@ -586,8 +588,36 @@ class Api:
                               "messages": [msgs[i] for i in chosen]})
         with self._lock:
             self._lib.insert(0, part)
+            kept = 0
+            for c in list(self._lib):                       # keep the newest few parts so the list doesn't fill up with them
+                if c.get("excerpt"):
+                    kept += 1
+                    if kept > self.MAX_PARTS:
+                        self._lib.remove(c)
             self._save()
         return {"id": part["id"], "chats": self._chats()}
+
+    def problem_report(self):
+        """A short report the person can paste into a bug report. It holds no conversation text: counts, app names,
+        settings switches, and the last log lines with keys, emails and the Windows user name hidden."""
+        import platform
+        lines = [f"ChatBridge {VERSION}", f"Windows: {platform.platform()}", f"Python: {platform.python_version()}",
+                 f"Apps found: {', '.join(a['name'] for a in self._apps) or 'none'}",
+                 f"Conversations: {len(self._chats())} (saved: {len(self._lib)})",
+                 f"Settings: autopaste={self._cfg.get('autopaste', True)} theme={self._cfg.get('theme')} "
+                 f"scrub={self._cfg.get('scrub', True)} compact={self._cfg.get('compact', False)}", "", "Recent log:"]
+        try:
+            with open(LOG_PATH, encoding="utf-8", errors="replace") as f:
+                tail = f.read().splitlines()[-30:]
+        except OSError:
+            tail = ["(no log yet)"]
+        lines += [cb.scrub_text(x, secrets=True, personal=True)[0] for x in tail]
+        text = "\n".join(lines)
+        try:
+            set_clipboard(text)
+        except OSError:
+            return {"error": "Couldn't copy to the clipboard."}
+        return {"ok": True, "chars": len(text)}
 
     def delete_chats(self, ids):
         gone = {i for i in (ids if isinstance(ids, list) else []) if isinstance(i, str)}
@@ -947,7 +977,7 @@ def main():
         if not os.path.isfile(index):
             raise FileNotFoundError(f"Missing screen files: {index}")
         window = webview.create_window(f"ChatBridge", index, js_api=api, width=1240, height=820, min_size=(960, 640),
-                                       background_color="#0f1115")
+                                       background_color="#f6f7f9")
         api._window = window
         webview.start()
     except Exception:

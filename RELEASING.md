@@ -47,3 +47,26 @@ An unsigned installer shows Windows SmartScreen's "unknown publisher" warning. O
 
 Signing doesn't remove the warning instantly; Windows builds reputation for a publisher over time.
 Check each provider's current terms before you buy or apply.
+
+## Before every release: the test pass
+
+Automated (must be green): `python -W ignore -m unittest discover -s tests`, then once with `CHATBRIDGE_GUI_TESTS=1`.
+
+By hand, on the built app (`dist\ChatBridge\ChatBridge.exe`) — about 15 minutes:
+
+1. **Starts and looks right.** Window opens, no blank area, list fills in, no flash of a dark page.
+2. **Each desktop app you support**, once with the app *already open* and once *fully closed*:
+   - whole conversation → the app opens, the text is pasted, **nothing is sent** (Enter is never pressed)
+   - just part of a conversation (tick a section and a single message)
+   - "Add it to the chat that's already open" with a chat open
+3. **A website** (pick two from the list), **A file** (save, then open the saved file), **Just copy it** (paste into Notepad).
+4. **Add from a file** with a ChatGPT export and a Claude export; **Paste text**; **Bring a code project** (check `.env` is left out).
+5. **Browser extension** on ChatGPT, Claude.ai and Gemini: the Save button appears and the chat arrives. (These sites change their pages often.)
+6. **Settings**: change theme, text size, text style; turn "hide private details" off and back on; Check now.
+7. **Help → Copy a problem report**: paste it somewhere and confirm it has no conversation text.
+8. **Install** the release installer over the previous version (settings and conversations are kept), then **uninstall**.
+9. **Clean machine or second Windows account**: install, start, and check the empty-list message makes sense.
+10. Look at the changelog entry: plain words, no jargon.
+
+If any step fails, fix it first. Don't tag a release with a known broken step.
+
