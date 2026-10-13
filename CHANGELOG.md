@@ -2,20 +2,15 @@
 
 Newest first. Add new entries under **Unreleased**; `python bump_version.py X.Y.Z` turns that section into the release.
 
-## Unreleased
+## 1.3.0 (2026-10-12)
+- **A new two-pane layout**: your conversations in a list on the left; click one and it opens on the right with its sections, and the places you can continue it are right below, so the whole job happens on one screen. Tick the small box on a row to send several conversations together
+- **Send just part of a conversation**: an opened conversation is shown as a notebook of sections (found automatically, with tags like Code, Decision, Problem and Files). Leave everything unticked to send the whole thing, or tick sections or single messages and rename sections; the AI also gets a short outline of the rest so it sees the bigger picture
+- **Add to the chat that's already open**: choose a desktop app and tick the new box, and ChatBridge pastes into the open conversation instead of starting a new one (still never pressing Enter)
+- **Apps that were closed now work the first time**: ChatBridge notices when an app has to start up and waits until it is ready, so you no longer have to press the button twice
+- **No more scrolling** to find the big button: the screen fits the window, and the conversation list takes the free space
 - **Help → Copy a problem report**: copies a short report (version, Windows, apps found, recent log with private details hidden) with no conversation text, ready to paste into an email or GitHub issue
 - A clearer message when ChatBridge finds no conversations on a PC, explaining that web chats come in from a file or the browser extension
-- Saved "Part of…" items are tidied automatically (the newest 12 are kept)
-- The window no longer flashes dark while it loads
-
-## 1.3.0 (2026-10-12)
-- **A new two-pane layout**: your conversations in a list on the left; click one and it opens on the right with its sections, and the places you can continue it are right below — so the whole job happens on one screen. Tick the small box on a row to send several conversations together
-- The sections of the open conversation are shown right there (no separate window): leave everything unticked to send the whole conversation, or tick sections or single messages to send just those
-- **No more scrolling to find the big button**: the screen fits the window, with the conversation list taking the free space and the app tiles on a single row
-- **Apps that were closed now work the first time**: ChatBridge notices when an app has to start up and waits for it to be ready (and to come back to the front) before pasting, so you no longer have to press the button twice
-- **Just part of a chat**: point at any conversation and press the ☰ button to see it as a notebook — numbered messages grouped under section headings (found automatically, with tags like Code, Decision, Problem, Files). Tick whole sections or single messages, rename sections, and press "Use these parts"
-- The new item can go anywhere (an app, a website, a file, the clipboard). It carries a short outline of the rest of the chat so the AI sees the bigger picture, and the AI is told it's an excerpt to add to the chat you're already having
-- **Add to the chat that's already open**: choose a desktop app and tick the new box, and ChatBridge pastes into the open conversation instead of starting a new one (still never pressing Enter)
+- Saved "Part of…" items are tidied automatically (the newest 12 are kept); the window no longer flashes dark while it loads
 
 ## 1.2.0 (2026-10-11)
 - **A much simpler, friendlier screen**: one column with two questions — "Which conversation?" and "Where do you want to continue it?" — and one big button
