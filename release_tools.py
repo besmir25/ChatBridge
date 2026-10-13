@@ -33,7 +33,7 @@ def changelog_between(text, old, new):
 
 INSTALL_NOTES = """### Install
 Download **ChatBridge-Setup.exe** below and run it. It installs for your Windows account only; no administrator rights needed.
-Windows may show an "unknown publisher" warning while the app is new - it isn't code-signed yet.
+Windows may show an "unknown publisher" warning while the app is new - it isn't code-signed yet (see CODE_SIGNING_POLICY.md).
 To verify the download, compare its SHA-256 with **SHA256SUMS.txt**.
 
 The browser extension is the separate zip: unzip it, open `edge://extensions`, turn on Developer mode, **Load unpacked**.

@@ -77,6 +77,12 @@ if (!window.pywebview && /[?&]demo/.test(location.search)) {
     if (/[?&]more/.test(location.search)) document.querySelector(".more").open = true;
         if (/[?&]search=/.test(location.search)) { const i = document.querySelector("#chatSearch"); i.value = decodeURIComponent(location.search.match(/search=([^&]+)/)[1]); i.dispatchEvent(new Event("input")); }
     if (/[?&]webpick/.test(location.search)) { S.sel = new Set(["1"]); S.focus = "1"; S.target = "web"; S.site = 0; renderAll(); }
+    const step = Number((location.search.match(/[?&]step=(\d)/) || [0, 0])[1]);      /* ?demo&step=1..6 draws one frame of the README animation */
+    if (step >= 2) { S.sel = new Set(["1"]); S.focus = "1"; renderAll(); }
+    if (step >= 3) setTimeout(() => { SEC.open = new Set([1]); SEC.sel = new Set([4, 5]); renderSections(); renderSummary(); }, 500);
+    if (step >= 4) { S.target = 0; renderAll(); setTimeout(() => { SEC.open = new Set([1]); SEC.sel = new Set([4, 5]); renderSections(); renderSummary(); }, 500); }
+    if (step === 5) window.onProgress({state: "working", msg: "Opening Claude… don’t click elsewhere."});
+    if (step === 6) window.onProgress({state: "done", msg: "Pasted into Claude. Check it, then press Enter there to send.", pasted: true});
     if (btn) document.querySelector(btn).click();
     if (m === "update") document.querySelector("#chipUpdate").click();
     if (/[?&]parts/.test(location.search)) { S.sel = new Set(["1"]); S.focus = "1"; S.target = 0; renderAll(); setTimeout(() => { SEC.open = new Set([1]); SEC.sel = new Set([4, 6]); renderSections(); renderSummary(); }, 600); }

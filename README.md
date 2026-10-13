@@ -7,9 +7,9 @@
 You started a conversation in one AI and want to continue it in another — or hand a project to a new model. Today that means
 copying and pasting, losing context, and re-explaining everything. ChatBridge does it in three simple steps.
 
-![ChatBridge: conversations on the left, the open one and where it can go on the right](docs/screenshots/main.png)
+![A short walkthrough: pick a conversation, tick the parts you want, choose where it goes, and it is pasted in](docs/demo.gif)
 
-![Sending just part of a conversation](docs/screenshots/parts.png)
+*The animation uses sample conversations, not real ones.*
 
 ## How it works
 
@@ -53,8 +53,8 @@ only and needs no administrator rights. It also installs an uninstaller you can 
 ### If Windows says "Windows protected your PC"
 ChatBridge is new and not code-signed yet, so Windows SmartScreen shows a blue or red box for any program it hasn't seen
 many times before. It doesn't mean something is wrong. To continue, click **More info**, then **Run anyway**.
-Each release lists a SHA-256 checksum (`SHA256SUMS.txt`) if you want to verify the download first. Code signing is planned, which
-will remove the warning over time.
+Each release lists a SHA-256 checksum (`SHA256SUMS.txt`) if you want to verify the download first. Free code signing has been applied
+for (see [Code signing policy](#code-signing-policy)), which will remove the warning.
 
 **Requirements:** Windows 10 or 11 with the Microsoft Edge WebView2 runtime (already included in Windows 11).
 
@@ -66,6 +66,12 @@ will remove the warning over time.
 
 A *Save to ChatBridge* button then appears on ChatGPT, Claude.ai and Gemini. The extension only talks to ChatBridge on your own
 PC, and only after you click the button.
+
+## Code signing policy
+
+Windows shows an "unknown publisher" warning for programs it hasn't seen often. ChatBridge has applied for free code signing from the
+[SignPath Foundation](https://signpath.org); until that is approved, releases are unsigned (you can still check the SHA-256 in each
+release). Who signs, how builds are made, and what is signed are described in [CODE_SIGNING_POLICY.md](CODE_SIGNING_POLICY.md).
 
 ## Privacy and safety
 
