@@ -37,7 +37,9 @@ jobs:
         run: npx cap sync android
       - name: Build the debug .apk
         working-directory: mobile/android
-        run: ./gradlew assembleDebug --no-daemon
+        run: |
+          chmod +x ./gradlew      # files made on Windows don't carry the "runnable" flag
+          ./gradlew assembleDebug --no-daemon --stacktrace
       - name: Keep the .apk
         uses: actions/upload-artifact@v4
         with:
