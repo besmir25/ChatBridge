@@ -1,0 +1,1213 @@
+{
+ "estimate_tokens": [
+  {
+   "in": "",
+   "out": 0
+  },
+  {
+   "in": "hello world",
+   "out": 2
+  },
+  {
+   "in": "The quick brown fox jumps over 13 lazy dogs!",
+   "out": 10
+  },
+  {
+   "in": "def f(x): return x**2  # 1234567890",
+   "out": 16
+  },
+  {
+   "in": "café naïve 你好",
+   "out": 7
+  },
+  {
+   "in": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+   "out": 17
+  }
+ ],
+ "scrub_text": [
+  {
+   "in": "my key is sk-abcdefghijklmnopqrstuvwxyz0123456789 ok",
+   "out": [
+    "my key is [key removed] ok",
+    {
+     "keys": 1,
+     "emails": 0,
+     "phones": 0,
+     "paths": 0
+    }
+   ]
+  },
+  {
+   "in": "email me at jane.doe@example.com or call (415) 555-0172 please",
+   "out": [
+    "email me at [email] or call [phone] please",
+    {
+     "keys": 0,
+     "emails": 1,
+     "phones": 1,
+     "paths": 0
+    }
+   ]
+  },
+  {
+   "in": "OPENAI_API_KEY=abcdefghijk123456 and password: \"correct horse battery\" and token = 'short'",
+   "out": [
+    "OPENAI_API_KEY=[removed] and password: [removed] and token = [removed]",
+    {
+     "keys": 3,
+     "emails": 0,
+     "phones": 0,
+     "paths": 0
+    }
+   ]
+  },
+  {
+   "in": "path C:\\Users\\Besmir\\Documents\\x and C:/Users/Jane/file and C:\\\\Users\\\\Bob\\\\y",
+   "out": [
+    "path C:\\Users\\<user>\\Documents\\x and C:/Users/<user>/file and C:\\\\Users\\\\<user>\\\\y",
+    {
+     "keys": 0,
+     "emails": 0,
+     "phones": 0,
+     "paths": 3
+    }
+   ]
+  },
+  {
+   "in": "postgres://admin:s3cretpass@db.example.com/prod",
+   "out": [
+    "[key removed]db.example.com/prod",
+    {
+     "keys": 1,
+     "emails": 0,
+     "phones": 0,
+     "paths": 0
+    }
+   ]
+  },
+  {
+   "in": "-----BEGIN RSA PRIVATE KEY----- abc ghp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+   "out": [
+    "[key removed] abc [key removed]",
+    {
+     "keys": 2,
+     "emails": 0,
+     "phones": 0,
+     "paths": 0
+    }
+   ]
+  },
+  {
+   "in": "nothing private here, just words",
+   "out": [
+    "nothing private here, just words",
+    {
+     "keys": 0,
+     "emails": 0,
+     "phones": 0,
+     "paths": 0
+    }
+   ]
+  },
+  {
+   "in": "",
+   "out": [
+    "",
+    {
+     "keys": 0,
+     "emails": 0,
+     "phones": 0,
+     "paths": 0
+    }
+   ]
+  }
+ ],
+ "compact_text": [
+  {
+   "in": "intro\n```python\nline 0\nline 1\nline 2\nline 3\nline 4\nline 5\nline 6\nline 7\nline 8\nline 9\nline 10\nline 11\nline 12\nline 13\nline 14\nline 15\nline 16\nline 17\nline 18\nline 19\nline 20\nline 21\nline 22\nline 23\nline 24\nline 25\nline 26\nline 27\nline 28\nline 29\nline 30\nline 31\nline 32\nline 33\nline 34\nline 35\nline 36\nline 37\nline 38\nline 39\nline 40\nline 41\nline 42\nline 43\nline 44\nline 45\nline 46\nline 47\nline 48\nline 49\nline 50\nline 51\nline 52\nline 53\nline 54\nline 55\nline 56\nline 57\nline 58\nline 59\nline 60\nline 61\nline 62\nline 63\nline 64\nline 65\nline 66\nline 67\nline 68\nline 69\nline 70\nline 71\nline 72\nline 73\nline 74\nline 75\nline 76\nline 77\nline 78\nline 79\nline 80\nline 81\nline 82\nline 83\nline 84\nline 85\nline 86\nline 87\nline 88\nline 89\nline 90\nline 91\nline 92\nline 93\nline 94\nline 95\nline 96\nline 97\nline 98\nline 99\n```\nafter\n\n\n\n\u001b[31mred\u001b[0m   \nend",
+   "out": "intro\n```python\nline 0\nline 1\nline 2\nline 3\nline 4\nline 5\nline 6\nline 7\nline 8\nline 9\nline 10\nline 11\nline 12\nline 13\nline 14\nline 15\nline 16\nline 17\nline 18\nline 19\nline 20\nline 21\nline 22\nline 23\nline 24\nline 25\nline 26\nline 27\nline 28\nline 29\nline 30\nline 31\nline 32\nline 33\nline 34\nline 35\nline 36\nline 37\nline 38\n[... 46 lines omitted ...]\nline 85\nline 86\nline 87\nline 88\nline 89\nline 90\nline 91\nline 92\nline 93\nline 94\nline 95\nline 96\nline 97\nline 98\nline 99\n```\nafter\n\nred\nend"
+  },
+  {
+   "in": "row 0\nrow 1\nrow 2\nrow 3\nrow 4\nrow 5\nrow 6\nrow 7\nrow 8\nrow 9\nrow 10\nrow 11\nrow 12\nrow 13\nrow 14\nrow 15\nrow 16\nrow 17\nrow 18\nrow 19\nrow 20\nrow 21\nrow 22\nrow 23\nrow 24\nrow 25\nrow 26\nrow 27\nrow 28\nrow 29\nrow 30\nrow 31\nrow 32\nrow 33\nrow 34\nrow 35\nrow 36\nrow 37\nrow 38\nrow 39\nrow 40\nrow 41\nrow 42\nrow 43\nrow 44\nrow 45\nrow 46\nrow 47\nrow 48\nrow 49\nrow 50\nrow 51\nrow 52\nrow 53\nrow 54\nrow 55\nrow 56\nrow 57\nrow 58\nrow 59\nrow 60\nrow 61\nrow 62\nrow 63\nrow 64\nrow 65\nrow 66\nrow 67\nrow 68\nrow 69\nrow 70\nrow 71\nrow 72\nrow 73\nrow 74\nrow 75\nrow 76\nrow 77\nrow 78\nrow 79\nrow 80\nrow 81\nrow 82\nrow 83\nrow 84\nrow 85\nrow 86\nrow 87\nrow 88\nrow 89\nrow 90\nrow 91\nrow 92\nrow 93\nrow 94\nrow 95\nrow 96\nrow 97\nrow 98\nrow 99\nrow 100\nrow 101\nrow 102\nrow 103\nrow 104\nrow 105\nrow 106\nrow 107\nrow 108\nrow 109\nrow 110\nrow 111\nrow 112\nrow 113\nrow 114\nrow 115\nrow 116\nrow 117\nrow 118\nrow 119\nrow 120\nrow 121\nrow 122\nrow 123\nrow 124\nrow 125\nrow 126\nrow 127\nrow 128\nrow 129\nrow 130\nrow 131\nrow 132\nrow 133\nrow 134\nrow 135\nrow 136\nrow 137\nrow 138\nrow 139\nrow 140\nrow 141\nrow 142\nrow 143\nrow 144\nrow 145\nrow 146\nrow 147\nrow 148\nrow 149\nrow 150\nrow 151\nrow 152\nrow 153\nrow 154\nrow 155\nrow 156\nrow 157\nrow 158\nrow 159\nrow 160\nrow 161\nrow 162\nrow 163\nrow 164\nrow 165\nrow 166\nrow 167\nrow 168\nrow 169\nrow 170\nrow 171\nrow 172\nrow 173\nrow 174\nrow 175\nrow 176\nrow 177\nrow 178\nrow 179\nrow 180\nrow 181\nrow 182\nrow 183\nrow 184\nrow 185\nrow 186\nrow 187\nrow 188\nrow 189\nrow 190\nrow 191\nrow 192\nrow 193\nrow 194\nrow 195\nrow 196\nrow 197\nrow 198\nrow 199\nrow 200\nrow 201\nrow 202\nrow 203\nrow 204\nrow 205\nrow 206\nrow 207\nrow 208\nrow 209\nrow 210\nrow 211\nrow 212\nrow 213\nrow 214\nrow 215\nrow 216\nrow 217\nrow 218\nrow 219\nrow 220\nrow 221\nrow 222\nrow 223\nrow 224\nrow 225\nrow 226\nrow 227\nrow 228\nrow 229\nrow 230\nrow 231\nrow 232\nrow 233\nrow 234\nrow 235\nrow 236\nrow 237\nrow 238\nrow 239\nrow 240\nrow 241\nrow 242\nrow 243\nrow 244\nrow 245\nrow 246\nrow 247\nrow 248\nrow 249\nrow 250\nrow 251\nrow 252\nrow 253\nrow 254\nrow 255\nrow 256\nrow 257\nrow 258\nrow 259\nrow 260\nrow 261\nrow 262\nrow 263\nrow 264\nrow 265\nrow 266\nrow 267\nrow 268\nrow 269\nrow 270\nrow 271\nrow 272\nrow 273\nrow 274\nrow 275\nrow 276\nrow 277\nrow 278\nrow 279\nrow 280\nrow 281\nrow 282\nrow 283\nrow 284\nrow 285\nrow 286\nrow 287\nrow 288\nrow 289\nrow 290\nrow 291\nrow 292\nrow 293\nrow 294\nrow 295\nrow 296\nrow 297\nrow 298\nrow 299\nrow 300\nrow 301\nrow 302\nrow 303\nrow 304\nrow 305\nrow 306\nrow 307\nrow 308\nrow 309\nrow 310\nrow 311\nrow 312\nrow 313\nrow 314\nrow 315\nrow 316\nrow 317\nrow 318\nrow 319\nrow 320\nrow 321\nrow 322\nrow 323\nrow 324\nrow 325\nrow 326\nrow 327\nrow 328\nrow 329\nrow 330\nrow 331\nrow 332\nrow 333\nrow 334\nrow 335\nrow 336\nrow 337\nrow 338\nrow 339\nrow 340\nrow 341\nrow 342\nrow 343\nrow 344\nrow 345\nrow 346\nrow 347\nrow 348\nrow 349\nrow 350\nrow 351\nrow 352\nrow 353\nrow 354\nrow 355\nrow 356\nrow 357\nrow 358\nrow 359\nrow 360\nrow 361\nrow 362\nrow 363\nrow 364\nrow 365\nrow 366\nrow 367\nrow 368\nrow 369\nrow 370\nrow 371\nrow 372\nrow 373\nrow 374\nrow 375\nrow 376\nrow 377\nrow 378\nrow 379\nrow 380\nrow 381\nrow 382\nrow 383\nrow 384\nrow 385\nrow 386\nrow 387\nrow 388\nrow 389\nrow 390\nrow 391\nrow 392\nrow 393\nrow 394\nrow 395\nrow 396\nrow 397\nrow 398\nrow 399\nrow 400\nrow 401\nrow 402\nrow 403\nrow 404\nrow 405\nrow 406\nrow 407\nrow 408\nrow 409\nrow 410\nrow 411\nrow 412\nrow 413\nrow 414\nrow 415\nrow 416\nrow 417\nrow 418\nrow 419\nrow 420\nrow 421\nrow 422\nrow 423\nrow 424\nrow 425\nrow 426\nrow 427\nrow 428\nrow 429\nrow 430\nrow 431\nrow 432\nrow 433\nrow 434\nrow 435\nrow 436\nrow 437\nrow 438\nrow 439\nrow 440\nrow 441\nrow 442\nrow 443\nrow 444\nrow 445\nrow 446\nrow 447\nrow 448\nrow 449\nrow 450\nrow 451\nrow 452\nrow 453\nrow 454\nrow 455\nrow 456\nrow 457\nrow 458\nrow 459\nrow 460\nrow 461\nrow 462\nrow 463\nrow 464\nrow 465\nrow 466\nrow 467\nrow 468\nrow 469\nrow 470\nrow 471\nrow 472\nrow 473\nrow 474\nrow 475\nrow 476\nrow 477\nrow 478\nrow 479\nrow 480\nrow 481\nrow 482\nrow 483\nrow 484\nrow 485\nrow 486\nrow 487\nrow 488\nrow 489\nrow 490\nrow 491\nrow 492\nrow 493\nrow 494\nrow 495\nrow 496\nrow 497\nrow 498\nrow 499",
+   "out": "row 0\nrow 1\nrow 2\nrow 3\nrow 4\nrow 5\nrow 6\nrow 7\nrow 8\nrow 9\nrow 10\nrow 11\nrow 12\nrow 13\nrow 14\nrow 15\nrow 16\nrow 17\nrow 18\nrow 19\nrow 20\nrow 21\nrow 22\nrow 23\nrow 24\nrow 25\nrow 26\nrow 27\nrow 28\nrow 29\nrow 30\nrow 31\nrow 32\nrow 33\nrow 34\nrow 35\nrow 36\nrow 37\nrow 38\nrow 39\nrow 40\nrow 41\nrow 42\nrow 43\nrow 44\nrow 45\nrow 46\nrow 47\nrow 48\nrow 49\nrow 50\nrow 51\nrow 52\nrow 53\nrow 54\nrow 55\nrow 56\nrow 57\nrow 58\nrow 59\nrow 60\nrow 61\nrow 62\nrow 63\nrow 64\nrow 65\nrow 66\nrow 67\nrow 68\nrow 69\nrow 70\nrow 71\nrow 72\nrow 73\nrow 74\nrow 75\nrow 76\nrow 77\nrow 78\nrow 79\nrow 80\nrow 81\nrow 82\nrow 83\nrow 84\nrow 85\nrow 86\nrow 87\nrow 88\nrow 89\nrow 90\nrow 91\nrow 92\nrow 93\nrow 94\nrow 95\nrow 96\nrow 97\nrow 98\nrow 99\nrow 100\nrow 101\nrow 102\nrow 103\nrow 104\nrow 105\nrow 106\nrow 107\nrow 108\nrow 109\nrow 110\nrow 111\nrow 112\nrow 113\nrow 114\nrow 115\nrow 116\nrow 117\nrow 118\nrow 119\nrow 120\nrow 121\nrow 122\nrow 123\nrow 124\nrow 125\nrow 126\nrow 127\nrow 128\nrow 129\n[... 320 lines omitted ...]\nrow 450\nrow 451\nrow 452\nrow 453\nrow 454\nrow 455\nrow 456\nrow 457\nrow 458\nrow 459\nrow 460\nrow 461\nrow 462\nrow 463\nrow 464\nrow 465\nrow 466\nrow 467\nrow 468\nrow 469\nrow 470\nrow 471\nrow 472\nrow 473\nrow 474\nrow 475\nrow 476\nrow 477\nrow 478\nrow 479\nrow 480\nrow 481\nrow 482\nrow 483\nrow 484\nrow 485\nrow 486\nrow 487\nrow 488\nrow 489\nrow 490\nrow 491\nrow 492\nrow 493\nrow 494\nrow 495\nrow 496\nrow 497\nrow 498\nrow 499"
+  }
+ ],
+ "compact_messages": [
+  {
+   "in": [
+    {
+     "role": "user",
+     "content": "intro\n```python\nline 0\nline 1\nline 2\nline 3\nline 4\nline 5\nline 6\nline 7\nline 8\nline 9\nline 10\nline 11\nline 12\nline 13\nline 14\nline 15\nline 16\nline 17\nline 18\nline 19\nline 20\nline 21\nline 22\nline 23\nline 24\nline 25\nline 26\nline 27\nline 28\nline 29\nline 30\nline 31\nline 32\nline 33\nline 34\nline 35\nline 36\nline 37\nline 38\nline 39\nline 40\nline 41\nline 42\nline 43\nline 44\nline 45\nline 46\nline 47\nline 48\nline 49\nline 50\nline 51\nline 52\nline 53\nline 54\nline 55\nline 56\nline 57\nline 58\nline 59\nline 60\nline 61\nline 62\nline 63\nline 64\nline 65\nline 66\nline 67\nline 68\nline 69\nline 70\nline 71\nline 72\nline 73\nline 74\nline 75\nline 76\nline 77\nline 78\nline 79\nline 80\nline 81\nline 82\nline 83\nline 84\nline 85\nline 86\nline 87\nline 88\nline 89\nline 90\nline 91\nline 92\nline 93\nline 94\nline 95\nline 96\nline 97\nline 98\nline 99\n```\nafter\n\n\n\n\u001b[31mred\u001b[0m   \nend"
+    },
+    {
+     "role": "user",
+     "content": "intro\n```python\nline 0\nline 1\nline 2\nline 3\nline 4\nline 5\nline 6\nline 7\nline 8\nline 9\nline 10\nline 11\nline 12\nline 13\nline 14\nline 15\nline 16\nline 17\nline 18\nline 19\nline 20\nline 21\nline 22\nline 23\nline 24\nline 25\nline 26\nline 27\nline 28\nline 29\nline 30\nline 31\nline 32\nline 33\nline 34\nline 35\nline 36\nline 37\nline 38\nline 39\nline 40\nline 41\nline 42\nline 43\nline 44\nline 45\nline 46\nline 47\nline 48\nline 49\nline 50\nline 51\nline 52\nline 53\nline 54\nline 55\nline 56\nline 57\nline 58\nline 59\nline 60\nline 61\nline 62\nline 63\nline 64\nline 65\nline 66\nline 67\nline 68\nline 69\nline 70\nline 71\nline 72\nline 73\nline 74\nline 75\nline 76\nline 77\nline 78\nline 79\nline 80\nline 81\nline 82\nline 83\nline 84\nline 85\nline 86\nline 87\nline 88\nline 89\nline 90\nline 91\nline 92\nline 93\nline 94\nline 95\nline 96\nline 97\nline 98\nline 99\n```\nafter\n\n\n\n\u001b[31mred\u001b[0m   \nend"
+    },
+    {
+     "role": "assistant",
+     "content": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    }
+   ],
+   "aggressive": false,
+   "out": [
+    {
+     "role": "user",
+     "content": "intro\n```python\nline 0\nline 1\nline 2\nline 3\nline 4\nline 5\nline 6\nline 7\nline 8\nline 9\nline 10\nline 11\nline 12\nline 13\nline 14\nline 15\nline 16\nline 17\nline 18\nline 19\nline 20\nline 21\nline 22\nline 23\nline 24\nline 25\nline 26\nline 27\nline 28\nline 29\nline 30\nline 31\nline 32\nline 33\nline 34\nline 35\nline 36\nline 37\nline 38\n[... 46 lines omitted ...]\nline 85\nline 86\nline 87\nline 88\nline 89\nline 90\nline 91\nline 92\nline 93\nline 94\nline 95\nline 96\nline 97\nline 98\nline 99\n```\nafter\n\nred\nend"
+    },
+    {
+     "role": "assistant",
+     "content": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    }
+   ]
+  },
+  {
+   "in": [
+    {
+     "role": "user",
+     "content": "intro\n```python\nline 0\nline 1\nline 2\nline 3\nline 4\nline 5\nline 6\nline 7\nline 8\nline 9\nline 10\nline 11\nline 12\nline 13\nline 14\nline 15\nline 16\nline 17\nline 18\nline 19\nline 20\nline 21\nline 22\nline 23\nline 24\nline 25\nline 26\nline 27\nline 28\nline 29\nline 30\nline 31\nline 32\nline 33\nline 34\nline 35\nline 36\nline 37\nline 38\nline 39\nline 40\nline 41\nline 42\nline 43\nline 44\nline 45\nline 46\nline 47\nline 48\nline 49\nline 50\nline 51\nline 52\nline 53\nline 54\nline 55\nline 56\nline 57\nline 58\nline 59\nline 60\nline 61\nline 62\nline 63\nline 64\nline 65\nline 66\nline 67\nline 68\nline 69\nline 70\nline 71\nline 72\nline 73\nline 74\nline 75\nline 76\nline 77\nline 78\nline 79\nline 80\nline 81\nline 82\nline 83\nline 84\nline 85\nline 86\nline 87\nline 88\nline 89\nline 90\nline 91\nline 92\nline 93\nline 94\nline 95\nline 96\nline 97\nline 98\nline 99\n```\nafter\n\n\n\n\u001b[31mred\u001b[0m   \nend"
+    },
+    {
+     "role": "user",
+     "content": "intro\n```python\nline 0\nline 1\nline 2\nline 3\nline 4\nline 5\nline 6\nline 7\nline 8\nline 9\nline 10\nline 11\nline 12\nline 13\nline 14\nline 15\nline 16\nline 17\nline 18\nline 19\nline 20\nline 21\nline 22\nline 23\nline 24\nline 25\nline 26\nline 27\nline 28\nline 29\nline 30\nline 31\nline 32\nline 33\nline 34\nline 35\nline 36\nline 37\nline 38\nline 39\nline 40\nline 41\nline 42\nline 43\nline 44\nline 45\nline 46\nline 47\nline 48\nline 49\nline 50\nline 51\nline 52\nline 53\nline 54\nline 55\nline 56\nline 57\nline 58\nline 59\nline 60\nline 61\nline 62\nline 63\nline 64\nline 65\nline 66\nline 67\nline 68\nline 69\nline 70\nline 71\nline 72\nline 73\nline 74\nline 75\nline 76\nline 77\nline 78\nline 79\nline 80\nline 81\nline 82\nline 83\nline 84\nline 85\nline 86\nline 87\nline 88\nline 89\nline 90\nline 91\nline 92\nline 93\nline 94\nline 95\nline 96\nline 97\nline 98\nline 99\n```\nafter\n\n\n\n\u001b[31mred\u001b[0m   \nend"
+    },
+    {
+     "role": "assistant",
+     "content": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    }
+   ],
+   "aggressive": true,
+   "out": [
+    {
+     "role": "user",
+     "content": "intro\n```python\nline 0\nline 1\nline 2\nline 3\nline 4\nline 5\nline 6\nline 7\nline 8\nline 9\nline 10\nline 11\nline 12\nline 13\nline 14\nline 15\nline 16\nline 17\nline 18\n[... 74 lines omitted ...]\nline 93\nline 94\nline 95\nline 96\nline 97\nline 98\nline 99\n```\nafter\n\nred\nend"
+    },
+    {
+     "role": "assistant",
+     "content": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n[... 800 characters omitted ...]\nxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    }
+   ]
+  }
+ ],
+ "friendly_title": [
+  {
+   "in": "Update my resume for a job posting. Then more.",
+   "out": "Update my resume for a job posting"
+  },
+  {
+   "in": "@file.py fix <environment_context>hidden</environment_context> the bug in https://github.com/x/y/issues/12 please",
+   "out": "Fix the bug in github.com please"
+  },
+  {
+   "in": "ok",
+   "out": "Ok"
+  },
+  {
+   "in": "",
+   "out": "Untitled chat"
+  },
+  {
+   "in": "A very long first message that keeps going and going without any sentence ending so that it must be cut at the limit somewhere",
+   "out": "A very long first message that keeps going and going without…"
+  },
+  {
+   "in": "<tag>only markup</tag>",
+   "out": "Untitled chat"
+  },
+  {
+   "in": "Hello! How are you today my friend? I am fine.",
+   "out": "Hello! How are you today my friend? I am fine"
+  }
+ ],
+ "parse_text": [
+  {
+   "in": "User: hi there\nAssistant: hello!\nUser: what is 2+2?\nAssistant: 4",
+   "out": [
+    {
+     "role": "user",
+     "content": "hi there"
+    },
+    {
+     "role": "assistant",
+     "content": "hello!"
+    },
+    {
+     "role": "user",
+     "content": "what is 2+2?"
+    },
+    {
+     "role": "assistant",
+     "content": "4"
+    }
+   ]
+  },
+  {
+   "in": "You said:\nWhat is the capital of France?\nChatGPT said:\nParis.",
+   "out": [
+    {
+     "role": "user",
+     "content": "What is the capital of France?"
+    },
+    {
+     "role": "assistant",
+     "content": "Paris."
+    }
+   ]
+  },
+  {
+   "in": "## User\nhello\n## Assistant\nhi there\n\nmore",
+   "out": [
+    {
+     "role": "user",
+     "content": "hello"
+    },
+    {
+     "role": "assistant",
+     "content": "hi there\n\nmore"
+    }
+   ]
+  },
+  {
+   "in": "just a block of text with no labels",
+   "out": [
+    {
+     "role": "user",
+     "content": "just a block of text with no labels"
+    }
+   ]
+  },
+  {
+   "in": "Human: first\r\nClaude: second\r\nHuman: third",
+   "out": [
+    {
+     "role": "user",
+     "content": "first"
+    },
+    {
+     "role": "assistant",
+     "content": "second"
+    },
+    {
+     "role": "user",
+     "content": "third"
+    }
+   ]
+  },
+  {
+   "in": "   ",
+   "out": []
+  },
+  {
+   "in": "Me: one\nBot: two",
+   "out": [
+    {
+     "role": "user",
+     "content": "one"
+    },
+    {
+     "role": "assistant",
+     "content": "two"
+    }
+   ]
+  }
+ ],
+ "split_sections": [
+  {
+   "in": [
+    {
+     "role": "user",
+     "content": "Fix my git setup on Windows, push is rejected"
+    },
+    {
+     "role": "assistant",
+     "content": "The error is about the private email. Use the noreply address."
+    },
+    {
+     "role": "user",
+     "content": "ok that worked, thanks"
+    },
+    {
+     "role": "assistant",
+     "content": "Great."
+    },
+    {
+     "role": "user",
+     "content": "Now let's write a resume for a nursing job posting at the hospital"
+    },
+    {
+     "role": "assistant",
+     "content": "Here is a draft ```text```"
+    },
+    {
+     "role": "user",
+     "content": "Make the summary shorter and mention ICU experience"
+    },
+    {
+     "role": "assistant",
+     "content": "Done: shortened."
+    },
+    {
+     "role": "user",
+     "content": "Also plan a trip to Kyoto in April with temples"
+    },
+    {
+     "role": "assistant",
+     "content": "Day 1 temples, we'll use the train pass"
+    },
+    {
+     "role": "user",
+     "content": "Add food places near Gion"
+    },
+    {
+     "role": "assistant",
+     "content": "Sure: here are places."
+    }
+   ],
+   "out": [
+    {
+     "title": "Fix my git setup on Windows, push is rejected",
+     "start": 0,
+     "end": 4,
+     "tags": [
+      "Problem"
+     ],
+     "tokens": 35
+    },
+    {
+     "title": "Write a resume for a nursing job posting at the hospital",
+     "start": 4,
+     "end": 8,
+     "tags": [
+      "Code"
+     ],
+     "tokens": 46
+    },
+    {
+     "title": "Plan a trip to Kyoto in April with temples",
+     "start": 8,
+     "end": 12,
+     "tags": [
+      "Decision"
+     ],
+     "tokens": 34
+    }
+   ]
+  },
+  {
+   "in": [
+    {
+     "role": "user",
+     "content": "same topic words repeated here same topic words repeated here same topic words repeated here "
+    },
+    {
+     "role": "assistant",
+     "content": "same topic words repeated here same topic words repeated here same topic words repeated here "
+    },
+    {
+     "role": "user",
+     "content": "same topic words repeated here same topic words repeated here same topic words repeated here "
+    },
+    {
+     "role": "assistant",
+     "content": "same topic words repeated here same topic words repeated here same topic words repeated here "
+    },
+    {
+     "role": "user",
+     "content": "same topic words repeated here same topic words repeated here same topic words repeated here "
+    },
+    {
+     "role": "assistant",
+     "content": "same topic words repeated here same topic words repeated here same topic words repeated here "
+    },
+    {
+     "role": "user",
+     "content": "same topic words repeated here same topic words repeated here same topic words repeated here "
+    },
+    {
+     "role": "assistant",
+     "content": "same topic words repeated here same topic words repeated here same topic words repeated here "
+    },
+    {
+     "role": "user",
+     "content": "same topic words repeated here same topic words repeated here same topic words repeated here "
+    },
+    {
+     "role": "assistant",
+     "content": "same topic words repeated here same topic words repeated here same topic words repeated here "
+    },
+    {
+     "role": "user",
+     "content": "same topic words repeated here same topic words repeated here same topic words repeated here "
+    },
+    {
+     "role": "assistant",
+     "content": "same topic words repeated here same topic words repeated here same topic words repeated here "
+    },
+    {
+     "role": "user",
+     "content": "same topic words repeated here same topic words repeated here same topic words repeated here "
+    },
+    {
+     "role": "assistant",
+     "content": "same topic words repeated here same topic words repeated here same topic words repeated here "
+    },
+    {
+     "role": "user",
+     "content": "same topic words repeated here same topic words repeated here same topic words repeated here "
+    },
+    {
+     "role": "assistant",
+     "content": "same topic words repeated here same topic words repeated here same topic words repeated here "
+    },
+    {
+     "role": "user",
+     "content": "same topic words repeated here same topic words repeated here same topic words repeated here "
+    },
+    {
+     "role": "assistant",
+     "content": "same topic words repeated here same topic words repeated here same topic words repeated here "
+    },
+    {
+     "role": "user",
+     "content": "same topic words repeated here same topic words repeated here same topic words repeated here "
+    },
+    {
+     "role": "assistant",
+     "content": "same topic words repeated here same topic words repeated here same topic words repeated here "
+    },
+    {
+     "role": "user",
+     "content": "same topic words repeated here same topic words repeated here same topic words repeated here "
+    },
+    {
+     "role": "assistant",
+     "content": "same topic words repeated here same topic words repeated here same topic words repeated here "
+    },
+    {
+     "role": "user",
+     "content": "same topic words repeated here same topic words repeated here same topic words repeated here "
+    },
+    {
+     "role": "assistant",
+     "content": "same topic words repeated here same topic words repeated here same topic words repeated here "
+    },
+    {
+     "role": "user",
+     "content": "same topic words repeated here same topic words repeated here same topic words repeated here "
+    },
+    {
+     "role": "assistant",
+     "content": "same topic words repeated here same topic words repeated here same topic words repeated here "
+    },
+    {
+     "role": "user",
+     "content": "same topic words repeated here same topic words repeated here same topic words repeated here "
+    },
+    {
+     "role": "assistant",
+     "content": "same topic words repeated here same topic words repeated here same topic words repeated here "
+    },
+    {
+     "role": "user",
+     "content": "same topic words repeated here same topic words repeated here same topic words repeated here "
+    },
+    {
+     "role": "assistant",
+     "content": "same topic words repeated here same topic words repeated here same topic words repeated here "
+    },
+    {
+     "role": "user",
+     "content": "same topic words repeated here same topic words repeated here same topic words repeated here "
+    },
+    {
+     "role": "assistant",
+     "content": "same topic words repeated here same topic words repeated here same topic words repeated here "
+    },
+    {
+     "role": "user",
+     "content": "same topic words repeated here same topic words repeated here same topic words repeated here "
+    },
+    {
+     "role": "assistant",
+     "content": "same topic words repeated here same topic words repeated here same topic words repeated here "
+    },
+    {
+     "role": "user",
+     "content": "same topic words repeated here same topic words repeated here same topic words repeated here "
+    },
+    {
+     "role": "assistant",
+     "content": "same topic words repeated here same topic words repeated here same topic words repeated here "
+    },
+    {
+     "role": "user",
+     "content": "same topic words repeated here same topic words repeated here same topic words repeated here "
+    },
+    {
+     "role": "assistant",
+     "content": "same topic words repeated here same topic words repeated here same topic words repeated here "
+    },
+    {
+     "role": "user",
+     "content": "same topic words repeated here same topic words repeated here same topic words repeated here "
+    },
+    {
+     "role": "assistant",
+     "content": "same topic words repeated here same topic words repeated here same topic words repeated here "
+    },
+    {
+     "role": "user",
+     "content": "same topic words repeated here same topic words repeated here same topic words repeated here "
+    },
+    {
+     "role": "assistant",
+     "content": "same topic words repeated here same topic words repeated here same topic words repeated here "
+    },
+    {
+     "role": "user",
+     "content": "same topic words repeated here same topic words repeated here same topic words repeated here "
+    },
+    {
+     "role": "assistant",
+     "content": "same topic words repeated here same topic words repeated here same topic words repeated here "
+    },
+    {
+     "role": "user",
+     "content": "same topic words repeated here same topic words repeated here same topic words repeated here "
+    },
+    {
+     "role": "assistant",
+     "content": "same topic words repeated here same topic words repeated here same topic words repeated here "
+    },
+    {
+     "role": "user",
+     "content": "same topic words repeated here same topic words repeated here same topic words repeated here "
+    },
+    {
+     "role": "assistant",
+     "content": "same topic words repeated here same topic words repeated here same topic words repeated here "
+    },
+    {
+     "role": "user",
+     "content": "same topic words repeated here same topic words repeated here same topic words repeated here "
+    },
+    {
+     "role": "assistant",
+     "content": "same topic words repeated here same topic words repeated here same topic words repeated here "
+    },
+    {
+     "role": "user",
+     "content": "same topic words repeated here same topic words repeated here same topic words repeated here "
+    },
+    {
+     "role": "assistant",
+     "content": "same topic words repeated here same topic words repeated here same topic words repeated here "
+    },
+    {
+     "role": "user",
+     "content": "same topic words repeated here same topic words repeated here same topic words repeated here "
+    },
+    {
+     "role": "assistant",
+     "content": "same topic words repeated here same topic words repeated here same topic words repeated here "
+    },
+    {
+     "role": "user",
+     "content": "same topic words repeated here same topic words repeated here same topic words repeated here "
+    },
+    {
+     "role": "assistant",
+     "content": "same topic words repeated here same topic words repeated here same topic words repeated here "
+    },
+    {
+     "role": "user",
+     "content": "same topic words repeated here same topic words repeated here same topic words repeated here "
+    },
+    {
+     "role": "assistant",
+     "content": "same topic words repeated here same topic words repeated here same topic words repeated here "
+    },
+    {
+     "role": "user",
+     "content": "same topic words repeated here same topic words repeated here same topic words repeated here "
+    },
+    {
+     "role": "assistant",
+     "content": "same topic words repeated here same topic words repeated here same topic words repeated here "
+    },
+    {
+     "role": "user",
+     "content": "same topic words repeated here same topic words repeated here same topic words repeated here "
+    },
+    {
+     "role": "assistant",
+     "content": "same topic words repeated here same topic words repeated here same topic words repeated here "
+    },
+    {
+     "role": "user",
+     "content": "same topic words repeated here same topic words repeated here same topic words repeated here "
+    },
+    {
+     "role": "assistant",
+     "content": "same topic words repeated here same topic words repeated here same topic words repeated here "
+    },
+    {
+     "role": "user",
+     "content": "same topic words repeated here same topic words repeated here same topic words repeated here "
+    },
+    {
+     "role": "assistant",
+     "content": "same topic words repeated here same topic words repeated here same topic words repeated here "
+    },
+    {
+     "role": "user",
+     "content": "same topic words repeated here same topic words repeated here same topic words repeated here "
+    },
+    {
+     "role": "assistant",
+     "content": "same topic words repeated here same topic words repeated here same topic words repeated here "
+    },
+    {
+     "role": "user",
+     "content": "same topic words repeated here same topic words repeated here same topic words repeated here "
+    },
+    {
+     "role": "assistant",
+     "content": "same topic words repeated here same topic words repeated here same topic words repeated here "
+    },
+    {
+     "role": "user",
+     "content": "same topic words repeated here same topic words repeated here same topic words repeated here "
+    },
+    {
+     "role": "assistant",
+     "content": "same topic words repeated here same topic words repeated here same topic words repeated here "
+    },
+    {
+     "role": "user",
+     "content": "same topic words repeated here same topic words repeated here same topic words repeated here "
+    },
+    {
+     "role": "assistant",
+     "content": "same topic words repeated here same topic words repeated here same topic words repeated here "
+    },
+    {
+     "role": "user",
+     "content": "same topic words repeated here same topic words repeated here same topic words repeated here "
+    },
+    {
+     "role": "assistant",
+     "content": "same topic words repeated here same topic words repeated here same topic words repeated here "
+    },
+    {
+     "role": "user",
+     "content": "same topic words repeated here same topic words repeated here same topic words repeated here "
+    },
+    {
+     "role": "assistant",
+     "content": "same topic words repeated here same topic words repeated here same topic words repeated here "
+    },
+    {
+     "role": "user",
+     "content": "same topic words repeated here same topic words repeated here same topic words repeated here "
+    },
+    {
+     "role": "assistant",
+     "content": "same topic words repeated here same topic words repeated here same topic words repeated here "
+    }
+   ],
+   "out": [
+    {
+     "title": "Same topic words repeated here same topic words repeated here same…",
+     "start": 0,
+     "end": 28,
+     "tags": [],
+     "tokens": 504
+    },
+    {
+     "title": "Same topic words repeated here same topic words repeated here same…",
+     "start": 28,
+     "end": 56,
+     "tags": [],
+     "tokens": 504
+    },
+    {
+     "title": "Same topic words repeated here same topic words repeated here same…",
+     "start": 56,
+     "end": 80,
+     "tags": [],
+     "tokens": 432
+    }
+   ]
+  },
+  {
+   "in": [
+    {
+     "role": "assistant",
+     "content": "Welcome back"
+    },
+    {
+     "role": "user",
+     "content": "Different question: how do mortgage rates work in the United States?"
+    },
+    {
+     "role": "assistant",
+     "content": "They depend on the lender, the term and your credit."
+    }
+   ],
+   "out": [
+    {
+     "title": "Question: how do mortgage rates work in the United States?",
+     "start": 0,
+     "end": 3,
+     "tags": [],
+     "tokens": 31
+    }
+   ]
+  },
+  {
+   "in": [
+    {
+     "role": "user",
+     "content": "Please review the database schema for the orders table carefully"
+    },
+    {
+     "role": "assistant",
+     "content": "The schema looks fine, but add an index on customer_id."
+    },
+    {
+     "role": "user",
+     "content": "Add the index and show the migration script"
+    },
+    {
+     "role": "assistant",
+     "content": "```sql\nCREATE INDEX idx ON orders(customer_id);\n```"
+    },
+    {
+     "role": "user",
+     "content": "Switching topics: draft an email to the landlord about the broken heater in apartment 4B"
+    },
+    {
+     "role": "assistant",
+     "content": "Subject: Heater repair needed. Hello, the heater is broken."
+    },
+    {
+     "role": "user",
+     "content": "Make it more polite and mention the lease clause"
+    },
+    {
+     "role": "assistant",
+     "content": "Sure, here is a politer version."
+    },
+    {
+     "role": "user",
+     "content": "btw what is a good name for the cat we adopted last week? she is orange"
+    },
+    {
+     "role": "assistant",
+     "content": "Marmalade, Ginger or Clementine."
+    }
+   ],
+   "out": [
+    {
+     "title": "Please review the database schema for the orders table carefully",
+     "start": 0,
+     "end": 4,
+     "tags": [
+      "Code"
+     ],
+     "tokens": 55
+    },
+    {
+     "title": "Topics: draft an email to the landlord about the broken heater in…",
+     "start": 4,
+     "end": 8,
+     "tags": [],
+     "tokens": 54
+    },
+    {
+     "title": "What is a good name for the cat we adopted last week?",
+     "start": 8,
+     "end": 10,
+     "tags": [],
+     "tokens": 26
+    }
+   ]
+  },
+  {
+   "in": [
+    {
+     "role": "user",
+     "content": "hi"
+    }
+   ],
+   "out": [
+    {
+     "title": "Hi",
+     "start": 0,
+     "end": 1,
+     "tags": [],
+     "tokens": 1
+    }
+   ]
+  },
+  {
+   "in": [],
+   "out": []
+  }
+ ],
+ "chat_outline": [
+  {
+   "title": "Mixed chat",
+   "messages": [
+    {
+     "role": "user",
+     "content": "Fix my git setup on Windows, push is rejected"
+    },
+    {
+     "role": "assistant",
+     "content": "The error is about the private email. Use the noreply address."
+    },
+    {
+     "role": "user",
+     "content": "ok that worked, thanks"
+    },
+    {
+     "role": "assistant",
+     "content": "Great."
+    },
+    {
+     "role": "user",
+     "content": "Now let's write a resume for a nursing job posting at the hospital"
+    },
+    {
+     "role": "assistant",
+     "content": "Here is a draft ```text```"
+    },
+    {
+     "role": "user",
+     "content": "Make the summary shorter and mention ICU experience"
+    },
+    {
+     "role": "assistant",
+     "content": "Done: shortened."
+    },
+    {
+     "role": "user",
+     "content": "Also plan a trip to Kyoto in April with temples"
+    },
+    {
+     "role": "assistant",
+     "content": "Day 1 temples, we'll use the train pass"
+    },
+    {
+     "role": "user",
+     "content": "Add food places near Gion"
+    },
+    {
+     "role": "assistant",
+     "content": "Sure: here are places."
+    }
+   ],
+   "included": [
+    4,
+    5,
+    6,
+    7
+   ],
+   "out": "Outline of the full conversation \"Mixed chat\" (12 messages, 3 sections). Sections marked ► are included in full below; the others are only listed here for context.\n1.   Fix my git setup on Windows, push is rejected [Problem] — ended with: Great\n2. ► Write a resume for a nursing job posting at the hospital [Code] — ended with: Done: shortened\n3.   Plan a trip to Kyoto in April with temples [Decision] — ended with: Sure: here are places"
+  },
+  {
+   "title": "Mixed chat",
+   "messages": [
+    {
+     "role": "user",
+     "content": "Fix my git setup on Windows, push is rejected"
+    },
+    {
+     "role": "assistant",
+     "content": "The error is about the private email. Use the noreply address."
+    },
+    {
+     "role": "user",
+     "content": "ok that worked, thanks"
+    },
+    {
+     "role": "assistant",
+     "content": "Great."
+    },
+    {
+     "role": "user",
+     "content": "Now let's write a resume for a nursing job posting at the hospital"
+    },
+    {
+     "role": "assistant",
+     "content": "Here is a draft ```text```"
+    },
+    {
+     "role": "user",
+     "content": "Make the summary shorter and mention ICU experience"
+    },
+    {
+     "role": "assistant",
+     "content": "Done: shortened."
+    },
+    {
+     "role": "user",
+     "content": "Also plan a trip to Kyoto in April with temples"
+    },
+    {
+     "role": "assistant",
+     "content": "Day 1 temples, we'll use the train pass"
+    },
+    {
+     "role": "user",
+     "content": "Add food places near Gion"
+    },
+    {
+     "role": "assistant",
+     "content": "Sure: here are places."
+    }
+   ],
+   "included": [
+    0
+   ],
+   "out": "Outline of the full conversation \"Mixed chat\" (12 messages, 3 sections). Sections marked ► are included in full below; the others are only listed here for context.\n1. ► Fix my git setup on Windows, push is rejected [Problem] — ended with: Great\n2.   Write a resume for a nursing job posting at the hospital [Code] — ended with: Done: shortened\n3.   Plan a trip to Kyoto in April with temples [Decision] — ended with: Sure: here are places"
+  },
+  {
+   "title": "Mixed chat",
+   "messages": [
+    {
+     "role": "user",
+     "content": "Fix my git setup on Windows, push is rejected"
+    },
+    {
+     "role": "assistant",
+     "content": "The error is about the private email. Use the noreply address."
+    },
+    {
+     "role": "user",
+     "content": "ok that worked, thanks"
+    },
+    {
+     "role": "assistant",
+     "content": "Great."
+    },
+    {
+     "role": "user",
+     "content": "Now let's write a resume for a nursing job posting at the hospital"
+    },
+    {
+     "role": "assistant",
+     "content": "Here is a draft ```text```"
+    },
+    {
+     "role": "user",
+     "content": "Make the summary shorter and mention ICU experience"
+    },
+    {
+     "role": "assistant",
+     "content": "Done: shortened."
+    },
+    {
+     "role": "user",
+     "content": "Also plan a trip to Kyoto in April with temples"
+    },
+    {
+     "role": "assistant",
+     "content": "Day 1 temples, we'll use the train pass"
+    },
+    {
+     "role": "user",
+     "content": "Add food places near Gion"
+    },
+    {
+     "role": "assistant",
+     "content": "Sure: here are places."
+    }
+   ],
+   "included": [],
+   "out": "Outline of the full conversation \"Mixed chat\" (12 messages, 3 sections). Sections marked ► are included in full below; the others are only listed here for context.\n1.   Fix my git setup on Windows, push is rejected [Problem] — ended with: Great\n2.   Write a resume for a nursing job posting at the hospital [Code] — ended with: Done: shortened\n3.   Plan a trip to Kyoto in April with temples [Decision] — ended with: Sure: here are places"
+  }
+ ],
+ "build_handoff": [
+  {
+   "conv": {
+    "title": "Mixed chat",
+    "source": "Claude Code",
+    "summary": "",
+    "messages": [
+     {
+      "role": "user",
+      "content": "Fix my git setup on Windows, push is rejected"
+     },
+     {
+      "role": "assistant",
+      "content": "The error is about the private email. Use the noreply address."
+     },
+     {
+      "role": "user",
+      "content": "ok that worked, thanks"
+     },
+     {
+      "role": "assistant",
+      "content": "Great."
+     },
+     {
+      "role": "user",
+      "content": "Now let's write a resume for a nursing job posting at the hospital"
+     },
+     {
+      "role": "assistant",
+      "content": "Here is a draft ```text```"
+     },
+     {
+      "role": "user",
+      "content": "Make the summary shorter and mention ICU experience"
+     },
+     {
+      "role": "assistant",
+      "content": "Done: shortened."
+     },
+     {
+      "role": "user",
+      "content": "Also plan a trip to Kyoto in April with temples"
+     },
+     {
+      "role": "assistant",
+      "content": "Day 1 temples, we'll use the train pass"
+     },
+     {
+      "role": "user",
+      "content": "Add food places near Gion"
+     },
+     {
+      "role": "assistant",
+      "content": "Sure: here are places."
+     }
+    ]
+   },
+   "extra": "",
+   "about": "",
+   "out": "You are picking up a conversation that took place earlier with another AI assistant (Claude Code). Read it fully and treat it as your own prior context: keep the same goals, decisions, style and any constraints already established. Do not re-introduce yourself or recap at length. Reply with one or two sentences confirming where we left off, then continue with the user's latest request or the clear next step.\n\n<transcript>\n[User]\nFix my git setup on Windows, push is rejected\n\n[Assistant]\nThe error is about the private email. Use the noreply address.\n\n[User]\nok that worked, thanks\n\n[Assistant]\nGreat.\n\n[User]\nNow let's write a resume for a nursing job posting at the hospital\n\n[Assistant]\nHere is a draft ```text```\n\n[User]\nMake the summary shorter and mention ICU experience\n\n[Assistant]\nDone: shortened.\n\n[User]\nAlso plan a trip to Kyoto in April with temples\n\n[Assistant]\nDay 1 temples, we'll use the train pass\n\n[User]\nAdd food places near Gion\n\n[Assistant]\nSure: here are places.\n</transcript>\n"
+  },
+  {
+   "conv": {
+    "title": "Mixed chat",
+    "source": "Claude Code",
+    "summary": "",
+    "messages": [
+     {
+      "role": "user",
+      "content": "Fix my git setup on Windows, push is rejected"
+     },
+     {
+      "role": "assistant",
+      "content": "The error is about the private email. Use the noreply address."
+     },
+     {
+      "role": "user",
+      "content": "ok that worked, thanks"
+     },
+     {
+      "role": "assistant",
+      "content": "Great."
+     },
+     {
+      "role": "user",
+      "content": "Now let's write a resume for a nursing job posting at the hospital"
+     },
+     {
+      "role": "assistant",
+      "content": "Here is a draft ```text```"
+     },
+     {
+      "role": "user",
+      "content": "Make the summary shorter and mention ICU experience"
+     },
+     {
+      "role": "assistant",
+      "content": "Done: shortened."
+     },
+     {
+      "role": "user",
+      "content": "Also plan a trip to Kyoto in April with temples"
+     },
+     {
+      "role": "assistant",
+      "content": "Day 1 temples, we'll use the train pass"
+     },
+     {
+      "role": "user",
+      "content": "Add food places near Gion"
+     },
+     {
+      "role": "assistant",
+      "content": "Sure: here are places."
+     }
+    ]
+   },
+   "extra": "Keep answers short.",
+   "about": "I am a nurse.",
+   "out": "You are picking up a conversation that took place earlier with another AI assistant (Claude Code). Read it fully and treat it as your own prior context: keep the same goals, decisions, style and any constraints already established. Do not re-introduce yourself or recap at length. Reply with one or two sentences confirming where we left off, then continue with the user's latest request or the clear next step.\n\nAdditional instructions: Keep answers short.\n\n<about_me>\nBackground the user wants you to know:\nI am a nurse.\n</about_me>\n\n<transcript>\n[User]\nFix my git setup on Windows, push is rejected\n\n[Assistant]\nThe error is about the private email. Use the noreply address.\n\n[User]\nok that worked, thanks\n\n[Assistant]\nGreat.\n\n[User]\nNow let's write a resume for a nursing job posting at the hospital\n\n[Assistant]\nHere is a draft ```text```\n\n[User]\nMake the summary shorter and mention ICU experience\n\n[Assistant]\nDone: shortened.\n\n[User]\nAlso plan a trip to Kyoto in April with temples\n\n[Assistant]\nDay 1 temples, we'll use the train pass\n\n[User]\nAdd food places near Gion\n\n[Assistant]\nSure: here are places.\n</transcript>\n"
+  },
+  {
+   "conv": {
+    "title": "Part of: Mixed chat",
+    "source": "Claude Code",
+    "excerpt": true,
+    "summary": "Outline of the full conversation \"Mixed chat\" (12 messages, 3 sections). Sections marked ► are included in full below; the others are only listed here for context.\n1.   Fix my git setup on Windows, push is rejected [Problem] — ended with: Great\n2. ► Write a resume for a nursing job posting at the hospital [Code] — ended with: Done: shortened\n3.   Plan a trip to Kyoto in April with temples [Decision] — ended with: Sure: here are places",
+    "messages": [
+     {
+      "role": "user",
+      "content": "Now let's write a resume for a nursing job posting at the hospital"
+     },
+     {
+      "role": "assistant",
+      "content": "Here is a draft ```text```"
+     },
+     {
+      "role": "user",
+      "content": "Make the summary shorter and mention ICU experience"
+     },
+     {
+      "role": "assistant",
+      "content": "Done: shortened."
+     }
+    ]
+   },
+   "extra": "",
+   "about": "",
+   "out": "Below is an excerpt from an earlier conversation with another AI assistant (Claude Code). I am adding it to the conversation we are already having. Use it as background for what I ask next. Do not summarise it back to me; just reply briefly that you have read it, then wait for my next instruction.\n\n<outline_of_the_full_conversation>\nOutline of the full conversation \"Mixed chat\" (12 messages, 3 sections). Sections marked ► are included in full below; the others are only listed here for context.\n1.   Fix my git setup on Windows, push is rejected [Problem] — ended with: Great\n2. ► Write a resume for a nursing job posting at the hospital [Code] — ended with: Done: shortened\n3.   Plan a trip to Kyoto in April with temples [Decision] — ended with: Sure: here are places\n</outline_of_the_full_conversation>\n\n<excerpt>\n[User]\nNow let's write a resume for a nursing job posting at the hospital\n\n[Assistant]\nHere is a draft ```text```\n\n[User]\nMake the summary shorter and mention ICU experience\n\n[Assistant]\nDone: shortened.\n</excerpt>\n"
+  },
+  {
+   "conv": {
+    "title": "Part of: Mixed chat",
+    "source": "Claude Code",
+    "excerpt": true,
+    "summary": "Outline of the full conversation \"Mixed chat\" (12 messages, 3 sections). Sections marked ► are included in full below; the others are only listed here for context.\n1.   Fix my git setup on Windows, push is rejected [Problem] — ended with: Great\n2. ► Write a resume for a nursing job posting at the hospital [Code] — ended with: Done: shortened\n3.   Plan a trip to Kyoto in April with temples [Decision] — ended with: Sure: here are places",
+    "messages": [
+     {
+      "role": "user",
+      "content": "Now let's write a resume for a nursing job posting at the hospital"
+     },
+     {
+      "role": "assistant",
+      "content": "Here is a draft ```text```"
+     },
+     {
+      "role": "user",
+      "content": "Make the summary shorter and mention ICU experience"
+     },
+     {
+      "role": "assistant",
+      "content": "Done: shortened."
+     }
+    ]
+   },
+   "extra": "Be brief.",
+   "about": "Background",
+   "out": "Below is an excerpt from an earlier conversation with another AI assistant (Claude Code). I am adding it to the conversation we are already having. Use it as background for what I ask next. Do not summarise it back to me; just reply briefly that you have read it, then wait for my next instruction.\n\nAdditional instructions: Be brief.\n\n<about_me>\nBackground the user wants you to know:\nBackground\n</about_me>\n\n<outline_of_the_full_conversation>\nOutline of the full conversation \"Mixed chat\" (12 messages, 3 sections). Sections marked ► are included in full below; the others are only listed here for context.\n1.   Fix my git setup on Windows, push is rejected [Problem] — ended with: Great\n2. ► Write a resume for a nursing job posting at the hospital [Code] — ended with: Done: shortened\n3.   Plan a trip to Kyoto in April with temples [Decision] — ended with: Sure: here are places\n</outline_of_the_full_conversation>\n\n<excerpt>\n[User]\nNow let's write a resume for a nursing job posting at the hospital\n\n[Assistant]\nHere is a draft ```text```\n\n[User]\nMake the summary shorter and mention ICU experience\n\n[Assistant]\nDone: shortened.\n</excerpt>\n"
+  }
+ ]
+}

@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<!-- Only this app's own files may run. Shared text can never become markup or a script. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<title>ChatBridge</title>
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <button class="icon" id="btnBack" hidden aria-label="Back">‹</button>
+    <div class="logo"><span class="mark">⇄</span><span>ChatBridge</span></div>
+    <button class="icon" id="btnHelp" aria-label="Help">?</button>
+  </header>
+
+  <main>
+    <section id="home">
+      <div class="hero">
+        <h1>Continue a conversation somewhere new</h1>
+        <p>In ChatGPT, Claude, Gemini or any app: open a conversation and tap <b>Share</b>, then choose <b>ChatBridge</b>.</p>
+      </div>
+      <div class="row2">
+        <button class="btn primary" id="btnClip">Paste what I copied</button>
+        <button class="btn" id="btnType">Paste text…</button>
+      </div>
+      <div class="lbl" id="listLbl" hidden>Your conversations</div>
+      <div id="list"></div>
+    </section>
+
+    <section id="detail" hidden>
+      <div class="dtitle" id="dTitle"></div>
+      <div class="sub" id="dMeta"></div>
+      <div class="parts-h"><span class="lbl" id="partNote">Sending the whole conversation</span>
+        <span class="sec-links"><button class="link" id="secClear" hidden>Send the whole thing</button><button class="link" id="secOpenAll">Open all</button><button class="link" id="secCloseAll">Close all</button></span></div>
+      <div id="secBody"></div>
+      <label class="sw" id="outlineRow" hidden><input type="checkbox" id="optOutline" checked> Add a short outline of the rest</label>
+      <label class="sw"><input type="checkbox" id="optScrub" checked> Hide passwords, keys and personal details</label>
+      <div class="note" id="estimate"></div>
+      <button class="link danger" id="btnDelete">Remove this conversation</button>
+    </section>
+  </main>
+
+  <footer class="bar" id="bar" hidden>
+    <div class="quick"><span class="sub">Copy and open</span>
+      <button class="chip" data-open="https://chatgpt.com/">ChatGPT</button>
+      <button class="chip" data-open="https://claude.ai/new">Claude</button>
+      <button class="chip" data-open="https://gemini.google.com/app">Gemini</button>
+      <button class="chip" data-open="https://copilot.microsoft.com/">Copilot</button></div>
+    <div class="row2"><button class="btn" id="btnCopy">Copy</button><button class="btn primary" id="btnShare">Share to an app…</button></div>
+  </footer>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="modal" id="mPaste" hidden><div class="sheet">
+  <div class="sheet-head">Paste a conversation</div>
+  <textarea id="pText" placeholder="Paste the chat here. Lines like “User:” and “Assistant:” split the turns."></textarea>
+  <div class="sheet-foot"><button class="btn" data-close>Cancel</button><button class="btn primary" id="pAdd">Add</button></div>
+</div></div>
+
+<div class="modal" id="mHelp" hidden><div class="sheet">
+  <div class="sheet-head">How it works</div>
+  <div class="help">
+    <p><b>1. Share a conversation to ChatBridge.</b> In any AI app, open the conversation, tap Share and pick ChatBridge. Or copy it and tap “Paste what I copied”.</p>
+    <p><b>2. Pick the parts you want.</b> Leave everything unticked to send it all, or tick sections or single messages.</p>
+    <p><b>3. Send it on.</b> “Share to an app” lets you pick any AI app. “Copy and open” copies it and opens the app or site, where you paste it into the message box.</p>
+    <p>ChatBridge never sends anything for you, and your conversations stay on this phone. There is no account and no server.</p>
+    <p class="note">Apps limit how much text can be shared in one go. If a very long conversation doesn’t arrive, share it as a file (.txt or .md) instead.</p>
+  </div>
+  <div class="sheet-foot"><button class="btn primary" data-close>Got it</button></div>
+</div></div>
+
+<script src="core.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

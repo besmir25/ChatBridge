@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">ChatBridge</string>
+    <string name="title_activity_main">ChatBridge</string>
+    <string name="package_name">com.besmir25.chatbridge</string>
+    <string name="custom_url_scheme">com.besmir25.chatbridge</string>
+</resources>

@@ -1,0 +1,7 @@
+{
+  "appId": "com.besmir25.chatbridge",
+  "appName": "ChatBridge",
+  "webDir": "www",
+  "server": { "androidScheme": "https", "allowNavigation": [] },
+  "android": { "allowMixedContent": false }
+}

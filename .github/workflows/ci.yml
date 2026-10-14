@@ -20,3 +20,8 @@ jobs:
         run: pip install pywebview pillow
       - name: Run the tests
         run: python -W ignore -m unittest discover -s tests -v
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Check the phone version's logic against the Python version
+        run: node --test mobile/tests/core.test.js

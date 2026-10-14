@@ -1,0 +1,46 @@
+name: Android
+
+# Builds the phone app on GitHub's machines (they already have Java and the Android SDK) and keeps the .apk as a download.
+# Open the run under Actions and download "ChatBridge-android-debug" to install it on a phone.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ["mobile/**", ".github/workflows/android.yml"]
+
+permissions:
+  contents: read
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - name: Install
+        run: npm ci --no-audit --no-fund
+      - name: Test the shared logic against the Python version
+        run: node --test tests/core.test.js
+      - name: Copy the screen into the Android project
+        run: npx cap sync android
+      - name: Build the debug .apk
+        working-directory: mobile/android
+        run: ./gradlew assembleDebug --no-daemon
+      - name: Keep the .apk
+        uses: actions/upload-artifact@v4
+        with:
+          name: ChatBridge-android-debug
+          path: mobile/android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error

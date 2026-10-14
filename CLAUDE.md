@@ -10,6 +10,10 @@ the screen is plain HTML/CSS/JS in `ui/`. Public repo: github.com/besmir25/ChatB
 - `extension/` — Chrome/Edge extension (Manifest V3) that saves web chats. `installer.py` — our own per-user installer/uninstaller.
 - `release_tools.py`, `bump_version.py`, `make_release.py`, `build_*.py` — releasing. `tests/` — the test suite.
 
+- `mobile/` — the Android app (Capacitor wrapper around plain HTML/JS). `mobile/www/core.js` re-implements the chat logic of `chatbridge.py`
+  (sections, privacy scrubbing, shortening, handoff text); `mobile/tests/golden.json` is generated from Python and `npm test` in `mobile/`
+  checks the JS gives identical answers. Change the Python logic -> run `python mobile/tests/make_golden.py` -> fix `core.js` until the tests pass.
+
 ## Commands
 ```bash
 python -W ignore -m unittest discover -s tests      # must stay green (CHATBRIDGE_GUI_TESTS=1 adds fake-window tests)
