@@ -168,6 +168,45 @@
   $("#pAdd").onclick = () => { const t = $("#pText").value; if (!t.trim()) return toast("Paste some text first."); $("#pText").value = ""; $("#mPaste").hidden = true; addConversation(t, "Pasted text"); };
   $("#btnHelp").onclick = () => open("#mHelp");
 
+  /* ---------- appearance: light by day, dark at night (or follow the phone, or fixed) ---------- */
+  const SKEY = "chatbridge.settings.v1";
+  const DEFAULTS = {mode: "auto", from: "19:00", to: "07:00"};
+  const validTime = s => /^([01]\d|2[0-3]):[0-5]\d$/.test(String(s));
+  let prefs = (() => {
+    try { const s = JSON.parse(localStorage.getItem(SKEY)) || {};
+      return {mode: ["auto", "system", "light", "dark"].includes(s.mode) ? s.mode : DEFAULTS.mode,
+              from: validTime(s.from) ? s.from : DEFAULTS.from, to: validTime(s.to) ? s.to : DEFAULTS.to}; }
+    catch (e) { return {...DEFAULTS}; }
+  })();
+  const minutes = s => Number(s.slice(0, 2)) * 60 + Number(s.slice(3));
+  /* is it "night" at this moment? Works for ranges that cross midnight (19:00 to 07:00) and same-day ranges */
+  function isNight(now, from, to) {
+    const n = now.getHours() * 60 + now.getMinutes(), a = minutes(from), b = minutes(to);
+    if (a === b) return false;
+    return a < b ? n >= a && n < b : n >= a || n < b;
+  }
+  function currentTheme(now = new Date()) {
+    if (prefs.mode === "dark") return "dark";
+    if (prefs.mode === "light") return "light";
+    if (prefs.mode === "system") return window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    return isNight(now, prefs.from, prefs.to) ? "dark" : "light";
+  }
+  function applyTheme() { document.documentElement.dataset.theme = currentTheme(); }
+  function savePrefs() { try { localStorage.setItem(SKEY, JSON.stringify(prefs)); } catch (e) { /* not saved */ } }
+  $("#btnSettings").onclick = () => {
+    qa("input[name=mode]").forEach(r => r.checked = r.value === prefs.mode);
+    $("#tFrom").value = prefs.from; $("#tTo").value = prefs.to; $("#times").hidden = prefs.mode !== "auto";
+    open("#mSettings");
+  };
+  qa("input[name=mode]").forEach(r => r.onchange = () => { prefs.mode = r.value; $("#times").hidden = prefs.mode !== "auto"; savePrefs(); applyTheme(); });
+  [$("#tFrom"), $("#tTo")].forEach(i => i.onchange = () => {
+    if (validTime(i.value)) { prefs[i.id === "tFrom" ? "from" : "to"] = i.value; savePrefs(); applyTheme(); }
+  });
+  applyTheme();
+  setInterval(applyTheme, 60000);                                       // crosses into the evening while the app is open
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) applyTheme(); });
+  window.ChatBridgeTheme = {isNight, currentTheme: () => currentTheme(), get prefs() { return {...prefs}; }};   // for tests
+
   /* ---------- start ---------- */
   renderHome();
   window.addEventListener("sharedtext", takeShared);

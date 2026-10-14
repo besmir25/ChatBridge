@@ -13,12 +13,14 @@
   <header class="top">
     <button class="icon" id="btnBack" hidden aria-label="Back">‹</button>
     <div class="logo"><span class="mark">⇄</span><span>ChatBridge</span></div>
+    <button class="icon" id="btnSettings" aria-label="Appearance">◐</button>
     <button class="icon" id="btnHelp" aria-label="Help">?</button>
   </header>
 
   <main>
     <section id="home">
       <div class="hero">
+        <div class="bubble">⇄</div>
         <h1>Continue a conversation somewhere new</h1>
         <p>In ChatGPT, Claude, Gemini or any app: open a conversation and tap <b>Share</b>, then choose <b>ChatBridge</b>.</p>
       </div>
@@ -71,6 +73,19 @@
     <p class="note">Apps limit how much text can be shared in one go. If a very long conversation doesn’t arrive, share it as a file (.txt or .md) instead.</p>
   </div>
   <div class="sheet-foot"><button class="btn primary" data-close>Got it</button></div>
+</div></div>
+
+<div class="modal" id="mSettings" hidden><div class="sheet">
+  <div class="sheet-head">Appearance</div>
+  <label class="opt"><input type="radio" name="mode" value="auto"><span><b>Automatic by time</b><span class="sub">Light by day, dark at night</span></span></label>
+  <div class="times" id="times">
+    <label>Dark from<input type="time" id="tFrom" value="19:00"></label>
+    <label>Back to light at<input type="time" id="tTo" value="07:00"></label>
+  </div>
+  <label class="opt"><input type="radio" name="mode" value="system"><span><b>Match my phone</b><span class="sub">Follows the phone's light or dark setting</span></span></label>
+  <label class="opt"><input type="radio" name="mode" value="light"><span><b>Always light</b></span></label>
+  <label class="opt"><input type="radio" name="mode" value="dark"><span><b>Always dark</b></span></label>
+  <div class="sheet-foot"><button class="btn primary" data-close>Done</button></div>
 </div></div>
 
 <script src="core.js"></script>
