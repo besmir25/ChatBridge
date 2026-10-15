@@ -6,7 +6,7 @@
 
 ![ライセンス: MIT](https://img.shields.io/badge/license-MIT-2dd4bf) ![プラットフォーム: Windows 10/11](https://img.shields.io/badge/platform-Windows%2010%2F11-60a5fa) ![ローカルで動作](https://img.shields.io/badge/data-stays%20on%20your%20PC-34d399)
 
-> これは翻訳版です。正式な内容は英語版（[README.md](README.md)）です。アプリは現時点では英語のみのため、ボタン名は英語のまま記載しています。
+> これは翻訳版です。正式な内容は英語版（[README.md](README.md)）です。アプリも日本語で使えます。Windows の言語に合わせて自動で選ばれ、**Settings → Language** で変更もできます。ここではボタン名を英語のまま記載していますが、アプリ内では日本語で表示されます。
 
 ある AI で始めた会話を別の AI で続けたい、あるいはプロジェクトを新しいモデルに渡したい。これまではコピー＆ペーストをして、文脈を失い、最初から説明し直す必要がありました。ChatBridge なら、3 つの簡単なステップで済みます。
 

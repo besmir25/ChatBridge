@@ -6,7 +6,7 @@
 
 ![许可证：MIT](https://img.shields.io/badge/license-MIT-2dd4bf) ![平台：Windows 10/11](https://img.shields.io/badge/platform-Windows%2010%2F11-60a5fa) ![本地运行](https://img.shields.io/badge/data-stays%20on%20your%20PC-34d399)
 
-> 这是翻译版本，以英文版（[README.md](README.md)）为准。应用目前只有英文界面，所以按钮名称保留英文。
+> 这是翻译版本，以英文版（[README.md](README.md)）为准。应用也提供简体中文界面：会根据 Windows 的语言自动选择，也可在 **Settings → Language** 中更改。这里的按钮名称保留英文，在应用中你会看到中文。
 
 你在一个 AI 里开始了一段对话，想在另一个 AI 里继续，或者把项目交给新的模型。过去这意味着复制粘贴、丢失上下文、把一切重新解释一遍。ChatBridge 用三个简单的步骤帮你完成。
 

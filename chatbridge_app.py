@@ -405,7 +405,8 @@ class Api:
                 "compact": c.get("compact", False), "scrub": c.get("scrub", True), "last_target": c.get("last_target"),
                 "capture_port": self._capture_port, "capture_token": self._capture_token(),
                 "update_check": c.get("update_check", True), "version": VERSION,
-                "group_by": c.get("group_by") if c.get("group_by") in ("app", "date") else "date"}
+                "group_by": c.get("group_by") if c.get("group_by") in ("app", "date") else "date",
+                "language": c.get("language") if c.get("language") in ("auto", "en", "es", "pt-BR", "fr", "de", "zh-CN", "ja") else "auto"}
 
     # ---- startup and scanning
     def bootstrap(self):
@@ -637,7 +638,7 @@ class Api:
     def save_settings(self, s):
         self._cfg.update({"autopaste": bool(s["autopaste"]), "theme": s["theme"], "font": s.get("font", "code"),
                           "ui_size": int(s["size"])})
-        for k in ("about_me", "price_in", "price_out", "compact", "scrub", "last_target", "update_check", "group_by"):
+        for k in ("about_me", "price_in", "price_out", "compact", "scrub", "last_target", "update_check", "group_by", "language"):
             if k in s:
                 self._cfg[k] = s[k]
         cb.save_json(cb.CFG_PATH, self._cfg)

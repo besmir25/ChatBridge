@@ -22,7 +22,7 @@ if (!window.pywebview && /[?&]demo/.test(location.search)) {
   let web = [["ChatGPT (website)", true], ["Claude.ai (website)", true], ["Gemini (website)", true], ["Copilot (website)", true], ["Perplexity (website)", true], ["Grok (website)", true], ["DeepSeek (website)", true], ["Mistral Le Chat (website)", true]]
     .map(([name, enabled], i) => ({key: "web:" + i, name, url: "https://example.com/", kind: "Website", enabled}));
   const settings = {provider: "Anthropic", base_url: "https://api.anthropic.com", model: "claude-sonnet-5-5", has_key: false, autopaste: true,
-    theme: (location.search.match(/theme=(\w+)/) || [0, "light"])[1], font: (location.search.match(/font=(\w+)/) || [0, "sans"])[1], size: 17, scrub: true, compact: false, providers: ["Anthropic", "OpenAI-compatible"]};
+    theme: (location.search.match(/theme=(\w+)/) || [0, "light"])[1], font: (location.search.match(/font=(\w+)/) || [0, "sans"])[1], size: 17, scrub: true, compact: false, language: (location.search.match(/lang=([\w-]+)/) || [0, "auto"])[1], providers: ["Anthropic", "OpenAI-compatible"]};
   const wait = ms => new Promise(r => setTimeout(r, ms));
   window.pywebview = {api: {
     bootstrap: async () => ({chats, apps, web, settings, welcomed: !/welcome/.test(location.search), tools_chosen: !/tools/.test(location.search)}),

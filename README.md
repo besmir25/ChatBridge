@@ -37,6 +37,7 @@ copying and pasting, losing context, and re-explaining everything. ChatBridge do
   shortened only when they need to be.
 - **History** and **drag and drop** (drag a conversation onto an app); the place you used last is remembered.
 - **Light by default**, with dark colors and a code-style font in Settings.
+- **Speaks your language** — English, Spanish, Portuguese (Brazil), French, German, Simplified Chinese and Japanese, on Windows and on Android. It follows your system language, or choose one in Settings.
 
 ![Bringing a project folder along](docs/screenshots/project.png)
 

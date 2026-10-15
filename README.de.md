@@ -6,7 +6,7 @@
 
 ![Lizenz: MIT](https://img.shields.io/badge/license-MIT-2dd4bf) ![Plattform: Windows 10/11](https://img.shields.io/badge/platform-Windows%2010%2F11-60a5fa) ![Läuft lokal](https://img.shields.io/badge/data-stays%20on%20your%20PC-34d399)
 
-> Dies ist eine Übersetzung. Maßgeblich ist die englische Fassung ([README.md](README.md)). Die App gibt es vorerst nur auf Englisch, deshalb stehen die Namen der Schaltflächen auf Englisch.
+> Dies ist eine Übersetzung. Maßgeblich ist die englische Fassung ([README.md](README.md)). Die App gibt es auch auf Deutsch: Sie wählt anhand der Windows-Sprache selbst, oder unter **Settings → Language**. Hier stehen die Namen der Schaltflächen auf Englisch; in der App sehen Sie sie in Ihrer Sprache.
 
 Sie haben eine Unterhaltung mit einer KI begonnen und möchten sie in einer anderen fortsetzen, oder ein Projekt an ein neues Modell übergeben. Bisher hieß das: kopieren, einfügen, Kontext verlieren und alles neu erklären. ChatBridge erledigt das in drei einfachen Schritten.
 

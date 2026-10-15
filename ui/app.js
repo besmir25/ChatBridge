@@ -84,7 +84,7 @@ function renderChats() {
     ${items.map(c => `
       <div class="card ${S.sel.has(c.id) ? "on" : ""} ${S.focus === c.id ? "focus" : ""}" data-id="${esc(c.id)}" draggable="true">
         <span class="chk" data-tick title="Tick to send more than one conversation">✓</span>
-        <div class="t"><b title="${esc(c.title)}">${esc(c.title)}</b><small class="when">${c.kind === "project" ? "Code project · " : ""}${["Today", "Yesterday"].includes(name) ? "" : esc(relDate(c.created)) + (c.source && c.kind !== "project" ? " · " : "")}${c.source && c.kind !== "project" ? esc(c.source) : ""}</small>${S.hits[c.id] && S.query.trim() ? `<span class="snip">${esc(S.hits[c.id])}</span>` : ""}</div>
+        <div class="t"><b title="${esc(c.title)}" translate="no">${esc(c.title)}</b><small class="when">${c.kind === "project" ? "Code project · " : ""}${["Today", "Yesterday"].includes(name) ? "" : esc(relDate(c.created)) + (c.source && c.kind !== "project" ? " · " : "")}${c.source && c.kind !== "project" ? esc(c.source) : ""}</small>${S.hits[c.id] && S.query.trim() ? `<span class="snip" translate="no">${esc(S.hits[c.id])}</span>` : ""}</div>
       </div>`).join("")}`).join("");
 }
 
@@ -107,7 +107,7 @@ function relDate(s) {
   if (a === 1) return "yesterday";
   if (a < 7) return a + " days ago";
   const m = String(s).match(/(\d{4})-(\d{2})-(\d{2})/), d = new Date(+m[1], +m[2] - 1, +m[3]);
-  return d.toLocaleDateString(undefined, {month: "short", day: "numeric", year: a > 300 ? "numeric" : undefined});
+  return d.toLocaleDateString(I18N.lang === "en" ? undefined : I18N.lang, {month: "short", day: "numeric", year: a > 300 ? "numeric" : undefined});   // dates in the app's language
 }
 const pagesOf = t => {            // "about 6 pages" reads better than a token count (a page is roughly 650 tokens)
   const p = Math.round((t || 0) / 650);
@@ -120,7 +120,8 @@ function appTile(key, name, iconHtml, bg) {
   const on = S.target === key ? "on" : "";
   const ic = iconHtml ? `<span class="ic" style="background:${bg || "transparent"}">${iconHtml}</span>`
                       : `<span class="ic" style="background:${colorFor(name)}">${esc(name[0].toUpperCase())}</span>`;
-  return `<button class="app-tile ${on}" data-key="${esc(key)}">${ic}<b>${esc(name)}</b></button>`;
+  const fixed = ["web", "file", "copy"].includes(key);                 // only these three names are ours to translate; app names stay as they are
+  return `<button class="app-tile ${on}" data-key="${esc(key)}">${ic}<b${fixed ? "" : ' translate="no"'}>${esc(name)}</b></button>`;
 }
 const siteName = w => w.name.replace(" (website)", "");
 function renderApps() {
@@ -142,7 +143,8 @@ function renderApps() {
       + `<option value="none" ${S.site === "none" ? "selected" : ""}>I’ll open it myself</option>`;
   }
   const real = S.apps.filter(a => a.enabled !== false && (a.kind === "Desktop app" || a.kind === "Local server")).map(a => a.name);
-  const list = real.length > 1 ? real.slice(0, -1).join(", ") + " and " + real[real.length - 1] : real[0];
+  const list = real.length > 1 && window.Intl && Intl.ListFormat ? new Intl.ListFormat(I18N.lang === "en" ? "en" : I18N.lang, {type: "conjunction"}).format(real)
+             : real.join(", ");
   $("#foundLine").innerHTML = S.scanning && !S.apps.length ? "Looking for AI apps on your computer…"
     : real.length ? `We found ${esc(list)} on your computer. <button class="link" id="btnNotRight">Not right?</button>`
     : `We didn’t find an AI app on your computer. <button class="link" id="btnNotRight">Add one</button>`;
@@ -190,7 +192,7 @@ $("#cRead").onclick = async () => {
   if (!p) return;
   $("#vTitle").textContent = p.title;
   $("#vSub").textContent = (p.source || "") + (p.kind === "project" ? " · project files" : "");
-  $("#vBody").innerHTML = p.messages.map(m => `<div class="bubble ${m.role === "user" ? "u" : "a"}">${esc(m.content)}</div>`).join("");
+  $("#vBody").innerHTML = p.messages.map(m => `<div class="bubble ${m.role === "user" ? "u" : "a"}" translate="no">${esc(m.content)}</div>`).join("");
   open("#mPreview");
 };
 $("#cRemove").onclick = async () => {
@@ -295,7 +297,7 @@ function renderSections() {
         ${s.tags.map(t => `<span class="tagchip">${esc(t)}</span>`).join("")}
         <span class="sec-meta">${cells.length} messages</span></div>
       ${isOpen ? `<div class="cells">${cells.map(c => `<div class="cell ${SEC.sel.has(c.i) ? "on" : ""}" data-cell="${c.i}">
-        <span class="chk">✓</span><span class="who">${c.role === "user" ? "You" : "AI"}</span><span class="txt">${esc(c.text)}${c.more ? "…" : ""}</span></div>`).join("")}</div>` : ""}
+        <span class="chk">✓</span><span class="who">${c.role === "user" ? "You" : "AI"}</span><span class="txt" translate="no">${esc(c.text)}${c.more ? "…" : ""}</span></div>`).join("")}</div>` : ""}
     </div>`;
   }).join("");
 }
@@ -358,7 +360,7 @@ $("#btnRefresh").onclick = () => rescan(true);
 function toolRow(t, icon) {
   return `<label class="tool"><input type="checkbox" data-name="${esc(t.name)}" ${t.enabled ? "checked" : ""} style="accent-color:var(--accent);width:18px;height:18px">
     <span class="ic" style="background:${icon ? "transparent" : colorFor(t.name)}">${icon ? `<img src="${icon}" alt="">` : esc(t.name[0].toUpperCase())}</span>
-    <span class="n">${esc(t.name)}<br><small>${esc(t.kind)}</small></span>
+    <span class="n"><span translate="no">${esc(t.name)}</span><br><small>${esc(t.kind)}</small></span>
     ${t.kind === "Desktop app" || t.kind === "Possible AI app" ? `<button class="link" data-test="${esc(t.key)}" title="Pastes a harmless test line into the app. Nothing is sent.">Test</button>` : ""}</label>`;
 }
 document.addEventListener("click", e => {
@@ -441,7 +443,7 @@ $("#btnProject").onclick = async () => {
 const prjMode = () => document.querySelector("input[name=pmode]:checked").value;
 let prjTimer;
 function renderPrj() {
-  $("#prjFiles").innerHTML = prj.files.map(f => `<div class="file" data-i="${f.i}"><span class="chk" style="${prj.on.has(f.i) ? "background:var(--accent);border-color:var(--accent);color:var(--accent-ink)" : ""}">✓</span><span class="n">${esc(f.rel)}</span><small>${f.type} · ${f.size.toLocaleString()} chars</small></div>`).join("");
+  $("#prjFiles").innerHTML = prj.files.map(f => `<div class="file" data-i="${f.i}"><span class="chk" style="${prj.on.has(f.i) ? "background:var(--accent);border-color:var(--accent);color:var(--accent-ink)" : ""}">✓</span><span class="n" translate="no">${esc(f.rel)}</span><small>${f.type} · ${f.size.toLocaleString()} chars</small></div>`).join("");
   document.querySelectorAll("#prjTypes .chipbtn").forEach(b => {
     const ofType = prj.files.filter(f => f.type === b.dataset.type);
     b.classList.toggle("on", ofType.length > 0 && ofType.every(f => prj.on.has(f.i)));
@@ -479,6 +481,7 @@ $("#btnSettings").onclick = () => {
   $("#sTheme").innerHTML = Object.entries(THEMES).map(([k, v]) => `<option value="${k}" ${k === s.theme ? "selected" : ""}>${esc(v)}</option>`).join("");
   $("#sFont").innerHTML = Object.entries(FONTS).map(([k, v]) => `<option value="${k}" ${k === s.font ? "selected" : ""}>${esc(v)}</option>`).join("");
   $("#sSize").innerHTML = Object.entries(SIZES).map(([k, v]) => `<option value="${k}" ${Number(k) === s.size ? "selected" : ""}>${esc(v)}</option>`).join("");
+  $("#sLang").innerHTML = [["auto", "Automatic"], ...Object.entries(I18N.NAMES)].map(([k, v]) => `<option value="${k}" ${k === (s.language || "auto") ? "selected" : ""}${k === "auto" ? "" : ' translate="no"'}>${esc(v)}</option>`).join("");
   $("#sScrub").checked = s.scrub !== false; $("#sCompact").checked = !!s.compact;
   $("#sAuto").checked = s.autopaste !== false;
   $("#sUpdate").checked = s.update_check !== false; $("#sVersion").textContent = "You have version " + (s.version || "");
@@ -542,9 +545,11 @@ $("#sTheme").onchange = () => { S.settings.theme = $("#sTheme").value; applySett
 $("#sFont").onchange = () => { S.settings.font = $("#sFont").value; applySettings(); };
 $("#sSize").onchange = () => { S.settings.size = Number($("#sSize").value); applySettings(); };
 $("#sSave").onclick = async () => {
-  S.settings = await api().save_settings({autopaste: $("#sAuto").checked, theme: $("#sTheme").value, font: $("#sFont").value, size: Number($("#sSize").value), scrub: $("#sScrub").checked, compact: $("#sCompact").checked,
+  const langBefore = S.settings.language || "auto";
+  S.settings = await api().save_settings({language: $("#sLang").value, autopaste: $("#sAuto").checked, theme: $("#sTheme").value, font: $("#sFont").value, size: Number($("#sSize").value), scrub: $("#sScrub").checked, compact: $("#sCompact").checked,
     update_check: $("#sUpdate").checked, about_me: $("#sAbout").value, price_in: $("#sPriceIn").value.trim(), price_out: $("#sPriceOut").value.trim()});
   close("#mSettings"); toast("Settings saved.", "good"); scheduleEstimate();
+  if (($("#sLang").value) !== langBefore) setTimeout(() => location.reload(), 400);     // the new language is applied from a fresh start
 };
 
 /* ---------- sending ---------- */
@@ -567,7 +572,7 @@ $("#btnSend").onclick = doSend;
 $("#btnHistory").onclick = async () => {
   const h = await api().get_history();
   $("#histBody").innerHTML = h.length ? h.map((e, i) => `
-    <div class="hrow"><div class="t"><b>${esc(e.titles.join(", "))}</b><small>${esc(e.time)} → ${esc(e.target)}</small></div>
+    <div class="hrow"><div class="t"><b translate="no">${esc(e.titles.join(", "))}</b><small>${esc(e.time)} → ${esc(e.target)}</small></div>
       <button class="btn" data-again="${i}">Send again</button></div>`).join("")
     : '<div class="empty"><b>Nothing sent yet</b>Chats you send will be listed here.</div>';
   $("#histBody").dataset.items = JSON.stringify(h);
@@ -604,7 +609,7 @@ window.onProgress = p => {
     testName = p.name;
     if (!p.pasted) return api().record_compat(p.name, false).then(a => { S.apps = a; renderAll(); toast(p.name + ": the test didn’t reach the app. Marked as not working yet.", "warn", 8000); });
     $("#tTitle").textContent = "Did it work?";
-    $("#tBody").innerHTML = `Did “<b>${esc(p.marker)}</b>” appear in ${esc(p.name)}’s message box?`;
+    $("#tBody").textContent = `Did “${p.marker}” appear in ${p.name}’s message box?`;
     return open("#mTest");
   }
   S.busy = false; renderSummary();
@@ -657,14 +662,15 @@ async function rescan(manual = false) {
   btn.classList.remove("busy"); btn.textContent = "Look again";
   if (manual) {
     const newApps = S.apps.filter(a => !had.has(a.name)).map(a => a.name), newChats = S.chats.filter(c => !hadChats.has(c.id)).length;
-    toast(newApps.length || newChats
-      ? `Found ${newApps.length ? "new tool" + (newApps.length > 1 ? "s" : "") + ": " + newApps.join(", ") : ""}${newApps.length && newChats ? " and " : ""}${newChats ? newChats + " new chat" + (newChats > 1 ? "s" : "") : ""}.`
-      : `Nothing new — ${S.apps.length} tool${S.apps.length === 1 ? "" : "s"} and ${S.chats.length} chat${S.chats.length === 1 ? "" : "s"} found.`, "good", 5000);
+    toast(newApps.length ? `Found a new AI app: ${newApps.join(", ")}.`
+      : newChats ? (newChats === 1 ? "Found 1 new conversation." : `Found ${newChats} new conversations.`)
+      : `Nothing new — found ${S.apps.length} apps and ${S.chats.length} conversations.`, "good", 5000);
   }
 }
 async function start() {
   const b = await api().bootstrap();
   S.chats = b.chats; S.apps = b.apps; S.web = b.web || []; S.settings = b.settings; S.toolsChosen = !!b.tools_chosen;
+  I18N.init(b.settings.language);                                       // translate the fixed text, then everything that appears later
   applySettings(); rememberTarget(); renderAll();
   if (!b.welcomed) { open("#mWelcome"); } else { showWhatsNew(); }   // new users get the welcome; people who updated get what's new
   if (!b.welcomed) api().whats_new();                                  // just records the version so it isn't "new" next time

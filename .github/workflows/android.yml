@@ -32,7 +32,7 @@ jobs:
       - name: Install
         run: npm ci --no-audit --no-fund
       - name: Test the shared logic against the Python version
-        run: node --test tests/core.test.js
+        run: node --test tests/core.test.js tests/i18n.test.js
       - name: Copy the screen into the Android project
         run: npx cap sync android
       - name: Build the debug .apk

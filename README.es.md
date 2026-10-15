@@ -6,7 +6,7 @@
 
 ![Licencia: MIT](https://img.shields.io/badge/license-MIT-2dd4bf) ![Plataforma: Windows 10/11](https://img.shields.io/badge/platform-Windows%2010%2F11-60a5fa) ![Funciona en local](https://img.shields.io/badge/data-stays%20on%20your%20PC-34d399)
 
-> Esta es una traducción. La versión en inglés ([README.md](README.md)) es la de referencia. La aplicación está disponible solo en inglés por ahora, por eso los nombres de los botones aparecen en inglés.
+> Esta es una traducción. La versión en inglés ([README.md](README.md)) es la de referencia. La aplicación también está disponible en español: se elige sola según el idioma de Windows, o en **Settings → Language**. Aquí los nombres de los botones se dejan en inglés; en la app los verás en tu idioma.
 
 Empezaste una conversación en una IA y quieres seguir en otra, o pasarle un proyecto a un modelo nuevo. Hoy eso significa copiar y pegar, perder contexto y volver a explicarlo todo. ChatBridge lo hace en tres pasos sencillos.
 

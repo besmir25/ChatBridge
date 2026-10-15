@@ -545,7 +545,7 @@ _SAVE_LOCK = threading.RLock()
 
 def load_json(path, default):
     try:
-        with open(path, "r", encoding="utf-8") as f:
+        with open(path, "r", encoding="utf-8-sig") as f:       # -sig: a file saved by Notepad or PowerShell starts with an invisible marker
             return json.load(f)
     except OSError:
         return default

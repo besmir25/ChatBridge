@@ -846,6 +846,25 @@ class SearchWebExportTools(unittest.TestCase):
         self.assertNotIn("Secret plans", text)
         self.assertNotIn("sk-abcdefghijklmnopqrstuvwxyz0123456789", text)
 
+    def test_language_setting_is_remembered_and_bad_values_fall_back_to_automatic(self):
+        base = {"autopaste": True, "theme": "light", "font": "sans", "size": 17}
+        self.assertEqual(self.api.save_settings({**base, "language": "es"})["language"], "es")
+        self.assertEqual(self.api.bootstrap()["settings"]["language"], "es")
+        self.assertEqual(self.api.save_settings({**base, "language": "ja"})["language"], "ja")
+        self.assertEqual(self.api.save_settings({**base, "language": "klingon"})["language"], "auto")     # only languages we have
+        self.assertEqual(self.api.save_settings({**base, "language": "<script>"})["language"], "auto")
+        self.api.save_settings({**base, "language": "auto"})
+
+    def test_a_settings_file_saved_with_a_byte_order_mark_is_still_read(self):
+        import chatbridge as cb
+        path = os.path.join(os.environ["APPDATA"], "ChatBridge", "bom-test.json")
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "w", encoding="utf-8-sig") as f:             # what Notepad and PowerShell's -Encoding UTF8 write
+            f.write('{"language": "es", "welcomed": true}')
+        self.addCleanup(lambda: os.path.exists(path) and os.remove(path))
+        self.assertEqual(cb.load_json(path, {}), {"language": "es", "welcomed": True})
+        self.assertEqual([n for n in os.listdir(os.path.dirname(path)) if n.startswith("bom-test.json.corrupt")], [])   # and not set aside
+
     def test_target_info_names_a_website(self):
         self.assertEqual(self.api._target_info("web:0")[0], "ChatGPT (website)")
         self.assertEqual(self.api._target_info("web:42"), (None, None))

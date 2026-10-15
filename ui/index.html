@@ -45,7 +45,7 @@
         <div class="empty" id="cEmpty"><b>Pick a conversation</b>Choose one on the left to see what’s in it and where you can continue it.</div>
         <div id="cBody" hidden>
           <div class="dhead">
-            <div class="dtext"><div class="dtitle" id="cTitle"></div><div class="sub" id="cMeta"></div></div>
+            <div class="dtext"><div class="dtitle" id="cTitle" translate="no"></div><div class="sub" id="cMeta"></div></div>
             <div class="dbtns"><button class="link" id="cRead">Read</button><button class="link" id="cRename">Rename</button><button class="link" id="cRemove">Remove</button></div>
           </div>
           <div id="partsBox">
@@ -97,7 +97,7 @@
 <!-- project -->
 <div class="modal" id="mProject" hidden><div class="sheet" style="width:min(720px,94vw)">
   <div class="sheet-head" id="prjTitle">Choose the files to bring along</div>
-  <div class="sheet-sub" id="prjRoot"></div>
+  <div class="sheet-sub" id="prjRoot" translate="no"></div>
   <div class="sheet-body">
     <div class="row" style="gap:6px;flex-wrap:wrap" id="prjModes">
       <label class="sw sm"><input type="radio" name="pmode" value="full" checked> Full files</label>
@@ -118,6 +118,7 @@
   <div class="sheet-head">Settings</div>
   <div class="sheet-sub">Look and feel, and how sending behaves.</div>
   <div class="sheet-body">
+    <div class="row"><label class="f">Language<select id="sLang"></select></label></div>
     <div class="row"><label class="f">Colors<select id="sTheme"></select></label>
     <label class="f">Text style<select id="sFont"></select></label>
     <label class="f">Text size<select id="sSize"></select></label></div>
@@ -136,7 +137,7 @@
     <div class="note">An update check only asks GitHub for the newest version number. It sends nothing about you or your chats, and never installs anything by itself.</div>
     <div style="border-top:1px solid var(--line);padding-top:12px;display:flex;flex-direction:column;gap:8px">
       <b style="font-weight:500">Browser capture (ChatGPT, Claude.ai, Gemini)</b>
-      <div class="note">Add the ChatBridge extension to Edge or Chrome, then paste this pairing code into it once. It only works with this code, and only on this PC (port <span id="sPort">–</span>).</div>
+      <div class="note" data-i18n-html="settings.capture">Add the ChatBridge extension to Edge or Chrome, then paste this pairing code into it once. It only works with this code, and only on this PC (port <span id="sPort">–</span>).</div>
       <div class="row"><input type="text" id="sToken" readonly><button class="btn" id="sCopyToken" style="flex:0 0 auto">Copy code</button>
         <button class="btn" id="sExt" style="flex:0 0 auto">Open extension folder</button></div>
     </div>
@@ -182,7 +183,7 @@
 <!-- what's new (after an update) and update notes (before downloading one) -->
 <div class="modal" id="mNew" hidden><div class="sheet" style="width:min(640px,94vw)">
   <div class="sheet-head" id="nTitle">What's new</div>
-  <div class="sheet-body" id="nBody"></div>
+  <div class="sheet-body" id="nBody" translate="no"></div>
   <div class="sheet-foot"><button class="btn" data-close id="nClose">Close</button><button class="btn primary" id="nGo" hidden>Open the download page</button></div>
 </div></div>
 
@@ -192,14 +193,14 @@
   <div class="sheet-sub">Continue a conversation in a different AI, without starting over.</div>
   <div class="sheet-body">
     <div class="steps">
-      <div class="step"><span class="num">1</span><div><b>Pick a conversation</b><div class="note">Click a conversation to tick it. Use <b>Add from a file</b> or <b>Paste text</b> for anything else.</div></div></div>
-      <div class="step"><span class="num">2</span><div><b>Choose where to continue it</b><div class="note">Click an app, <b>A website</b>, <b>A file</b>, or <b>Just copy it</b>. Missing your app? Open <b>More options</b> and press <b>Look again</b>.</div></div></div>
-      <div class="step"><span class="num">3</span><div><b>Press the big button</b><div class="note">Your conversation is put in place. <b>Read it, then press Enter yourself.</b> ChatBridge never sends anything for you.</div></div></div>
+      <div class="step"><span class="num">1</span><div><b>Pick a conversation</b><div class="note" data-i18n-html="help.step1">Click a conversation to tick it. Use <b>Add from a file</b> or <b>Paste text</b> for anything else.</div></div></div>
+      <div class="step"><span class="num">2</span><div><b>Choose where to continue it</b><div class="note" data-i18n-html="help.step2">Click an app, <b>A website</b>, <b>A file</b>, or <b>Just copy it</b>. Missing your app? Open <b>More options</b> and press <b>Look again</b>.</div></div></div>
+      <div class="step"><span class="num">3</span><div><b>Press the big button</b><div class="note" data-i18n-html="help.step3">Your conversation is put in place. <b>Read it, then press Enter yourself.</b> ChatBridge never sends anything for you.</div></div></div>
     </div>
     <div style="border-top:1px solid var(--line);padding-top:12px;display:flex;flex-direction:column;gap:10px">
       <div><b>Is my information safe?</b><div class="note">Everything stays on this computer. ChatBridge has no account and no servers. The only thing it ever looks up online is whether a newer version exists, and you can turn that off in Settings.</div></div>
-      <div><b>I don’t see my ChatGPT, Claude.ai or Gemini chats.</b><div class="note">Those live on the websites, not on your computer. Either install the ChatBridge browser extension (Settings → Browser capture) and click <b>Save to ChatBridge</b> on a chat, or export your data from the website and use <b>Add from a file</b>.</div></div>
-      <div><b>The app opened but nothing was pasted.</b><div class="note">Click in the app’s message box and press <b>Ctrl+V</b>. The conversation is on your clipboard. For websites, you can also attach the file ChatBridge saved.</div></div>
+      <div><b>I don’t see my ChatGPT, Claude.ai or Gemini chats.</b><div class="note" data-i18n-html="help.faq2">Those live on the websites, not on your computer. Either install the ChatBridge browser extension (Settings → Browser capture) and click <b>Save to ChatBridge</b> on a chat, or export your data from the website and use <b>Add from a file</b>.</div></div>
+      <div><b>The app opened but nothing was pasted.</b><div class="note" data-i18n-html="help.faq3">Click in the app’s message box and press <b>Ctrl+V</b>. The conversation is on your clipboard. For websites, you can also attach the file ChatBridge saved.</div></div>
       <div><b>What does ChatBridge change in my conversation?</b><div class="note">It removes passwords, keys, email addresses, phone numbers and your Windows user name. If a conversation is very long, it trims big blocks of code or output so the AI can handle it, and tells you when it does. You can change both in Settings.</div></div>
     </div>
   </div>
@@ -223,7 +224,7 @@
 
 <!-- preview -->
 <div class="modal" id="mPreview" hidden><div class="sheet" style="width:min(720px,94vw)">
-  <div class="sheet-head" id="vTitle"></div><div class="sheet-sub" id="vSub"></div>
+  <div class="sheet-head" id="vTitle" translate="no"></div><div class="sheet-sub" id="vSub"></div>
   <div class="sheet-body" id="vBody"></div>
   <div class="sheet-foot"><button class="btn" data-close>Close</button></div>
 </div></div>
@@ -235,6 +236,9 @@
   <div class="compose"><textarea id="dInput" placeholder="Type a message. Ctrl+Enter to send."></textarea><button class="btn primary" id="dSend">Send</button></div>
 </aside>
 
+<script src="i18n.js"></script>
+<script src="lang/es.js"></script><script src="lang/pt-BR.js"></script><script src="lang/fr.js"></script>
+<script src="lang/de.js"></script><script src="lang/zh-CN.js"></script><script src="lang/ja.js"></script>
 <script src="demo.js"></script>
 <script src="app.js"></script>
 </body>

@@ -2,6 +2,10 @@
 
 Newest first. Add new entries under **Unreleased**; `python bump_version.py X.Y.Z` turns that section into the release.
 
+## Unreleased
+- **ChatBridge speaks more languages**: Spanish, Portuguese (Brazil), French, German, Simplified Chinese and Japanese, on Windows and on the Android app. It follows your system language by default; choose one in Settings → Language (Android: the half-moon button). Conversation titles and messages are never translated
+- The Android app's Appearance sheet gained a language choice; the phone and Windows apps share one translation engine and one set of translation tables
+
 ## 1.3.0 (2026-10-12)
 - **A new two-pane layout**: your conversations in a list on the left; click one and it opens on the right with its sections, and the places you can continue it are right below, so the whole job happens on one screen. Tick the small box on a row to send several conversations together
 - **Send just part of a conversation**: an opened conversation is shown as a notebook of sections (found automatically, with tags like Code, Decision, Problem and Files). Leave everything unticked to send the whole thing, or tick sections or single messages and rename sections; the AI also gets a short outline of the rest so it sees the bigger picture

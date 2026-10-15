@@ -327,3 +327,5 @@ h1{font-size:1.4em}
 .dest .lbl{margin-bottom:8px}
 .right .empty{margin:auto}
 .bar{padding:12px 24px}
+
+.cell .who{width:auto;min-width:30px;white-space:nowrap}

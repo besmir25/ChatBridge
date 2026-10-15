@@ -24,4 +24,4 @@ jobs:
         with:
           node-version: "22"
       - name: Check the phone version's logic against the Python version
-        run: node --test mobile/tests/core.test.js
+        run: node --test mobile/tests/core.test.js mobile/tests/i18n.test.js ui/tests/i18n.test.js

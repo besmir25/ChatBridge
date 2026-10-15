@@ -86,3 +86,5 @@ h1{font-size:1.65em;line-height:1.2;margin:0 0 10px;font-weight:700;letter-spaci
 .row2{align-items:stretch}
 .row2>.btn{display:flex;align-items:center;justify-content:center}
 .sectitle{text-overflow:ellipsis}
+
+.cell .who{width:auto;min-width:30px;white-space:nowrap}

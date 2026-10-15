@@ -33,7 +33,7 @@
   const open = id => { $(id).hidden = false; };
   document.addEventListener("click", e => { if (e.target.matches("[data-close]")) e.target.closest(".modal").hidden = true; if (e.target.classList.contains("modal")) e.target.hidden = true; });
   const pages = t => { const p = Math.round((t || 0) / 650); return t < 250 ? "a short note" : p <= 1 ? "about 1 page" : "about " + p + " pages"; };
-  const niceDate = s => { const d = new Date(s); return isNaN(d) ? "" : d.toLocaleDateString(undefined, {month: "short", day: "numeric"}); };
+  const niceDate = s => { const d = new Date(s); return isNaN(d) ? "" : d.toLocaleDateString(I18N.lang === "en" ? undefined : I18N.lang, {month: "short", day: "numeric"}); };
 
   /* ---------- adding conversations ---------- */
   function addConversation(text, source) {
@@ -41,7 +41,7 @@
     if (!text) return toast("There was no text to add.");
     const conv = C.parseText(text, "");
     const firstAsk = (conv.messages.find(m => m.role === "user") || conv.messages[0] || {}).content || "";
-    const c = clean({...conv, id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), title: C.friendlyTitle(firstAsk, 64, "Shared conversation"),
+    const c = clean({...conv, id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), title: C.friendlyTitle(firstAsk, 64, I18N.tr("Shared conversation")),
                      source: source || "Pasted text", created: new Date().toISOString()});
     if (!c) return toast("Couldn't read that text as a conversation.");
     lib.unshift(c); lib = lib.slice(0, MAX_ITEMS);
@@ -61,7 +61,7 @@
   /* ---------- the list ---------- */
   function renderHome() {
     $("#listLbl").hidden = !lib.length;
-    $("#list").innerHTML = lib.map(c => `<button class="card" data-id="${esc(c.id)}"><b>${esc(c.title)}</b><small>${esc(niceDate(c.created))}${c.created ? " · " : ""}${esc(c.source)} · ${c.messages.length} messages</small></button>`).join("");
+    $("#list").innerHTML = lib.map(c => `<button class="card" data-id="${esc(c.id)}"><b translate="no">${esc(c.title)}</b><small>${esc(niceDate(c.created))}${c.created ? " · " : ""}${esc(c.source)} · ${c.messages.length} messages</small></button>`).join("");
   }
   $("#list").addEventListener("click", e => { const b = e.target.closest(".card"); if (b) openDetail(b.dataset.id); });
 
@@ -95,7 +95,7 @@
         <span class="chk" data-pick="${k}" role="checkbox" aria-label="Tick this section">${n === idx.length ? "✓" : n ? "–" : "✓"}</span>
         <input class="sectitle" data-title="${k}" value="${esc(SEC.titles[k] ?? s.title)}" maxlength="100" aria-label="Section name">
         <span class="sec-meta">${idx.length}</span></div>
-        ${isOpen ? `<div class="cells">${idx.map(i => { const m = c.messages[i]; return `<div class="cell ${SEC.sel.has(i) ? "on" : ""}" data-cell="${i}"><span class="chk">✓</span><span class="who">${m.role === "user" ? "You" : "AI"}</span><span class="txt">${esc(m.content.slice(0, 1500))}</span></div>`; }).join("")}</div>` : ""}</div>`;
+        ${isOpen ? `<div class="cells">${idx.map(i => { const m = c.messages[i]; return `<div class="cell ${SEC.sel.has(i) ? "on" : ""}" data-cell="${i}"><span class="chk">✓</span><span class="who">${m.role === "user" ? "You" : "AI"}</span><span class="txt" translate="no">${esc(m.content.slice(0, 1500))}</span></div>`; }).join("")}</div>` : ""}</div>`;
     }).join("");
     refreshNote();
   }
@@ -175,8 +175,9 @@
   let prefs = (() => {
     try { const s = JSON.parse(localStorage.getItem(SKEY)) || {};
       return {mode: ["auto", "system", "light", "dark"].includes(s.mode) ? s.mode : DEFAULTS.mode,
-              from: validTime(s.from) ? s.from : DEFAULTS.from, to: validTime(s.to) ? s.to : DEFAULTS.to}; }
-    catch (e) { return {...DEFAULTS}; }
+              from: validTime(s.from) ? s.from : DEFAULTS.from, to: validTime(s.to) ? s.to : DEFAULTS.to,
+              language: typeof s.language === "string" && (s.language === "auto" || I18N.NAMES[s.language]) ? s.language : "auto"}; }
+    catch (e) { return {...DEFAULTS, language: "auto"}; }
   })();
   const minutes = s => Number(s.slice(0, 2)) * 60 + Number(s.slice(3));
   /* is it "night" at this moment? Works for ranges that cross midnight (19:00 to 07:00) and same-day ranges */
@@ -194,6 +195,7 @@
   function applyTheme() { document.documentElement.dataset.theme = currentTheme(); }
   function savePrefs() { try { localStorage.setItem(SKEY, JSON.stringify(prefs)); } catch (e) { /* not saved */ } }
   $("#btnSettings").onclick = () => {
+    $("#sLang").innerHTML = [["auto", "Automatic"], ...Object.entries(I18N.NAMES)].map(([k, v]) => `<option value="${k}" ${k === prefs.language ? "selected" : ""}${k === "auto" ? "" : ' translate="no"'}>${esc(v)}</option>`).join("");
     qa("input[name=mode]").forEach(r => r.checked = r.value === prefs.mode);
     $("#tFrom").value = prefs.from; $("#tTo").value = prefs.to; $("#times").hidden = prefs.mode !== "auto";
     open("#mSettings");
@@ -202,12 +204,14 @@
   [$("#tFrom"), $("#tTo")].forEach(i => i.onchange = () => {
     if (validTime(i.value)) { prefs[i.id === "tFrom" ? "from" : "to"] = i.value; savePrefs(); applyTheme(); }
   });
+  $("#sLang").onchange = () => { prefs.language = $("#sLang").value; savePrefs(); location.reload(); };     // the new language starts fresh
   applyTheme();
   setInterval(applyTheme, 60000);                                       // crosses into the evening while the app is open
   document.addEventListener("visibilitychange", () => { if (!document.hidden) applyTheme(); });
   window.ChatBridgeTheme = {isNight, currentTheme: () => currentTheme(), get prefs() { return {...prefs}; }};   // for tests
 
   /* ---------- start ---------- */
+  I18N.init((location.search.match(/[?&]lang=([\w-]+)/) || [])[1] || prefs.language);          // ?lang=xx is for previews
   renderHome();
   window.addEventListener("sharedtext", takeShared);
   document.addEventListener("visibilitychange", () => { if (!document.hidden) takeShared(); });
