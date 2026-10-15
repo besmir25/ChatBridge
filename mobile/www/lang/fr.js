@@ -152,6 +152,7 @@ I18N.packs["fr"] = {
  "about 1 page": "environ 1 page",
  "about {n} pages": "environ {n} pages",
  "{n} messages": "{n} messages",
+ "1 message": "1 message",
  "{n} conversations are ticked, and each is sent whole. To send just part of one, click it without ticking the others.": "{n} conversations sont cochées et chacune est envoyée en entier. Pour n’en envoyer qu’une partie, cliquez dessus sans cocher les autres.",
  "Code projects are sent as a whole. To change which files come along, use More options → Bring a code project.": "Les projets de code sont envoyés en entier. Pour changer les fichiers inclus, utilisez Plus d’options → Apporter un projet de code.",
  "Sending the whole conversation — or tick parts of it": "Envoi de toute la conversation, ou cochez-en des parties",
@@ -331,5 +332,18 @@ I18N.packs["fr"] = {
  "Remove this conversation from ChatBridge? The original stays in the app it came from.": "Retirer cette conversation de ChatBridge ? L’original reste dans l’application d’origine.",
  "Tick this section": "Cocher cette section",
  "Shared to ChatBridge": "Partagé vers ChatBridge",
- "Shared conversation": "Conversation partagée"
+ "Shared conversation": "Conversation partagée",
+ "Another app": "Une autre application",
+ "Share…": "Partager…",
+ "ChatBridge copies {items} and opens {name}. Paste it into the message box.": "ChatBridge copie {items} et ouvre {name}. Collez-le dans la zone de message.",
+ "ChatBridge copies {items} and opens {site}. Paste it into the message box.": "ChatBridge copie {items} et ouvre {site}. Collez-le dans la zone de message.",
+ "ChatBridge copies {items}. Paste it into any AI website.": "ChatBridge copie {items}. Collez-le sur n’importe quel site d’IA.",
+ "ChatBridge copies {items}. Paste it anywhere.": "ChatBridge copie {items}. Collez-le n’importe où.",
+ "ChatBridge shares {items} with the app you pick.": "ChatBridge partage {items} avec l’application de votre choix.",
+ "Couldn't open {name}. It’s copied, so paste it into the app yourself.": "Impossible d’ouvrir {name}. C’est copié : collez-le vous-même dans l’application.",
+ "Couldn't open it. The text is copied, so paste it where you like.": "Ouverture impossible. Le texte est copié : collez-le où vous voulez.",
+ "Couldn't create the file.": "Impossible de créer le fichier.",
+ "That file doesn't look like a conversation.": "Ce fichier ne ressemble pas à une conversation.",
+ "Pasted text": "Texte collé",
+ "Imported": "Importé"
 };

@@ -13,45 +13,51 @@
   <header class="top">
     <button class="icon" id="btnBack" hidden aria-label="Back">‹</button>
     <div class="logo"><span class="mark">⇄</span><span>ChatBridge</span></div>
-    <button class="icon" id="btnSettings" aria-label="Appearance">◐</button>
+    <button class="icon" id="btnSettings" aria-label="Settings">⚙</button>
     <button class="icon" id="btnHelp" aria-label="Help">?</button>
   </header>
 
   <main>
     <section id="home">
-      <div class="hero">
+      <div class="searchrow" id="searchRow" hidden><input type="search" id="chatSearch" placeholder="Search your conversations" autocomplete="off"></div>
+      <div id="list"></div>
+      <div class="hero" id="hero" hidden>
         <div class="bubble">⇄</div>
         <h1>Continue a conversation somewhere new</h1>
         <p data-i18n-html="m.hero">In ChatGPT, Claude, Gemini or any app: open a conversation and tap <b>Share</b>, then choose <b>ChatBridge</b>.</p>
       </div>
-      <div class="row2">
-        <button class="btn primary" id="btnClip">Paste what I copied</button>
-        <button class="btn" id="btnType">Paste text…</button>
+      <div class="links">
+        <button class="link" id="btnClip">Paste what I copied</button>
+        <button class="link" id="btnFile">Add from a file</button>
+        <button class="link" id="btnType">Paste text</button>
       </div>
-      <div class="lbl" id="listLbl" hidden>Your conversations</div>
-      <div id="list"></div>
+      <details class="more" id="moreBox">
+        <summary>More options</summary>
+        <div class="more-row"><button class="pill" id="btnHistory">What I’ve sent</button></div>
+      </details>
+      <input type="file" id="filePick" accept=".json,.txt,.md,.markdown,text/*,application/json" multiple hidden>
     </section>
 
     <section id="detail" hidden>
-      <div class="dtitle" id="dTitle"></div>
+      <div class="dtitle" id="dTitle" translate="no"></div>
       <div class="sub" id="dMeta"></div>
+      <div class="dbtns"><button class="link" id="dRename">Rename</button><button class="link" id="dRemove">Remove</button></div>
       <div class="parts-h"><span class="lbl" id="partNote">Sending the whole conversation</span>
         <span class="sec-links"><button class="link" id="secClear" hidden>Send the whole thing</button><button class="link" id="secOpenAll">Open all</button><button class="link" id="secCloseAll">Close all</button></span></div>
       <div id="secBody"></div>
-      <label class="sw" id="outlineRow" hidden><input type="checkbox" id="optOutline" checked> Add a short outline of the rest</label>
-      <label class="sw"><input type="checkbox" id="optScrub" checked> Hide passwords, keys and personal details</label>
+      <label class="sw" id="outlineRow" hidden><input type="checkbox" id="optOutline" checked> Add a short outline of the rest, so the AI sees the bigger picture</label>
       <div class="note" id="estimate"></div>
-      <button class="link danger" id="btnDelete">Remove this conversation</button>
+      <div class="dest">
+        <div class="lbl">Continue it in</div>
+        <div class="grid" id="appGrid"></div>
+        <div class="webpick" id="webPick" hidden><label for="webSite">Open</label><select id="webSite"></select></div>
+      </div>
     </section>
   </main>
 
   <footer class="bar" id="bar" hidden>
-    <div class="quick"><span class="sub">Copy and open</span>
-      <button class="chip" data-open="https://chatgpt.com/">ChatGPT</button>
-      <button class="chip" data-open="https://claude.ai/new">Claude</button>
-      <button class="chip" data-open="https://gemini.google.com/app">Gemini</button>
-      <button class="chip" data-open="https://copilot.microsoft.com/">Copilot</button></div>
-    <div class="row2"><button class="btn" id="btnCopy">Copy</button><button class="btn primary" id="btnShare">Share to an app…</button></div>
+    <div class="sum" id="summary">Pick a conversation to get started.</div>
+    <button class="btn primary" id="btnSend"><span id="sendLabel">Continue</span></button>
   </footer>
 </div>
 
@@ -61,6 +67,19 @@
   <div class="sheet-head">Paste a conversation</div>
   <textarea id="pText" placeholder="Paste the chat here. Lines like “User:” and “Assistant:” split the turns."></textarea>
   <div class="sheet-foot"><button class="btn" data-close>Cancel</button><button class="btn primary" id="pAdd">Add</button></div>
+</div></div>
+
+<div class="modal" id="mRename" hidden><div class="sheet">
+  <div class="sheet-head">Rename this chat</div>
+  <label class="opt" style="display:block;border:0"><span class="sub">A name you’ll recognise</span><input type="text" id="rnInput" maxlength="120" class="field"></label>
+  <div class="sheet-foot"><button class="btn" data-close>Cancel</button><button class="btn primary" id="rnSave">Save</button></div>
+</div></div>
+
+<div class="modal" id="mHistory" hidden><div class="sheet">
+  <div class="sheet-head">What you've sent</div>
+  <div class="sub" style="margin-bottom:10px">Newest first. “Send again” repeats it with the same options.</div>
+  <div id="histBody"></div>
+  <div class="sheet-foot"><button class="btn" data-close>Close</button></div>
 </div></div>
 
 <div class="modal" id="mHelp" hidden><div class="sheet">
@@ -76,8 +95,11 @@
 </div></div>
 
 <div class="modal" id="mSettings" hidden><div class="sheet">
-  <div class="sheet-head">Appearance</div>
-  <label class="opt" style="display:block;border:0"><span class="sub">Language</span><select id="sLang" style="width:100%;margin-top:6px;font:inherit;padding:12px;border:1px solid var(--line);border-radius:14px;background:var(--panel2);color:var(--text)"></select></label>
+  <div class="sheet-head">Settings</div>
+  <label class="opt" style="display:block;border:0"><span class="sub">Language</span><select id="sLang" class="field"></select></label>
+  <label class="opt"><input type="checkbox" id="sScrub"><span><b>Hide passwords, keys and personal details (recommended)</b></span></label>
+  <label class="opt"><input type="checkbox" id="sCompact"><span><b>Always shorten long text</b><span class="sub">(otherwise only when it’s too long)</span></span></label>
+  <div class="sheet-head" style="margin-top:14px">Appearance</div>
   <label class="opt"><input type="radio" name="mode" value="auto"><span><b>Automatic by time</b><span class="sub">Light by day, dark at night</span></span></label>
   <div class="times" id="times">
     <label>Dark from<input type="time" id="tFrom" value="19:00"></label>

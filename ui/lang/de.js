@@ -152,6 +152,7 @@ I18N.packs["de"] = {
  "about 1 page": "etwa 1 Seite",
  "about {n} pages": "etwa {n} Seiten",
  "{n} messages": "{n} Nachrichten",
+ "1 message": "1 Nachricht",
  "{n} conversations are ticked, and each is sent whole. To send just part of one, click it without ticking the others.": "{n} Unterhaltungen sind angekreuzt und werden jeweils vollständig gesendet. Um nur einen Teil einer Unterhaltung zu senden, klicken Sie sie an, ohne die anderen anzukreuzen.",
  "Code projects are sent as a whole. To change which files come along, use More options → Bring a code project.": "Code-Projekte werden als Ganzes gesendet. Um die mitgenommenen Dateien zu ändern, nutzen Sie Weitere Optionen → Code-Projekt mitnehmen.",
  "Sending the whole conversation — or tick parts of it": "Die ganze Unterhaltung wird gesendet – oder kreuzen Sie Teile an",

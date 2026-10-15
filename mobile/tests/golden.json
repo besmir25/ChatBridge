@@ -1209,5 +1209,376 @@
    "about": "Background",
    "out": "Below is an excerpt from an earlier conversation with another AI assistant (Claude Code). I am adding it to the conversation we are already having. Use it as background for what I ask next. Do not summarise it back to me; just reply briefly that you have read it, then wait for my next instruction.\n\nAdditional instructions: Be brief.\n\n<about_me>\nBackground the user wants you to know:\nBackground\n</about_me>\n\n<outline_of_the_full_conversation>\nOutline of the full conversation \"Mixed chat\" (12 messages, 3 sections). Sections marked ► are included in full below; the others are only listed here for context.\n1.   Fix my git setup on Windows, push is rejected [Problem] — ended with: Great\n2. ► Write a resume for a nursing job posting at the hospital [Code] — ended with: Done: shortened\n3.   Plan a trip to Kyoto in April with temples [Decision] — ended with: Sure: here are places\n</outline_of_the_full_conversation>\n\n<excerpt>\n[User]\nNow let's write a resume for a nursing job posting at the hospital\n\n[Assistant]\nHere is a draft ```text```\n\n[User]\nMake the summary shorter and mention ICU experience\n\n[Assistant]\nDone: shortened.\n</excerpt>\n"
   }
+ ],
+ "parse_json": [
+  {
+   "in": {
+    "mapping": {
+     "a": {
+      "parent": null,
+      "message": null
+     },
+     "b": {
+      "parent": "a",
+      "message": {
+       "author": {
+        "role": "user"
+       },
+       "content": {
+        "parts": [
+         "Hello ChatGPT",
+         "second part"
+        ]
+       },
+       "create_time": 1
+      }
+     },
+     "c": {
+      "parent": "b",
+      "message": {
+       "author": {
+        "role": "assistant"
+       },
+       "content": {
+        "parts": [
+         "Hi!"
+        ]
+       },
+       "create_time": 2
+      }
+     },
+     "d": {
+      "parent": "c",
+      "message": {
+       "author": {
+        "role": "system"
+       },
+       "content": {
+        "parts": [
+         "hidden"
+        ]
+       },
+       "create_time": 3
+      }
+     },
+     "e": {
+      "parent": "c",
+      "message": {
+       "author": {
+        "role": "tool"
+       },
+       "content": {
+        "parts": [
+         "tool output"
+        ]
+       },
+       "create_time": 4
+      }
+     }
+    },
+    "current_node": "c",
+    "title": "A ChatGPT export",
+    "create_time": 1700000000
+   },
+   "out": [
+    {
+     "title": "A ChatGPT export",
+     "source": "ChatGPT",
+     "messages": [
+      {
+       "role": "user",
+       "content": "Hello ChatGPT\nsecond part"
+      },
+      {
+       "role": "assistant",
+       "content": "Hi!"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "in": {
+    "mapping": {
+     "x": {
+      "message": {
+       "author": {
+        "role": "assistant"
+       },
+       "content": {
+        "parts": [
+         "second"
+        ]
+       },
+       "create_time": 5
+      }
+     },
+     "y": {
+      "message": {
+       "author": {
+        "role": "user"
+       },
+       "content": {
+        "parts": [
+         "first"
+        ]
+       },
+       "create_time": 4
+      }
+     }
+    },
+    "title": "No current node"
+   },
+   "out": [
+    {
+     "title": "No current node",
+     "source": "ChatGPT",
+     "messages": [
+      {
+       "role": "user",
+       "content": "first"
+      },
+      {
+       "role": "assistant",
+       "content": "second"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "in": {
+    "name": "A Claude export",
+    "created_at": "2025-03-04T10:20:30Z",
+    "chat_messages": [
+     {
+      "sender": "human",
+      "text": "hi claude"
+     },
+     {
+      "sender": "assistant",
+      "text": "",
+      "content": [
+       {
+        "type": "text",
+        "text": "hello there"
+       }
+      ]
+     },
+     {
+      "sender": "human",
+      "text": "   "
+     }
+    ]
+   },
+   "out": [
+    {
+     "title": "A Claude export",
+     "source": "Claude",
+     "messages": [
+      {
+       "role": "user",
+       "content": "hi claude"
+      },
+      {
+       "role": "assistant",
+       "content": "hello there"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "in": {
+    "title": "Generic",
+    "source": "Somewhere",
+    "messages": [
+     {
+      "role": "user",
+      "content": "q"
+     },
+     {
+      "role": "model",
+      "content": [
+       {
+        "text": "a1"
+       },
+       {
+        "text": "a2"
+       }
+      ]
+     },
+     {
+      "role": "system",
+      "text": "rules"
+     }
+    ]
+   },
+   "out": [
+    {
+     "title": "Generic",
+     "source": "Somewhere",
+     "messages": [
+      {
+       "role": "user",
+       "content": "q"
+      },
+      {
+       "role": "assistant",
+       "content": "a1\na2"
+      },
+      {
+       "role": "system",
+       "content": "rules"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "in": [
+    {
+     "role": "user",
+     "content": "bare list"
+    },
+    {
+     "role": "assistant",
+     "content": "works"
+    }
+   ],
+   "out": [
+    {
+     "title": "Untitled",
+     "source": "Imported",
+     "messages": [
+      {
+       "role": "user",
+       "content": "bare list"
+      },
+      {
+       "role": "assistant",
+       "content": "works"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "in": {
+    "format": "chatbridge",
+    "conversations": [
+     {
+      "title": "Mine",
+      "source": "ChatBridge",
+      "excerpt": true,
+      "summary": "1. outline",
+      "messages": [
+       {
+        "role": "user",
+        "content": "x"
+       },
+       {
+        "role": "assistant",
+        "content": ""
+       }
+      ]
+     },
+     {
+      "title": "Empty",
+      "messages": []
+     },
+     "junk",
+     {
+      "messages": "no"
+     }
+    ]
+   },
+   "out": [
+    {
+     "title": "Mine",
+     "source": "ChatBridge",
+     "messages": [
+      {
+       "role": "user",
+       "content": "x"
+      }
+     ],
+     "excerpt": true,
+     "summary": "1. outline"
+    }
+   ]
+  },
+  {
+   "in": {
+    "messages": [
+     null,
+     5,
+     {
+      "content": 7
+     },
+     {
+      "content": "ok"
+     }
+    ]
+   },
+   "out": [
+    {
+     "title": "Untitled",
+     "source": "Imported",
+     "messages": [
+      {
+       "role": "assistant",
+       "content": "ok"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "in": {
+    "chat_messages": [
+     null,
+     "x",
+     {
+      "sender": "human",
+      "text": "fine"
+     }
+    ]
+   },
+   "out": [
+    {
+     "title": "Untitled",
+     "source": "Claude",
+     "messages": [
+      {
+       "role": "user",
+       "content": "fine"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "in": {
+    "nothing": "here"
+   },
+   "out": []
+  },
+  {
+   "in": "just a string",
+   "out": []
+  },
+  {
+   "in": [],
+   "out": []
+  },
+  {
+   "in": [
+    1,
+    2,
+    3
+   ],
+   "out": []
+  }
  ]
 }

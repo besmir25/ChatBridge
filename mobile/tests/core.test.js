@@ -37,6 +37,22 @@ test("chatOutline matches Python", () => {
 
 test("buildHandoff matches Python (whole chat and excerpt)", () => { for (const c of G.build_handoff) assert.equal(C.buildHandoff(c.conv, c.extra, c.about), c.out); });
 
+test("parseJson reads the same files as Python (ChatGPT, Claude, generic, ChatBridge)", () => {
+  G.parse_json.forEach((c, i) => {
+    const got = C.parseJson(c.in).map(x => { const o = {title: x.title, source: x.source, messages: x.messages}; if (x.excerpt) { o.excerpt = true; o.summary = x.summary; } return o; });
+    assert.deepEqual(got, c.out, "case " + i);
+  });
+});
+
+test("parseJson survives hostile input", () => {
+  const loop = {mapping: {a: {parent: "b", message: {author: {role: "user"}, content: {parts: ["x"]}}}, b: {parent: "a", message: {author: {role: "assistant"}, content: {parts: ["y"]}}}}, current_node: "a"};
+  assert.equal(C.parseJson(loop)[0].messages.length, 2);                         // a loop in the tree can't hang it
+  assert.deepEqual(C.parseJson(null), []);
+  assert.deepEqual(C.parseJson({messages: [null, 5, {content: 7}, {content: "ok"}]}).map(c => c.messages.length), [1]);
+  const big = C.parseJson({title: "t".repeat(500), source: "s".repeat(500), messages: [{role: "user", content: "x".repeat(300000)}]})[0];
+  assert.ok(big.title.length <= 120 && big.source.length <= 40 && big.messages[0].content.length <= 200000);
+});
+
 const MIXED = G.split_sections[0].in;
 
 test("makePart keeps only ticked messages, ignores bad numbers, names sections", () => {

@@ -65,6 +65,34 @@ golden["build_handoff"] = [
     {"conv": part, "extra": "", "about": "", "out": cb.build_handoff(part, 0, "full", "", "")},
     {"conv": part, "extra": "Be brief.", "about": "Background", "out": cb.build_handoff(part, 0, "full", "Be brief.", "Background")},
 ]
+IMPORTS = [
+    {"mapping": {"a": {"parent": None, "message": None},
+                 "b": {"parent": "a", "message": {"author": {"role": "user"}, "content": {"parts": ["Hello ChatGPT", "second part"]}, "create_time": 1}},
+                 "c": {"parent": "b", "message": {"author": {"role": "assistant"}, "content": {"parts": ["Hi!"]}, "create_time": 2}},
+                 "d": {"parent": "c", "message": {"author": {"role": "system"}, "content": {"parts": ["hidden"]}, "create_time": 3}},
+                 "e": {"parent": "c", "message": {"author": {"role": "tool"}, "content": {"parts": ["tool output"]}, "create_time": 4}}},
+     "current_node": "c", "title": "A ChatGPT export", "create_time": 1700000000},
+    {"mapping": {"x": {"message": {"author": {"role": "assistant"}, "content": {"parts": ["second"]}, "create_time": 5}},
+                 "y": {"message": {"author": {"role": "user"}, "content": {"parts": ["first"]}, "create_time": 4}}}, "title": "No current node"},
+    {"name": "A Claude export", "created_at": "2025-03-04T10:20:30Z",
+     "chat_messages": [{"sender": "human", "text": "hi claude"}, {"sender": "assistant", "text": "", "content": [{"type": "text", "text": "hello there"}]},
+                       {"sender": "human", "text": "   "}]},
+    {"title": "Generic", "source": "Somewhere", "messages": [{"role": "user", "content": "q"}, {"role": "model", "content": [{"text": "a1"}, {"text": "a2"}]}, {"role": "system", "text": "rules"}]},
+    [{"role": "user", "content": "bare list"}, {"role": "assistant", "content": "works"}],
+    {"format": "chatbridge", "conversations": [{"title": "Mine", "source": "ChatBridge", "excerpt": True, "summary": "1. outline", "messages": [{"role": "user", "content": "x"}, {"role": "assistant", "content": ""}]},
+                                               {"title": "Empty", "messages": []}, "junk", {"messages": "no"}]},
+    {"messages": [None, 5, {"content": 7}, {"content": "ok"}]},
+    {"chat_messages": [None, "x", {"sender": "human", "text": "fine"}]},
+    {"nothing": "here"}, "just a string", [], [1, 2, 3],
+]
+def _shape(c):
+    out = {"title": c["title"], "source": c["source"], "messages": c["messages"]}
+    if c.get("excerpt"):
+        out["excerpt"] = True
+        out["summary"] = c.get("summary", "")
+    return out
+golden["parse_json"] = [{"in": d, "out": [_shape(c) for c in cb.parse_json(d)]} for d in IMPORTS]
+
 with open(os.path.join(HERE, "golden.json"), "w", encoding="utf-8") as f:
     json.dump(golden, f, ensure_ascii=False, indent=1)
 print("wrote golden.json:", {k: len(v) for k, v in golden.items()})

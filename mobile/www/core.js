@@ -130,6 +130,88 @@
     return {title: (title || "Untitled").trim().slice(0, 120) || "Untitled", source: "Pasted text", summary: "", messages: msgs};
   }
 
+  /* ---------- import files (ChatGPT / Claude exports, generic message lists, ChatBridge's own file) ---------- */
+  const flat = c => {
+    if (typeof c === "string") return c;
+    if (Array.isArray(c)) return c.map(flat).filter(Boolean).join("\n");
+    if (c && typeof c === "object") {
+      if (typeof c.text === "string") return c.text;
+      for (const k of ["parts", "content"]) if (k in c) return flat(c[k]);
+    }
+    return "";
+  };
+  const pad = n => String(n).padStart(2, "0");
+  const stamp = t => { const d = new Date(Number(t) * 1000); return isNaN(d) || !Number(t) ? "" : `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+  const str = (v, n) => typeof v === "string" ? v.slice(0, n) : "";
+
+  function parseChatgpt(item) {
+    const mapping = item.mapping || {};
+    let chain = [], node = item.current_node;
+    if (node && mapping[node]) {
+      const seen = new Set();
+      while (node && mapping[node] && !seen.has(node)) { seen.add(node); chain.push(mapping[node]); node = mapping[node].parent; }
+      chain.reverse();
+    } else {
+      chain = Object.values(mapping).filter(n => n && n.message).sort((a, b) => (a.message.create_time || 0) - (b.message.create_time || 0));
+    }
+    const messages = [];
+    for (const n of chain) {
+      const m = n && n.message;
+      if (!m) continue;
+      const role = (m.author || {}).role;
+      if (role !== "user" && role !== "assistant") continue;
+      const text = flat(m.content).trim();
+      if (text) messages.push({role, content: text});
+    }
+    return {title: item.title, source: "ChatGPT", created: stamp(item.create_time), messages};
+  }
+  function parseClaude(item) {
+    const messages = [];
+    for (const m of item.chat_messages || []) {
+      if (!m || typeof m !== "object") continue;
+      const text = String(m.text || flat(m.content)).trim();
+      if (text) messages.push({role: normRole(m.sender || "assistant"), content: text});
+    }
+    return {title: item.name, source: "Claude", created: str(item.created_at, 16).replace("T", " "), messages};
+  }
+  function parseGeneric(item) {
+    const messages = [];
+    for (const m of item.messages || []) {
+      if (!m || typeof m !== "object") continue;
+      const text = flat(m.content !== undefined ? m.content : (m.text !== undefined ? m.text : "")).trim();
+      if (text) messages.push({role: normRole(m.role || "assistant"), content: text});
+    }
+    return {title: item.title || item.name, source: item.source || "Imported", messages};
+  }
+  /* keep only what we understand, with the right types and sizes: imported files are untrusted */
+  function cleanConv(d) {
+    if (!d || typeof d !== "object" || !Array.isArray(d.messages)) return null;
+    const messages = [];
+    for (const m of d.messages.slice(0, 5000)) {
+      if (m && typeof m === "object" && typeof m.content === "string" && m.content.trim()) messages.push({role: normRole(m.role || "assistant"), content: m.content.slice(0, 200000)});
+    }
+    if (!messages.length) return null;
+    const c = {title: str(d.title, 120).trim() || "Untitled", source: str(d.source, 40).trim() || "Imported", created: str(d.created, 32),
+               summary: str(d.summary, 20000), messages};
+    if (d.excerpt === true) c.excerpt = true;
+    return c;
+  }
+  function parseJson(data) {
+    if (data && typeof data === "object" && !Array.isArray(data) && data.format === "chatbridge") {
+      return (Array.isArray(data.conversations) ? data.conversations : []).map(cleanConv).filter(Boolean);
+    }
+    let items = Array.isArray(data) ? data : [data];
+    if (items.length && items[0] && typeof items[0] === "object" && "role" in items[0] && !("mapping" in items[0])) items = [{messages: items}];
+    const out = [];
+    for (const it of items) {
+      if (!it || typeof it !== "object" || Array.isArray(it)) continue;
+      if ("mapping" in it) out.push(parseChatgpt(it));
+      else if ("chat_messages" in it) out.push(parseClaude(it));
+      else if ("messages" in it) out.push(parseGeneric(it));
+    }
+    return out.map(cleanConv).filter(Boolean);
+  }
+
   /* ---------- sections ---------- */
   const SHIFT = /^\W*(?:ok(?:ay)?\W+|alright\W+|great\W+|thanks?\W+)?(?:now|next|new topic|separate(?:ly)?|different|moving on|switching|let'?s (?:move|talk|work|try|do|start|build|look|switch)|also\b|one more thing|another (?:question|thing)|on another note|btw)\b/i;
   const STOPWORDS = new Set(("the and but for with that this from have has had was were are been being you your yours can could should would " +
@@ -249,5 +331,5 @@
   }
 
   return {estimateTokens, scrubText, compactText, compactMessages, friendlyTitle, parseText, splitSections, chatOutline,
-          buildHandoff, prepare, makePart, normRole, label};
+          buildHandoff, prepare, makePart, normRole, label, parseJson};
 });

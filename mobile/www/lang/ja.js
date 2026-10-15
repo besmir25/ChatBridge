@@ -152,6 +152,7 @@ I18N.packs["ja"] = {
  "about 1 page": "約 1 ページ",
  "about {n} pages": "約 {n} ページ",
  "{n} messages": "{n} 件のメッセージ",
+ "1 message": "1 件のメッセージ",
  "{n} conversations are ticked, and each is sent whole. To send just part of one, click it without ticking the others.": "{n} 件の会話にチェックが入っており、それぞれ全体が送信されます。1 件の一部だけを送るには、他にチェックを入れずにそれをクリックしてください。",
  "Code projects are sent as a whole. To change which files come along, use More options → Bring a code project.": "コードプロジェクトは全体が送信されます。含めるファイルを変えるには、その他のオプション → コードプロジェクトを持ち込む を使ってください。",
  "Sending the whole conversation — or tick parts of it": "会話全体を送信します。または一部にチェックを入れてください",
@@ -331,5 +332,18 @@ I18N.packs["ja"] = {
  "Remove this conversation from ChatBridge? The original stays in the app it came from.": "この会話を ChatBridge から削除しますか？元の会話は、取得元のアプリに残ります。",
  "Tick this section": "このセクションにチェック",
  "Shared to ChatBridge": "ChatBridge に共有",
- "Shared conversation": "共有された会話"
+ "Shared conversation": "共有された会話",
+ "Another app": "ほかのアプリ",
+ "Share…": "共有…",
+ "ChatBridge copies {items} and opens {name}. Paste it into the message box.": "ChatBridge が{items}をコピーして {name} を開きます。メッセージ欄に貼り付けてください。",
+ "ChatBridge copies {items} and opens {site}. Paste it into the message box.": "ChatBridge が{items}をコピーして {site} を開きます。メッセージ欄に貼り付けてください。",
+ "ChatBridge copies {items}. Paste it into any AI website.": "ChatBridge が{items}をコピーします。任意の AI ウェブサイトに貼り付けてください。",
+ "ChatBridge copies {items}. Paste it anywhere.": "ChatBridge が{items}をコピーします。どこにでも貼り付けられます。",
+ "ChatBridge shares {items} with the app you pick.": "ChatBridge が{items}を、選んだアプリに共有します。",
+ "Couldn't open {name}. It’s copied, so paste it into the app yourself.": "{name} を開けませんでした。コピー済みなので、アプリに自分で貼り付けてください。",
+ "Couldn't open it. The text is copied, so paste it where you like.": "開けませんでした。テキストはコピー済みなので、好きな場所に貼り付けてください。",
+ "Couldn't create the file.": "ファイルを作成できませんでした。",
+ "That file doesn't look like a conversation.": "そのファイルは会話のようには見えません。",
+ "Pasted text": "貼り付けたテキスト",
+ "Imported": "インポート済み"
 };

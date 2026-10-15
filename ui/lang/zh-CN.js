@@ -152,6 +152,7 @@ I18N.packs["zh-CN"] = {
  "about 1 page": "约 1 页",
  "about {n} pages": "约 {n} 页",
  "{n} messages": "{n} 条消息",
+ "1 message": "1 条消息",
  "{n} conversations are ticked, and each is sent whole. To send just part of one, click it without ticking the others.": "已勾选 {n} 段对话，每段都会完整发送。若只想发送其中一段的一部分，请直接点击它，不要勾选其他对话。",
  "Code projects are sent as a whole. To change which files come along, use More options → Bring a code project.": "代码项目会作为整体发送。要更改包含哪些文件，请使用 更多选项 → 带上代码项目。",
  "Sending the whole conversation — or tick parts of it": "将发送整段对话，或勾选其中的部分",

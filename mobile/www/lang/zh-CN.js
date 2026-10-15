@@ -152,6 +152,7 @@ I18N.packs["zh-CN"] = {
  "about 1 page": "约 1 页",
  "about {n} pages": "约 {n} 页",
  "{n} messages": "{n} 条消息",
+ "1 message": "1 条消息",
  "{n} conversations are ticked, and each is sent whole. To send just part of one, click it without ticking the others.": "已勾选 {n} 段对话，每段都会完整发送。若只想发送其中一段的一部分，请直接点击它，不要勾选其他对话。",
  "Code projects are sent as a whole. To change which files come along, use More options → Bring a code project.": "代码项目会作为整体发送。要更改包含哪些文件，请使用 更多选项 → 带上代码项目。",
  "Sending the whole conversation — or tick parts of it": "将发送整段对话，或勾选其中的部分",
@@ -331,5 +332,18 @@ I18N.packs["zh-CN"] = {
  "Remove this conversation from ChatBridge? The original stays in the app it came from.": "要从 ChatBridge 中移除这段对话吗？原始内容仍保留在它来自的应用中。",
  "Tick this section": "勾选此章节",
  "Shared to ChatBridge": "分享给 ChatBridge",
- "Shared conversation": "分享的对话"
+ "Shared conversation": "分享的对话",
+ "Another app": "其他应用",
+ "Share…": "分享…",
+ "ChatBridge copies {items} and opens {name}. Paste it into the message box.": "ChatBridge 会复制{items}并打开 {name}。请粘贴到消息输入框中。",
+ "ChatBridge copies {items} and opens {site}. Paste it into the message box.": "ChatBridge 会复制{items}并打开 {site}。请粘贴到消息输入框中。",
+ "ChatBridge copies {items}. Paste it into any AI website.": "ChatBridge 会复制{items}。请粘贴到任意 AI 网站。",
+ "ChatBridge copies {items}. Paste it anywhere.": "ChatBridge 会复制{items}。可粘贴到任何地方。",
+ "ChatBridge shares {items} with the app you pick.": "ChatBridge 会把{items}分享给你选择的应用。",
+ "Couldn't open {name}. It’s copied, so paste it into the app yourself.": "无法打开 {name}。内容已复制，请自己粘贴到该应用中。",
+ "Couldn't open it. The text is copied, so paste it where you like.": "无法打开。文字已复制，可粘贴到任何你想要的地方。",
+ "Couldn't create the file.": "无法创建文件。",
+ "That file doesn't look like a conversation.": "该文件看起来不像对话。",
+ "Pasted text": "粘贴的文本",
+ "Imported": "已导入"
 };

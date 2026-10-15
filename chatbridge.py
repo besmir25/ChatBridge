@@ -641,6 +641,8 @@ def parse_chatgpt(item):
 def parse_claude(item):
     msgs = []
     for m in item.get("chat_messages", []):
+        if not isinstance(m, dict):
+            continue
         text = (m.get("text") or _flat(m.get("content"))).strip()
         if text:
             msgs.append({"role": _norm_role(m.get("sender", "assistant")), "content": text})
@@ -650,6 +652,8 @@ def parse_claude(item):
 def parse_generic(item, source="Imported"):
     msgs = []
     for m in item.get("messages", []):
+        if not isinstance(m, dict):          # a broken entry in the list must not sink the whole import
+            continue
         text = _flat(m.get("content", m.get("text", ""))).strip()
         if text:
             msgs.append({"role": _norm_role(m.get("role", "assistant")), "content": text})

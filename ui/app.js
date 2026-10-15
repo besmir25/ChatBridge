@@ -259,7 +259,7 @@ function renderDetail() {
   $("#cEmpty").hidden = !!c; $("#cBody").hidden = !c;
   if (!c) return;
   $("#cTitle").textContent = c.title;
-  $("#cMeta").textContent = [c.kind === "project" ? "Code project" : c.count + " messages", pagesOf(c.tokens), c.source].filter(Boolean).join(" · ");
+  $("#cMeta").textContent = [c.kind === "project" ? "Code project" : (c.count === 1 ? "1 message" : c.count + " messages"), pagesOf(c.tokens), c.source].filter(Boolean).join(" · ");
   $("#cRemove").hidden = !c.saved;
   const multi = ids.length > 1, proj = c.kind === "project";
   $("#partsBox").hidden = multi || proj;
