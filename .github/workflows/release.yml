@@ -60,3 +60,37 @@ jobs:
           else
             gh release create "$GITHUB_REF_NAME" $FILES --title "$TITLE" --notes-file "$NOTES" $FLAGS
           fi
+
+  # The phone app: built on GitHub's Linux machines and attached to the same release. If this fails, the Windows release above stays published.
+  android:
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - name: Install and test the shared logic
+        working-directory: mobile
+        run: |
+          npm ci --no-audit --no-fund
+          node --test tests/core.test.js tests/i18n.test.js
+      - name: Build the .apk
+        working-directory: mobile
+        run: |
+          npx cap sync android
+          cd android
+          chmod +x ./gradlew
+          ./gradlew assembleDebug --no-daemon --stacktrace
+      - name: Attach it to the release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cp mobile/android/app/build/outputs/apk/debug/app-debug.apk ChatBridge-Android.apk
+          gh release upload "$GITHUB_REF_NAME" ChatBridge-Android.apk --clobber

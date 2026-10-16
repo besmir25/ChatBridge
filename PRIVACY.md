@@ -29,5 +29,15 @@ you choose to remove it.
   before anything is built. The *Scrub private info* option additionally removes keys, emails, phone numbers and your
   Windows user name from chats before sending. This is a safeguard, not a guarantee — look at what you're sending.
 
+## The Android app
+- It has no account and no servers, and it asks Android for **no permissions**, not even the internet.
+- Conversations you share to it, paste or add from a file are kept only inside the app on your phone, and the app is excluded
+  from Android's cloud backup. Removing a conversation (or the app) deletes it.
+- It can check whether certain AI apps (ChatGPT, Claude, Gemini, Copilot, Perplexity, Grok, DeepSeek, Le Chat) are installed, so it
+  can show them as choices. It cannot see any other app.
+- When you press the big button it puts text on the clipboard, or hands it to the app, website or share sheet **you chose**.
+  What that app or website does with it is up to them.
+- It never sends a message for you.
+
 ## Questions
 Open an issue on the project's GitHub page.

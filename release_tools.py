@@ -38,7 +38,9 @@ To verify the download, compare its SHA-256 with **SHA256SUMS.txt**.
 
 The browser extension is the separate zip: unzip it, open `edge://extensions`, turn on Developer mode, **Load unpacked**.
 
-Everything stays on your PC. See PRIVACY.md.
+**Android:** download **ChatBridge-Android.apk** (attached a few minutes after the other files), open it on your phone and allow "install unknown apps" when asked. It is an early test build.
+
+Everything stays on your PC (or your phone). See PRIVACY.md.
 """
 
 
