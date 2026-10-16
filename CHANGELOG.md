@@ -2,13 +2,15 @@
 
 Newest first. Add new entries under **Unreleased**; `python bump_version.py X.Y.Z` turns that section into the release.
 
-## Unreleased
+## 1.4.0 (2026-10-16)
 - **The Android app now follows the same flow as the Windows app**: a searchable list of conversations by date, then an open conversation with its sections and a "Continue it in" row: the AI apps installed on the phone (ChatGPT, Claude, Gemini, Copilot, Perplexity, Grok, DeepSeek, Le Chat), a website, a file, just copy it, or any app through the Share sheet. It also has rename, remove, "what I've sent" with send again, and settings for privacy and language
 - Android can import ChatGPT and Claude export files, `.txt` and `.md`, and the app was tested end to end on an emulator (sharing in, copy, opening a website, saving a file, languages)
 - Closing the share sheet on the phone no longer shows an error; "1 message" is written in the singular; the status bar is readable in both the light and night looks
 - Importing a list of messages that contains a broken entry no longer fails (Windows and phone)
-- **ChatBridge speaks more languages**: Spanish, Portuguese (Brazil), French, German, Simplified Chinese and Japanese, on Windows and on the Android app. It follows your system language by default; choose one in Settings → Language (Android: the half-moon button). Conversation titles and messages are never translated
-- The Android app's Appearance sheet gained a language choice; the phone and Windows apps share one translation engine and one set of translation tables
+- **ChatBridge speaks more languages**: Spanish, Portuguese (Brazil), French, German, Simplified Chinese and Japanese, on Windows and on the Android app. It follows your system language by default; choose one in Settings → Language. Conversation titles and messages are never translated
+- Settings on the phone now hold the language, the privacy options and the light/night look; the phone and Windows apps share one translation engine and one set of translation tables
+- A settings file saved with a hidden byte-order mark (Notepad can add one) is now read instead of being set aside
+- New "Copy a problem report" button in Help, a clearer message when no conversations are found, and saved "Part of…" items are tidied automatically
 
 ## 1.3.0 (2026-10-12)
 - **A new two-pane layout**: your conversations in a list on the left; click one and it opens on the right with its sections, and the places you can continue it are right below, so the whole job happens on one screen. Tick the small box on a row to send several conversations together
