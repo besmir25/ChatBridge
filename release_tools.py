@@ -1,5 +1,6 @@
 """Small helpers shared by the release scripts and the app: reading CHANGELOG.md, building release notes, bumping the version."""
 import datetime
+import json
 import os
 import re
 
@@ -65,6 +66,16 @@ def bump(version, root):
     if new_src != src:
         open(app_py, "w", encoding="utf-8", newline="").write(new_src)
         done.append(f"chatbridge_app.py: VERSION = {version}")
+    for rel in ("mobile/package.json", "mobile/package-lock.json"):       # the Android app's version follows the Windows app's
+        path = os.path.join(root, *rel.split("/"))
+        if os.path.isfile(path):
+            data = json.load(open(path, encoding="utf-8"))
+            if data.get("version") != version:
+                data["version"] = version
+                if isinstance(data.get("packages"), dict) and "" in data["packages"]:
+                    data["packages"][""]["version"] = version
+                open(path, "w", encoding="utf-8", newline="").write(json.dumps(data, indent=2, ensure_ascii=False) + "\n")
+                done.append(f"{rel}: version = {version}")
     log_path = os.path.join(root, "CHANGELOG.md")
     log = open(log_path, encoding="utf-8").read()
     today = datetime.date.today().isoformat()

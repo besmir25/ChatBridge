@@ -97,8 +97,7 @@
   const applyTheme = () => {
     const theme = currentTheme();
     document.documentElement.dataset.theme = theme;
-    const SB = plugins().StatusBar;                                    // dark clock and icons on the light look, light ones on the night look
-    if (SB) { try { SB.setStyle({style: theme === "dark" ? "DARK" : "LIGHT"}); } catch (e) { /* older phones */ } }
+    try { if (window.ChatBridgeNative && window.ChatBridgeNative.setTheme) window.ChatBridgeNative.setTheme(theme === "dark"); } catch (e) { /* not on a phone */ }   // colours behind the status/navigation bars and their icons
   };
   $("#btnSettings").onclick = () => {
     $("#sLang").innerHTML = [["auto", "Automatic"], ...Object.entries(I18N.NAMES)].map(([k, v]) => `<option value="${k}" ${k === prefs.language ? "selected" : ""}${k === "auto" ? "" : ' translate="no"'}>${esc(v)}</option>`).join("");
@@ -128,6 +127,12 @@
   function addConversation(text, source) {
     text = String(text || "").trim();
     if (!text) return toast("There was no text to add.");
+    if (C.isOnlyALink(text)) {                                            // many AI apps share a link, not the text: say so, and show how to get the text
+      open("#mHelp");                                                     // Help opens at the paragraph that explains it
+      const tip = document.querySelector('[data-i18n-html="m.help4"]');
+      if (tip) { tip.classList.add("hl"); tip.scrollIntoView({block: "center"}); }
+      return;
+    }
     const conv = C.parseText(text, "");
     const firstAsk = (conv.messages.find(m => m.role === "user") || conv.messages[0] || {}).content || "";
     conv.title = C.friendlyTitle(firstAsk, 64, I18N.tr("Shared conversation"));
@@ -146,19 +151,26 @@
   }
   $("#filePick").onchange = async e => {
     let n = 0, bad = 0;
+    let why = "";
     for (const f of [...e.target.files]) {
       try {
-        const text = await f.text();
-        let convs;
-        if (/\.json$/i.test(f.name)) convs = C.parseJson(JSON.parse(text));
-        else { const c = C.parseText(text, f.name.replace(/\.[^.]+$/, "")); convs = [{...c, title: C.friendlyTitle(c.title, 64, f.name)}]; }
+        let convs = [];
+        if (/\.zip$/i.test(f.name)) {                                      // "export my data" from ChatGPT or Claude: conversations.json is inside
+          const found = await C.unzipText(await f.arrayBuffer(), name => /(^|\/)conversations(-\d+)?\.json$/i.test(name));
+          for (const x of found) convs = convs.concat(C.parseJson(JSON.parse(x.text)));
+        } else {
+          const text = await f.text();
+          if (/\.json$/i.test(f.name)) convs = C.parseJson(JSON.parse(text));
+          else { const c = C.parseText(text, f.name.replace(/\.[^.]+$/, "")); convs = [{...c, title: C.friendlyTitle(c.title, 64, f.name)}]; }
+        }
         n += addParsed(convs, "Imported").length; if (!convs.length) bad++;
-      } catch (err) { bad++; }
+      } catch (err) { bad++; why = err && err.message || ""; }
     }
     e.target.value = "";
     renderHome();
     if (n) toast(n === 1 ? "Added 1 chat." : `Added ${n} chats.`);
-    else if (bad) toast("That file doesn't look like a conversation.");
+    else if (bad) toast(why === "zip-too-big" ? "That zip file is too big to open here." : why === "zip-unsupported" ? "This phone\u2019s web view is too old to open zip files. Unzip it first and add conversations.json."
+                        : /^zip-/.test(why) ? "Couldn\u2019t open that zip file." : "That file doesn't look like a conversation.", 7000);
   };
   $("#btnFile").onclick = () => $("#filePick").click();
   $("#btnClip").onclick = pasteClipboard;
@@ -324,7 +336,8 @@
     const name = "chatbridge-" + (b.title || "conversation").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40) + ".md";
     const FS = plugins().Filesystem, SH = plugins().Share;
     if (FS && SH) {
-      const r = await FS.writeFile({path: name, data: b.text, directory: "CACHE", encoding: "utf8"});      // a failure here is a real error
+      try { await FS.rmdir({path: "share", directory: "CACHE", recursive: true}); } catch (e) { /* nothing from before */ }   // earlier exports don't pile up
+      const r = await FS.writeFile({path: "share/" + name, data: b.text, directory: "CACHE", encoding: "utf8", recursive: true});      // a failure here is a real error
       try { await SH.share({title: name, files: [r.uri], dialogTitle: name}); } catch (e) { /* closing the share sheet is not an error */ }
       return true;
     }
@@ -386,12 +399,14 @@
   /* ---------- start ---------- */
   I18N.init((location.search.match(/[?&]lang=([\w-]+)/) || [])[1] || prefs.language);          // ?lang=xx is for previews
   applyTheme();
+  [500, 1500].forEach(ms => setTimeout(applyTheme, ms));              // Capacitor sets the bar icons once the page has loaded; say it again after
   setInterval(applyTheme, 60000);                                       // crosses into the evening while the app is open
   document.addEventListener("visibilitychange", () => { if (!document.hidden) { applyTheme(); takeShared(); } });
   window.addEventListener("sharedtext", takeShared);
   renderHome();
   detectApps();
   takeShared();
+  window.__cbReady = true;                                             // tells boot.js the app started
   if (/[?&]demo/.test(location.search) && !lib.length) {            // browser preview only
     addConversation("User: Fix my git setup on Windows, push is rejected\nAssistant: The error is about the private email. Use the noreply address.\nUser: ok that worked, thanks\nAssistant: Great.\n" +
       "User: Now let's write a resume for a nursing job posting at the hospital\nAssistant: Here is a first draft:\n```\nSummary: Registered nurse with 6 years\n```\n" +

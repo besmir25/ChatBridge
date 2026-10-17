@@ -7,6 +7,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <title>ChatBridge</title>
 <link rel="stylesheet" href="app.css">
+<script src="boot.js"></script>
 </head>
 <body>
 <div class="app">
@@ -35,7 +36,7 @@
         <summary>More options</summary>
         <div class="more-row"><button class="pill" id="btnHistory">What I’ve sent</button></div>
       </details>
-      <input type="file" id="filePick" accept=".json,.txt,.md,.markdown,text/*,application/json" multiple hidden>
+      <input type="file" id="filePick" accept=".json,.zip,.txt,.md,.markdown,text/*,application/json,application/zip" multiple hidden>
     </section>
 
     <section id="detail" hidden>
@@ -88,6 +89,7 @@
     <p data-i18n-html="m.help1"><b>1. Share a conversation to ChatBridge.</b> In any AI app, open the conversation, tap Share and pick ChatBridge. Or copy it and tap “Paste what I copied”.</p>
     <p data-i18n-html="m.help2"><b>2. Pick the parts you want.</b> Leave everything unticked to send it all, or tick sections or single messages.</p>
     <p data-i18n-html="m.help3"><b>3. Send it on.</b> “Share to an app” lets you pick any AI app. “Copy and open” copies it and opens the app or site, where you paste it into the message box.</p>
+    <p data-i18n-html="m.help4"><b>Not seeing the conversation?</b> Many AI apps share a link instead of the text, and ChatBridge never goes online, so it can’t open links. Copy the conversation instead (press and hold a message, then Copy), or export your data from the app’s settings and use “Add from a file”: you can pick the .zip file as it is.</p>
     <p>ChatBridge never sends anything for you, and your conversations stay on this phone. There is no account and no server.</p>
     <p class="note">Apps limit how much text can be shared in one go. If a very long conversation doesn’t arrive, share it as a file (.txt or .md) instead.</p>
   </div>

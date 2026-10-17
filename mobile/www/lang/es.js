@@ -345,5 +345,10 @@ I18N.packs["es"] = {
  "Couldn't create the file.": "No se pudo crear el archivo.",
  "That file doesn't look like a conversation.": "Ese archivo no parece una conversación.",
  "Pasted text": "Texto pegado",
- "Imported": "Importado"
+ "Imported": "Importado",
+ "That’s a link, not the conversation itself. See Help for how to copy the text.": "Eso es un enlace, no la conversación en sí. Mira la Ayuda para saber cómo copiar el texto.",
+ "html:m.help4": "<b>¿No ves la conversación?</b> Muchas apps de IA comparten un enlace en lugar del texto, y ChatBridge nunca se conecta a internet, así que no puede abrir enlaces. Copia la conversación en su lugar (mantén pulsado un mensaje y elige Copiar), o exporta tus datos desde los ajustes de la app y usa “Añadir desde un archivo”: puedes elegir el archivo .zip tal cual.",
+ "That zip file is too big to open here.": "Ese archivo zip es demasiado grande para abrirlo aquí.",
+ "Couldn’t open that zip file.": "No se pudo abrir ese archivo zip.",
+ "This phone’s web view is too old to open zip files. Unzip it first and add conversations.json.": "El WebView de este teléfono es demasiado antiguo para abrir archivos zip. Descomprímelo primero y añade conversations.json."
 };

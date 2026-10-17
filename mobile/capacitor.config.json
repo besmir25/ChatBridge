@@ -2,6 +2,18 @@
   "appId": "com.besmir25.chatbridge",
   "appName": "ChatBridge",
   "webDir": "www",
-  "server": { "androidScheme": "https", "allowNavigation": [] },
-  "android": { "allowMixedContent": false }
+  "server": {
+    "androidScheme": "https",
+    "allowNavigation": []
+  },
+  "android": {
+    "allowMixedContent": false
+  },
+  "plugins": {
+    "SystemBars": {
+      "insetsHandling": "css",
+      "style": "DEFAULT",
+      "hidden": false
+    }
+  }
 }

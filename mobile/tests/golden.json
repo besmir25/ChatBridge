@@ -1580,5 +1580,28 @@
    ],
    "out": []
   }
+ ],
+ "zips": [
+  {
+   "name": "deflated",
+   "b64": "UEsDBBQAAAAIAHqYUV0tox1CfAAAALUAAAASAAAAY29udmVyc2F0aW9ucy5qc29uJY1BCsMwDAS/YnTupdc+pSEE0aiJwbaELF8a/Pc68kUsy+xoucCiJYJXgHcUoR0eATKKxHKM8gL0K6hUbMTSUroJqhUPmkSzk9Wj8lS1Sgp9cB8uNofusDrSAielxOGrnAOGXxRYnVVCo81ivh3P3r1sen/eCu9uRujrH1BLAwQUAAAACAB6mFFdQ7+mowQAAAACAAAACQAAAHVzZXIuanNvbquuBQBQSwMEFAAAAAgAephRXQAAAAACAAAAAAAAAAcAAABmb2xkZXIvAwBQSwMEFAAAAAgAephRXQOKYqwGAAAAMgAAAAkAAABpbWcvYS5wbmerqCAVAABQSwECFAAUAAAACAB6mFFdLaMdQnwAAAC1AAAAEgAAAAAAAAAAAAAAgAEAAAAAY29udmVyc2F0aW9ucy5qc29uUEsBAhQAFAAAAAgAephRXUO/pqMEAAAAAgAAAAkAAAAAAAAAAAAAAIABrAAAAHVzZXIuanNvblBLAQIUABQAAAAIAHqYUV0AAAAAAgAAAAAAAAAHAAAAAAAAAAAAEAD9QdcAAABmb2xkZXIvUEsBAhQAFAAAAAgAephRXQOKYqwGAAAAMgAAAAkAAAAAAAAAAAAAAIAB/gAAAGltZy9hLnBuZ1BLBQYAAAAABAAEAOMAAAArAQAAAAA=",
+   "files": {
+    "conversations.json": "[{\"title\": \"Zipped\", \"mapping\": {\"a\": {\"parent\": null, \"message\": {\"author\": {\"role\": \"user\"}, \"content\": {\"parts\": [\"hello from a zip\"]}, \"create_time\": 1}}}, \"current_node\": \"a\"}]"
+   }
+  },
+  {
+   "name": "stored",
+   "b64": "UEsDBBQAAAAAAHqYUV0tox1CtQAAALUAAAAZAAAAZXhwb3J0L2NvbnZlcnNhdGlvbnMuanNvblt7InRpdGxlIjogIlppcHBlZCIsICJtYXBwaW5nIjogeyJhIjogeyJwYXJlbnQiOiBudWxsLCAibWVzc2FnZSI6IHsiYXV0aG9yIjogeyJyb2xlIjogInVzZXIifSwgImNvbnRlbnQiOiB7InBhcnRzIjogWyJoZWxsbyBmcm9tIGEgemlwIl19LCAiY3JlYXRlX3RpbWUiOiAxfX19LCAiY3VycmVudF9ub2RlIjogImEifV1QSwECFAAUAAAAAAB6mFFdLaMdQrUAAAC1AAAAGQAAAAAAAAAAAAAAgAEAAAAAZXhwb3J0L2NvbnZlcnNhdGlvbnMuanNvblBLBQYAAAAAAQABAEcAAADsAAAAAAA=",
+   "files": {
+    "export/conversations.json": "[{\"title\": \"Zipped\", \"mapping\": {\"a\": {\"parent\": null, \"message\": {\"author\": {\"role\": \"user\"}, \"content\": {\"parts\": [\"hello from a zip\"]}, \"create_time\": 1}}}, \"current_node\": \"a\"}]"
+   }
+  },
+  {
+   "name": "unicode",
+   "b64": "UEsDBBQAAAAIAHqYUV1ALOPISgAAAFAAAAASAAAAY29udmVyc2F0aW9ucy5qc29ui65WKsksyUlVslJQSk5MO7xS4cneBU+X7lXSUVDKTS0uTkxPLQbKRVcrFeVDVJUWpxaBZJPz80pS80pAQnmJh9eXpSrVxtbGAgBQSwECFAAUAAAACAB6mFFdQCzjyEoAAABQAAAAEgAAAAAAAAAAAAAAgAEAAAAAY29udmVyc2F0aW9ucy5qc29uUEsFBgAAAAABAAEAQAAAAHoAAAAAAA==",
+   "files": {
+    "conversations.json": "[{\"title\": \"café 你好\", \"messages\": [{\"role\": \"user\", \"content\": \"naïve\"}]}]"
+   }
+  }
  ]
 }

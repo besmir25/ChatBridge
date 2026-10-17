@@ -212,6 +212,60 @@
     return out.map(cleanConv).filter(Boolean);
   }
 
+  /* ---------- .zip files: ChatGPT and Claude send "export my data" as a zip with conversations.json inside ---------- */
+  const ZIP_LIMIT = 100 * 1024 * 1024; const ZIP_MAX_FILES = 20000;            // refuse anything that would unpack to more than this (zip bombs, huge exports)
+  async function inflateRaw(bytes) {
+    if (typeof DecompressionStream === "undefined") throw new Error("zip-unsupported");
+    const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream("deflate-raw"));
+    const reader = stream.getReader(), chunks = []; let got = 0;      // count what really comes out; the size a zip declares can't be trusted
+    for (;;) {
+      const {done, value} = await reader.read();
+      if (done) break;
+      got += value.length;
+      if (got > ZIP_LIMIT) { try { await reader.cancel(); } catch (e) { /* already stopping */ } throw new Error("zip-too-big"); }
+      chunks.push(value);
+    }
+    const all = new Uint8Array(got); let at = 0;
+    for (const c of chunks) { all.set(c, at); at += c.length; }
+    return all;
+  }
+  /* returns [{name, text}] for the files in the zip whose name passes `want(name)`; throws Error("zip-bad" | "zip-too-big" | "zip-unsupported") */
+  async function unzipText(buffer, want) {
+    const u8 = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer);
+    const dv = new DataView(u8.buffer, u8.byteOffset, u8.byteLength);
+    let eocd = -1;
+    for (let i = u8.length - 22; i >= Math.max(0, u8.length - 22 - 65535); i--) if (dv.getUint32(i, true) === 0x06054b50) { eocd = i; break; }
+    if (eocd < 0) throw new Error("zip-bad");
+    const count = dv.getUint16(eocd + 10, true), cdOffset = dv.getUint32(eocd + 16, true);
+    if (count === 0xffff || cdOffset === 0xffffffff) throw new Error("zip-unsupported");
+    if (count > ZIP_MAX_FILES) throw new Error("zip-too-big");        // ZIP64: not needed for conversation files
+    const out = [], utf8 = new TextDecoder("utf-8");
+    let p = cdOffset, total = 0;
+    for (let n = 0; n < count; n++) {
+      if (p + 46 > u8.length || dv.getUint32(p, true) !== 0x02014b50) throw new Error("zip-bad");
+      const flags = dv.getUint16(p + 8, true), method = dv.getUint16(p + 10, true), packed = dv.getUint32(p + 20, true), size = dv.getUint32(p + 24, true);
+      const nameLen = dv.getUint16(p + 28, true), extraLen = dv.getUint16(p + 30, true), noteLen = dv.getUint16(p + 32, true), local = dv.getUint32(p + 42, true);
+      const name = utf8.decode(u8.subarray(p + 46, p + 46 + nameLen));
+      p += 46 + nameLen + extraLen + noteLen;
+      if (name.endsWith("/") || (flags & 1) || !want(name)) continue;                             // folders, encrypted entries and files we don't need
+      if (size > ZIP_LIMIT || (total += size) > ZIP_LIMIT) throw new Error("zip-too-big");
+      if (local + 30 > u8.length || dv.getUint32(local, true) !== 0x04034b50) throw new Error("zip-bad");
+      const start = local + 30 + dv.getUint16(local + 26, true) + dv.getUint16(local + 28, true);
+      if (start + packed > u8.length) throw new Error("zip-bad");
+      const data = u8.subarray(start, start + packed);
+      let bytes;
+      if (method === 0) bytes = data;
+      else if (method === 8) { try { bytes = await inflateRaw(data); } catch (e) { throw new Error(e.message === "zip-unsupported" || e.message === "zip-too-big" ? e.message : "zip-bad"); } }
+      else throw new Error("zip-unsupported");
+      if (bytes.length > ZIP_LIMIT) throw new Error("zip-too-big");
+      out.push({name, text: utf8.decode(bytes)});
+    }
+    return out;
+  }
+
+  /* ---------- a shared link (not the conversation itself) ---------- */
+  const isOnlyALink = text => /^\s*https?:\/\/\S+\s*$/i.test(String(text || ""));
+
   /* ---------- sections ---------- */
   const SHIFT = /^\W*(?:ok(?:ay)?\W+|alright\W+|great\W+|thanks?\W+)?(?:now|next|new topic|separate(?:ly)?|different|moving on|switching|let'?s (?:move|talk|work|try|do|start|build|look|switch)|also\b|one more thing|another (?:question|thing)|on another note|btw)\b/i;
   const STOPWORDS = new Set(("the and but for with that this from have has had was were are been being you your yours can could should would " +
@@ -331,5 +385,5 @@
   }
 
   return {estimateTokens, scrubText, compactText, compactMessages, friendlyTitle, parseText, splitSections, chatOutline,
-          buildHandoff, prepare, makePart, normRole, label, parseJson};
+          buildHandoff, prepare, makePart, normRole, label, parseJson, unzipText, isOnlyALink};
 });

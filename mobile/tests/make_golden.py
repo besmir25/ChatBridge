@@ -93,6 +93,21 @@ def _shape(c):
     return out
 golden["parse_json"] = [{"in": d, "out": [_shape(c) for c in cb.parse_json(d)]} for d in IMPORTS]
 
+import base64, io, zipfile
+def _zip(entries, compress):
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", compress) as z:
+        for name, text in entries:
+            z.writestr(name, text)
+    return base64.b64encode(buf.getvalue()).decode()
+_conv = json.dumps([{"title": "Zipped", "mapping": {"a": {"parent": None, "message": {"author": {"role": "user"}, "content": {"parts": ["hello from a zip"]}, "create_time": 1}}}, "current_node": "a"}])
+golden["zips"] = [
+    {"name": "deflated", "b64": _zip([("conversations.json", _conv), ("user.json", "{}"), ("folder/", ""), ("img/a.png", "x" * 50)], zipfile.ZIP_DEFLATED), "files": {"conversations.json": _conv}},
+    {"name": "stored", "b64": _zip([("export/conversations.json", _conv)], zipfile.ZIP_STORED), "files": {"export/conversations.json": _conv}},
+    {"name": "unicode", "b64": _zip([("conversations.json", json.dumps([{"title": "caf\u00e9 \u4f60\u597d", "messages": [{"role": "user", "content": "na\u00efve"}]}], ensure_ascii=False))], zipfile.ZIP_DEFLATED),
+     "files": {"conversations.json": json.dumps([{"title": "caf\u00e9 \u4f60\u597d", "messages": [{"role": "user", "content": "na\u00efve"}]}], ensure_ascii=False)}},
+]
+
 with open(os.path.join(HERE, "golden.json"), "w", encoding="utf-8") as f:
     json.dump(golden, f, ensure_ascii=False, indent=1)
 print("wrote golden.json:", {k: len(v) for k, v in golden.items()})

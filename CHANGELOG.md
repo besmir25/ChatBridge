@@ -2,6 +2,11 @@
 
 Newest first. Add new entries under **Unreleased**; `python bump_version.py X.Y.Z` turns that section into the release.
 
+## Unreleased
+- **Android, Google Play preparation**: the app now targets Android 16 (API 36, Capacitor 8) and draws edge to edge with correct status and navigation bar colours in the light and night looks; a signed release bundle (.aab) can be built with `mobile\build-release.ps1`; the app can read the .zip your ChatGPT or Claude export gives you; sharing only a link opens Help with the right tip; phones whose web view is too old show a clear message instead of a blank screen
+- Safer on Android: an uncompressed-size cap on zip files that is checked while unpacking, size limits on shared text, only content:// files accepted when sharing in, and exported files are kept in one folder that is cleared on the next export
+- Store listing text says the privacy hiding is a safeguard, not a guarantee
+
 ## 1.4.0 (2026-10-16)
 - **The Android app now follows the same flow as the Windows app**: a searchable list of conversations by date, then an open conversation with its sections and a "Continue it in" row: the AI apps installed on the phone (ChatGPT, Claude, Gemini, Copilot, Perplexity, Grok, DeepSeek, Le Chat), a website, a file, just copy it, or any app through the Share sheet. It also has rename, remove, "what I've sent" with send again, and settings for privacy and language
 - Android can import ChatGPT and Claude export files, `.txt` and `.md`, and the app was tested end to end on an emulator (sharing in, copy, opening a website, saving a file, languages)

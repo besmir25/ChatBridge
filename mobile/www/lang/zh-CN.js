@@ -345,5 +345,10 @@ I18N.packs["zh-CN"] = {
  "Couldn't create the file.": "无法创建文件。",
  "That file doesn't look like a conversation.": "该文件看起来不像对话。",
  "Pasted text": "粘贴的文本",
- "Imported": "已导入"
+ "Imported": "已导入",
+ "That’s a link, not the conversation itself. See Help for how to copy the text.": "这是一个链接，而不是对话本身。请查看帮助了解如何复制文字。",
+ "html:m.help4": "<b>没看到对话？</b>许多 AI 应用分享的是链接而不是文字，而 ChatBridge 从不联网，所以无法打开链接。请改为复制对话（长按一条消息，然后选择复制），或在应用的设置中导出你的数据，再使用“从文件添加”：可以直接选择 .zip 文件。",
+ "That zip file is too big to open here.": "该 zip 文件太大，无法在这里打开。",
+ "Couldn’t open that zip file.": "无法打开该 zip 文件。",
+ "This phone’s web view is too old to open zip files. Unzip it first and add conversations.json.": "这部手机的 WebView 太旧，无法打开 zip 文件。请先解压，再添加 conversations.json。"
 };

@@ -1,26 +1,55 @@
 apply plugin: 'com.android.application'
 
+// The Android version follows mobile/package.json, which bump_version.py keeps in step with the Windows app:
+// 1.4.0 -> versionName "1.4.0", versionCode 10400 (Google Play needs the code to go up with every upload).
+def appPackage = new groovy.json.JsonSlurper().parse(file("../../package.json"))
+def versionParts = appPackage.version.tokenize('.-')
+def appVersionCode = versionParts[0].toInteger() * 10000 + versionParts[1].toInteger() * 100 + versionParts[2].toInteger()
+
+// Release signing. The key is never in the repository: it comes from android/keystore.properties (git-ignored, on your PC)
+// or from CHATBRIDGE_KEYSTORE_* environment variables (GitHub secrets). Without either, the release build is simply unsigned.
+def keystoreProps = new Properties()
+def keystoreFile = rootProject.file("keystore.properties")
+if (keystoreFile.exists()) { keystoreFile.withInputStream { keystoreProps.load(it) } }
+def signValue = { String prop, String env -> keystoreProps.getProperty(prop) ?: System.getenv(env) }
+def haveSigningKey = signValue("storeFile", "CHATBRIDGE_KEYSTORE_FILE") != null
+
 android {
-    namespace "com.besmir25.chatbridge"
-    compileSdk rootProject.ext.compileSdkVersion
+    namespace = "com.besmir25.chatbridge"
+    compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
         applicationId "com.besmir25.chatbridge"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode appVersionCode
+        versionName appPackage.version
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
              // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
-            ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
+            ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
+        }
+    }
+    signingConfigs {
+        if (haveSigningKey) {
+            release {
+                storeFile file(signValue("storeFile", "CHATBRIDGE_KEYSTORE_FILE"))
+                storePassword signValue("storePassword", "CHATBRIDGE_KEYSTORE_PASSWORD")
+                keyAlias signValue("keyAlias", "CHATBRIDGE_KEY_ALIAS")
+                keyPassword signValue("keyPassword", "CHATBRIDGE_KEY_PASSWORD")
+            }
         }
     }
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            if (haveSigningKey) { signingConfig signingConfigs.release }
         }
+    }
+    lint {
+        abortOnError true
+        warningsAsErrors false
     }
 }
 

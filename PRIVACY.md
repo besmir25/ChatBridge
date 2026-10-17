@@ -1,4 +1,6 @@
-# Privacy
+﻿# Privacy
+
+> **Using the Android app?** It collects nothing and asks for no permissions; see [The Android app](#the-android-app) at the bottom of this page.
 
 ChatBridge runs entirely on your PC. It has no account, no analytics, no ads and no servers of its own.
 

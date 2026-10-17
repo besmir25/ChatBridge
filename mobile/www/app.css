@@ -14,7 +14,7 @@
 html,body{margin:0;height:100%}
 body{background:var(--bg);color:var(--text);font:400 16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;transition:background .3s,color .3s}
 button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
-.app{min-height:100%;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top)}
+.app{min-height:100%;display:flex;flex-direction:column;padding-top:var(--safe-area-inset-top, env(safe-area-inset-top, 0px))}
 
 .top{display:flex;align-items:center;gap:6px;padding:12px 14px 8px;position:sticky;top:0;z-index:5;background:var(--bg)}
 .logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:1.05em;flex:1}
@@ -63,7 +63,7 @@ h1{font-size:1.65em;line-height:1.2;margin:0 0 10px;font-weight:700;letter-spaci
 .sw input[type=checkbox],.sw input[type=radio]{width:22px;height:22px;accent-color:var(--accent);flex:none}
 .note{color:var(--mute);font-size:.86em;margin-top:10px}
 
-.bar{position:fixed;left:0;right:0;bottom:0;background:var(--panel);border-top:1px solid var(--line);border-radius:24px 24px 0 0;padding:12px 16px calc(14px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:12px;box-shadow:var(--shadow)}
+.bar{position:fixed;left:0;right:0;bottom:0;background:var(--panel);border-top:1px solid var(--line);border-radius:24px 24px 0 0;padding:12px 16px calc(14px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)));display:flex;flex-direction:column;gap:12px;box-shadow:var(--shadow)}
 .quick{display:flex;align-items:center;gap:8px;overflow-x:auto;white-space:nowrap;scrollbar-width:none}
 .quick::-webkit-scrollbar{display:none}
 .chip{background:var(--chip);color:var(--chip-ink);border-radius:99px;padding:8px 15px;font-size:.88em;font-weight:600;flex:none}
@@ -71,7 +71,7 @@ h1{font-size:1.65em;line-height:1.2;margin:0 0 10px;font-weight:700;letter-spaci
 .toast{position:fixed;left:50%;bottom:170px;transform:translate(-50%,16px);background:var(--text);color:var(--bg);border-radius:16px;padding:12px 18px;max-width:88vw;opacity:0;pointer-events:none;transition:.2s;font-size:.92em;z-index:30}
 .toast.show{opacity:1;transform:translate(-50%,0)}
 .modal{position:fixed;inset:0;background:rgba(5,7,10,.55);display:flex;align-items:flex-end;z-index:20}
-.sheet{background:var(--panel);width:100%;border-radius:26px 26px 0 0;padding:20px 18px;max-height:90vh;overflow:auto;padding-bottom:calc(20px + env(safe-area-inset-bottom))}
+.sheet{background:var(--panel);width:100%;border-radius:26px 26px 0 0;padding:20px 18px;max-height:90vh;overflow:auto;padding-bottom:calc(20px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)))}
 .sheet-head{font-weight:700;font-size:1.15em;margin-bottom:12px}
 .sheet textarea{width:100%;min-height:42vh;border:1px solid var(--line);border-radius:18px;padding:14px;font:inherit;background:var(--panel2);color:var(--text)}
 .sheet-foot{display:flex;gap:10px;justify-content:flex-end;margin-top:14px}.sheet-foot .btn{flex:1}
@@ -115,7 +115,7 @@ main{padding:6px 16px 170px}
 .ic[style*="var(--chip)"]{color:var(--text)}
 .webpick{display:flex;align-items:center;gap:10px;margin-top:12px;padding:10px 14px;background:var(--panel);border:1px solid var(--line);border-radius:16px}
 .webpick select{flex:1;font:inherit;padding:10px;border:1px solid var(--line);border-radius:12px;background:var(--panel2);color:var(--text)}
-.bar{flex-direction:row;align-items:center;gap:14px;padding:12px 16px calc(14px + env(safe-area-inset-bottom))}
+.bar{flex-direction:row;align-items:center;gap:14px;padding:12px 16px calc(14px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)))}
 .bar .sum{flex:1;min-width:0;font-size:.84em;color:var(--mute);line-height:1.35}
 .bar .btn{flex:none;padding:15px 20px;max-width:55%}
 .btn.off{opacity:.5}
@@ -124,3 +124,4 @@ main{padding:6px 16px 170px}
 .hrow b{display:block;font-weight:600}.hrow small{color:var(--mute);font-size:.82em}
 .hrow .btn{flex:none;padding:9px 14px;font-size:.88em}
 .sheet-foot{position:sticky;bottom:0}
+.help p.hl{background:var(--sel);border-radius:14px;padding:10px 12px}

@@ -90,3 +90,44 @@ test("prepare also hides private details quoted in the outline", () => {
   const conv = {title: "t", source: "s", excerpt: true, summary: "1. mail jane@example.com", messages: [{role: "user", content: "hi"}]};
   assert.match(C.prepare(conv, {scrub: true}).conv.summary, /\[email\]/);
 });
+
+test("unzipText reads zips made by Python (deflated, stored, nested, unicode) and skips what it should", async () => {
+  for (const z of G.zips) {
+    const buf = Buffer.from(z.b64, "base64");
+    const got = await C.unzipText(buf, name => /(^|\/)conversations\.json$/.test(name));
+    assert.deepEqual(Object.fromEntries(got.map(f => [f.name, f.text])), z.files, z.name);
+  }
+  const all = await C.unzipText(Buffer.from(G.zips[0].b64, "base64"), () => true);
+  assert.deepEqual(all.map(f => f.name).sort(), ["conversations.json", "img/a.png", "user.json"]);   // folders are not files
+  assert.deepEqual(await C.unzipText(Buffer.from(G.zips[0].b64, "base64"), () => false), []);
+});
+
+test("a zip export goes all the way to conversations", async () => {
+  const z = G.zips[0];
+  const files = await C.unzipText(Buffer.from(z.b64, "base64"), n => /conversations\.json$/.test(n));
+  const convs = C.parseJson(JSON.parse(files[0].text));
+  assert.equal(convs.length, 1);
+  assert.equal(convs[0].messages[0].content, "hello from a zip");
+});
+
+test("unzipText refuses broken, truncated and hostile files without hanging", async () => {
+  const good = Buffer.from(G.zips[0].b64, "base64");
+  await assert.rejects(() => C.unzipText(Buffer.from("this is not a zip file at all"), () => true), /zip-bad/);
+  await assert.rejects(() => C.unzipText(good.subarray(0, good.length - 30), () => true), /zip-bad/);          // cut off
+  await assert.rejects(() => C.unzipText(Buffer.alloc(0), () => true), /zip-bad/);
+  const lie = Buffer.from(good);                                                                              // claims a huge unpacked size
+  const cd = lie.indexOf(Buffer.from([0x50, 0x4b, 0x01, 0x02]));
+  lie.writeUInt32LE(0x7fffffff, cd + 24);
+  await assert.rejects(() => C.unzipText(lie, () => true), /zip-too-big/);
+  const bomb = Buffer.from(good);                                                                             // directory points outside the file
+  bomb.writeUInt32LE(0x00ffffff, bomb.indexOf(Buffer.from([0x50, 0x4b, 0x01, 0x02])) + 42);
+  await assert.rejects(() => C.unzipText(bomb, () => true), /zip-bad/);
+});
+
+test("isOnlyALink tells a shared link from shared text", () => {
+  assert.ok(C.isOnlyALink("https://chatgpt.com/share/abc-123"));
+  assert.ok(C.isOnlyALink("  https://claude.ai/chat/xyz \n"));
+  assert.ok(!C.isOnlyALink("User: see https://example.com for details\nAssistant: ok"));
+  assert.ok(!C.isOnlyALink("hello"));
+  assert.ok(!C.isOnlyALink(""));
+});

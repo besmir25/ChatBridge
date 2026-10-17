@@ -473,6 +473,32 @@ class ReleaseTools(unittest.TestCase):
             with self.assertRaises(ValueError):
                 self.rt.bump(bad, root)
 
+    def test_bump_keeps_the_android_version_in_step(self):
+        import json as _json
+        root = tempfile.mkdtemp(prefix="bump-", dir=_TMP)
+        os.makedirs(os.path.join(root, "mobile"))
+        with open(os.path.join(root, "chatbridge_app.py"), "w", encoding="utf-8") as f:
+            f.write('VERSION = "1.0.0"\n')
+        with open(os.path.join(root, "CHANGELOG.md"), "w", encoding="utf-8") as f:
+            f.write(LOG)
+        _json.dump({"name": "m", "version": "0.1.0"}, open(os.path.join(root, "mobile", "package.json"), "w"))
+        _json.dump({"name": "m", "version": "0.1.0", "packages": {"": {"name": "m", "version": "0.1.0"}}}, open(os.path.join(root, "mobile", "package-lock.json"), "w"))
+        self.rt.bump("2.5.7", root)
+        self.assertEqual(_json.load(open(os.path.join(root, "mobile", "package.json")))["version"], "2.5.7")
+        lock = _json.load(open(os.path.join(root, "mobile", "package-lock.json")))
+        self.assertEqual((lock["version"], lock["packages"][""]["version"]), ("2.5.7", "2.5.7"))
+
+    def test_the_android_version_matches_the_app_and_the_play_version_code_formula_goes_up(self):
+        """Google Play rejects an upload whose versionCode doesn't go up: major*10000 + minor*100 + patch must stay ordered."""
+        import json as _json
+        import chatbridge_app as app
+        here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        self.assertEqual(_json.load(open(os.path.join(here, "mobile", "package.json"), encoding="utf-8"))["version"], app.VERSION)
+        code = lambda v: (lambda a, b, c: a * 10000 + b * 100 + c)(*[int(x) for x in v.split(".")])
+        self.assertLess(code("1.4.0"), code("1.4.1"))
+        self.assertLess(code("1.9.9"), code("1.10.0"))
+        self.assertLess(code("1.99.0"), code("2.0.0"))
+
     def test_version_resource_file(self):
         import version_info
         p = os.path.join(_TMP, "vi.txt")

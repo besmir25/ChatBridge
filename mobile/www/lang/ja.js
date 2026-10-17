@@ -345,5 +345,10 @@ I18N.packs["ja"] = {
  "Couldn't create the file.": "ファイルを作成できませんでした。",
  "That file doesn't look like a conversation.": "そのファイルは会話のようには見えません。",
  "Pasted text": "貼り付けたテキスト",
- "Imported": "インポート済み"
+ "Imported": "インポート済み",
+ "That’s a link, not the conversation itself. See Help for how to copy the text.": "これはリンクで、会話そのものではありません。テキストのコピー方法はヘルプをご覧ください。",
+ "html:m.help4": "<b>会話が見当たりませんか？</b>多くの AI アプリはテキストではなくリンクを共有します。ChatBridge はインターネットに接続しないため、リンクを開けません。代わりに会話をコピーする（メッセージを長押しして「コピー」）か、アプリの設定からデータをエクスポートして「ファイルから追加」を使ってください。.zip ファイルはそのまま選べます。",
+ "That zip file is too big to open here.": "その zip ファイルは大きすぎて、ここでは開けません。",
+ "Couldn’t open that zip file.": "その zip ファイルを開けませんでした。",
+ "This phone’s web view is too old to open zip files. Unzip it first and add conversations.json.": "このスマートフォンの WebView は古すぎて zip ファイルを開けません。先に解凍して conversations.json を追加してください。"
 };
