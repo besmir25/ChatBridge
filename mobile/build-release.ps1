@@ -14,7 +14,9 @@ $env:Path = "$Root\jdk\bin;$Root\sdk\platform-tools;$env:Path"
 if (-not (Test-Path "$proj\android\keystore.properties")) { throw "No signing key found (mobile\android\keystore.properties). See mobile\store\play-console-answers.md." }
 $version = (Get-Content "$proj\package.json" -Raw | ConvertFrom-Json).version
 Push-Location $proj
+$env:CI = "1"                                                       # otherwise Capacitor may stop to ask a question nobody can see
 npx cap sync android | Out-Null
+if ($LASTEXITCODE -ne 0) { throw "Copying into the Android project failed. Run 'npx cap sync android' in the mobile folder to see why." }
 "sdk.dir=$(($Root + '\sdk').Replace('\', '\\'))" | Set-Content "$proj\android\local.properties" -Encoding ASCII
 Push-Location "$proj\android"
 & .\gradlew.bat bundleRelease assembleRelease --no-daemon --console=plain | Select-Object -Last 4

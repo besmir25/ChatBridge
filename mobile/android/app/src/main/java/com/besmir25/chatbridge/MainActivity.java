@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.webkit.JavascriptInterface;
+import androidx.core.content.IntentCompat;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
 import com.getcapacitor.BridgeActivity;
@@ -59,7 +60,7 @@ public class MainActivity extends BridgeActivity {
         String text = intent.getStringExtra(Intent.EXTRA_TEXT);
         if (text != null && text.length() > MAX_BYTES) text = text.substring(0, MAX_BYTES);
         if (text == null || text.isEmpty()) {
-            Uri uri = intent.getParcelableExtra(Intent.EXTRA_STREAM);
+            Uri uri = IntentCompat.getParcelableExtra(intent, Intent.EXTRA_STREAM, Uri.class);
             if (uri != null && "content".equals(uri.getScheme())) text = readText(uri);      // a file:// address would let the sender point us at our own files
         }
         if (text != null && !text.isEmpty()) pendingShare = text;

@@ -15,7 +15,9 @@ if (-not (Test-Path $adb)) { throw "Android tools not found in $Root. See mobile
 if (-not $NoBuild) {
   Push-Location $proj
   Write-Host "Copying the screen into the Android project..."
+  $env:CI = "1"                                                     # otherwise Capacitor may stop to ask a question nobody can see
   npx cap sync android | Out-Null
+  if ($LASTEXITCODE -ne 0) { throw "Copying into the Android project failed. Run 'npx cap sync android' in the mobile folder to see why." }
   "sdk.dir=$(($Root + '\sdk').Replace('\', '\\'))" | Set-Content "$proj\android\local.properties" -Encoding ASCII
   Push-Location "$proj\android"
   Write-Host "Building (the first time takes a few minutes)..."
