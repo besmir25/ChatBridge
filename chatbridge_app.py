@@ -1,5 +1,5 @@
-"""ChatBridge - the modern window. A native window (Edge WebView2) showing ui/index.html, backed by chatbridge.py."""
-import ctypes
+"""ChatBridge - the modern window. A native window (Edge WebView2 on Windows, WebKit on macOS, Qt or WebKitGTK on Linux)
+showing ui/index.html, backed by chatbridge.py."""
 import hmac
 import json
 import logging
@@ -7,7 +7,6 @@ import os
 import re
 import secrets
 import socket
-import subprocess
 import sys
 import threading
 import time
@@ -15,14 +14,14 @@ import urllib.error
 import urllib.parse
 import urllib.request
 import uuid
-from ctypes import wintypes
 
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import webview
 
 import chatbridge as cb
-from icons import fetch_icons
+import desktop
+import webview_patch
 from release_tools import changelog_between
 
 VERSION = "1.4.0"
@@ -34,65 +33,10 @@ SCAN_CACHE = os.path.join(cb.APP_DIR, "scan_cache.json")
 ICON_DIR = os.path.join(cb.APP_DIR, "icons")
 
 
-# ---------------------------------------------------------------- Windows helpers
-def set_clipboard(text):
-    u, k = ctypes.windll.user32, ctypes.windll.kernel32
-    u.OpenClipboard.argtypes, u.OpenClipboard.restype = [wintypes.HWND], wintypes.BOOL
-    u.SetClipboardData.argtypes, u.SetClipboardData.restype = [wintypes.UINT, wintypes.HANDLE], wintypes.HANDLE
-    k.GlobalAlloc.argtypes, k.GlobalAlloc.restype = [wintypes.UINT, ctypes.c_size_t], wintypes.HANDLE
-    k.GlobalLock.argtypes, k.GlobalLock.restype = [wintypes.HANDLE], ctypes.c_void_p
-    k.GlobalUnlock.argtypes = [wintypes.HANDLE]
-    data = text.encode("utf-16-le") + b"\0\0"
-    h = k.GlobalAlloc(0x0002, len(data))  # GMEM_MOVEABLE
-    p = k.GlobalLock(h)
-    ctypes.memmove(p, data, len(data))
-    k.GlobalUnlock(h)
-    for _ in range(20):
-        if u.OpenClipboard(None):
-            break
-        time.sleep(0.05)
-    else:
-        raise OSError("Couldn't open the clipboard")
-    try:
-        u.EmptyClipboard()
-        u.SetClipboardData(13, h)  # CF_UNICODETEXT
-    finally:
-        u.CloseClipboard()
-
-
-def foreground_title():
-    u = ctypes.windll.user32
-    buf = ctypes.create_unicode_buffer(256)
-    u.GetWindowTextW(u.GetForegroundWindow(), buf, 256)
-    return buf.value.lower()
-
-
-def window_open(key):
-    """Is there a visible window whose title contains `key`? (Used to tell whether an app is already running.)"""
-    if not key:
-        return True
-    u = ctypes.windll.user32
-    found = []
-    enum_type = ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)
-
-    def visit(hwnd, _):
-        if u.IsWindowVisible(hwnd):
-            buf = ctypes.create_unicode_buffer(256)
-            u.GetWindowTextW(hwnd, buf, 256)
-            if key in buf.value.lower():
-                found.append(hwnd)
-                return False
-        return True
-    u.EnumWindows(enum_type(visit), 0)
-    return bool(found)
-
-
-def press(vks):
-    u = ctypes.windll.user32
-    for vk in vks:
-        u.keybd_event(vk, 0, 0, 0)
-    for vk in reversed(vks):
-        u.keybd_event(vk, 0, 2, 0)
+# ---------------------------------------------------------------- system helpers (desktop.py has the Windows, macOS and Linux versions)
+set_clipboard = desktop.set_clipboard
+foreground_title = desktop.foreground_title
+window_open = desktop.window_open
 
 
 # ---------------------------------------------------------------- AI websites you can send a chat to
@@ -144,8 +88,11 @@ _EXT_ORIGINS = ("chrome-extension://", "moz-extension://", "edge-extension://")
 
 class _ExclusiveServer(ThreadingHTTPServer):
     """On Windows a port can be shared by default, so a second program (or a second ChatBridge) could sit on the same
-    port and receive our requests. Claim it exclusively instead; if it's taken, the caller moves on to the next port."""
-    allow_reuse_address = False
+    port and receive our requests. Claim it exclusively instead; if it's taken, the caller moves on to the next port.
+    On Linux, SO_REUSEADDR never lets two programs listen on one port. On macOS another program may hold 0.0.0.0 on the same
+    port, but connections to 127.0.0.1 go to the more specific bind (ours); an exact duplicate would need SO_REUSEPORT. It
+    lets ChatBridge reopen its port right after a restart (otherwise refused for about a minute while old connections finish)."""
+    allow_reuse_address = not desktop.WINDOWS
 
     def server_bind(self):
         if hasattr(socket, "SO_EXCLUSIVEADDRUSE"):
@@ -225,7 +172,7 @@ class Api:
         self._found, self._apps, self._icons = [], [], {}
         cache = cb.load_json(SCAN_CACHE, {})
         self._apps = cache.get("apps", [])
-        self._icons = fetch_icons([{"key": a["name"]} for a in self._apps], ICON_DIR)
+        self._icons = desktop.app_icons(self._apps, ICON_DIR, cached_only=True)   # icons saved by the last scan
         self._proj = None
         self._chat = None
         self._busy = threading.Lock()
@@ -315,25 +262,22 @@ class Api:
     def _push(self, fn, payload):
         if self._window:
             try:
-                self._window.evaluate_js(f"window.{fn} && window.{fn}({json.dumps(payload)})")
+                js = f"window.{fn} && window.{fn}({json.dumps(payload)})"
+                run = getattr(self._window, "run_js", None)       # no result needed: run_js skips pywebview's eval wrapper,
+                (run or self._window.evaluate_js)(js)              # which the page's CSP blocks on macOS and Linux
             except Exception:
                 pass
 
     def open_extension_folder(self):
         folder = os.path.join(HERE, "extension")
         if os.path.isdir(folder):
-            os.startfile(folder)
+            desktop.open_path(folder)
             return {"ok": True}
         return {"error": "The extension folder wasn't found next to the app."}
 
     # ---- plumbing
     def _emit(self, state, msg="", **extra):
-        if self._window:
-            payload = json.dumps({"state": state, "msg": msg, **extra})
-            try:
-                self._window.evaluate_js(f"window.onProgress && window.onProgress({payload})")
-            except Exception:
-                pass
+        self._push("onProgress", {"state": state, "msg": msg, **extra})
 
     def _save(self):
         with self._lock:
@@ -414,12 +358,12 @@ class Api:
             self._cfg.update({"ui_v2": True, "theme": "light", "font": "sans", "ui_size": 17})
             cb.save_json(cb.CFG_PATH, self._cfg)
         return {"chats": self._chats(), "apps": self._apps_out(), "web": self._web_out(), "settings": self._settings(),
-                "welcomed": bool(self._cfg.get("welcomed")), "tools_chosen": bool(self._cfg.get("tools_chosen"))}
+                "welcomed": bool(self._cfg.get("welcomed")), "tools_chosen": bool(self._cfg.get("tools_chosen")),
+                "os": desktop.NAME, "can_paste": desktop.can_press_keys()}
 
     def scan_all(self):
         apps = cb.scan_apps()
-        items = [{"key": a["name"], "parse": a["launch"]} for a in apps if (a.get("launch") or "").startswith("shell:")]
-        self._icons = fetch_icons(items, ICON_DIR)
+        self._icons = desktop.app_icons(apps, ICON_DIR)
         self._apps = apps
         cb.save_json(SCAN_CACHE, {"apps": [{k: v for k, v in a.items() if k != "launch_fn"} for a in apps]})
         self._found = cb.discover_chats()
@@ -647,7 +591,7 @@ class Api:
     def edit_profiles(self):
         if not os.path.exists(cb.PROFILES_PATH):
             cb.save_json(cb.PROFILES_PATH, cb.DEFAULT_PROFILES)
-        os.startfile(cb.PROFILES_PATH)
+        desktop.open_path(cb.PROFILES_PATH)
 
     def add_app(self, name):
         name = (name or "").strip()
@@ -808,8 +752,10 @@ class Api:
                     self._emit("chat", "", label=app["name"], models=app["models"], model=model)
                 elif app["kind"] == "CLI tool":
                     set_clipboard(text)
-                    subprocess.Popen(["cmd", "/k", app["name"]], creationflags=0x10)
-                    self._emit("done", f"{app['name']} opened in a terminal. Right-click there to paste.")
+                    desktop.open_terminal(app["name"])     # a name from cb.CLI_TOOLS, found with shutil.which
+                    self._emit("done", f"{app['name']} opened in a terminal. Right-click there to paste." if desktop.WINDOWS
+                               else f"{app['name']} opened in a terminal. Press Ctrl+Shift+V there to paste." if desktop.LINUX
+                               else f"{app['name']} opened in a terminal. Press Ctrl+V there to paste.")
                 else:
                     self._deliver_desktop(app, title, text, into_open=into_open)
         except Exception as e:
@@ -835,7 +781,7 @@ class Api:
         """Show a file ChatBridge made, in Explorer. Only files we created ourselves."""
         p = os.path.normcase(os.path.abspath(str(path)))
         if p in self._made_files and os.path.isfile(p):
-            subprocess.Popen(["explorer", "/select,", p])
+            desktop.reveal(p)
             return {"ok": True}
         return {"error": "That file isn't one ChatBridge made."}
 
@@ -885,14 +831,12 @@ class Api:
         if callable(app.get("launch_fn")):
             app["launch_fn"]()
         elif exe:
-            subprocess.Popen([exe, folder])
-        elif (app.get("launch") or "").startswith("shell:"):
-            subprocess.Popen(["explorer", app["launch"]])
+            desktop.open_app(exe, folder)
         elif app.get("launch"):
-            os.startfile(app["launch"])
+            desktop.open_app(app["launch"])
         else:
             raise OSError("No launch target found for this app.")
-        if not self._cfg.get("autopaste", True):
+        if not self._cfg.get("autopaste", True) or not desktop.can_press_keys():   # (Linux Wayland: the person pastes)
             self._emit("done", f"{app['name']} is open. Click its message box and press Ctrl+V.")
             return False
         self._emit("working", f"Opening {app['name']}... don't click elsewhere.")
@@ -917,13 +861,18 @@ class Api:
             else:
                 self._emit("warn", f"{app['name']} isn't in front any more. Click its message box and press Ctrl+V.")
                 return False
-        if keys:
-            press(keys)
-            time.sleep(1.2)
-            if not front():
-                self._emit("warn", f"{app['name']} isn't in front any more. Click its message box and press Ctrl+V.")
-                return False
-        press([0x11, 0x56])  # Ctrl+V. ChatBridge never presses Enter.
+        try:
+            if keys:
+                desktop.press_spec(prof["new_chat"])   # checked by cb.parse_keys above, which refuses Enter
+                time.sleep(1.2)
+                if not front():
+                    self._emit("warn", f"{app['name']} isn't in front any more. Click its message box and press Ctrl+V.")
+                    return False
+            desktop.paste()  # Ctrl+V (Cmd+V on macOS). ChatBridge never presses Enter.
+        except desktop.NeedsPermission:
+            self._emit("warn", "To paste for you on a Mac, ChatBridge needs permission: System Settings → Privacy & Security "
+                               "→ Accessibility → turn on ChatBridge. For now, click the message box and press Ctrl+V.")
+            return False
         self._emit("done", f"Pasted into {app['name']}. Check it, then press Enter there to send.", pasted=True)
         return True
 
@@ -980,13 +929,12 @@ def main():
         window = webview.create_window(f"ChatBridge", index, js_api=api, width=1240, height=820, min_size=(960, 640),
                                        background_color="#f6f7f9")
         api._window = window
+        if not desktop.WINDOWS:
+            webview_patch.apply()      # pywebview's bridge without eval, so the strict CSP stays (see webview_patch.py)
         webview.start()
     except Exception:
         logging.exception("ChatBridge crashed on startup")
-        ctypes.windll.user32.MessageBoxW(
-            0, f"ChatBridge couldn't start.\n\nDetails were saved to:\n{LOG_PATH}\n\n"
-               "If the window area is blank, install the Microsoft Edge WebView2 Runtime and try again.",
-            "ChatBridge", 0x10)
+        desktop.show_error("ChatBridge", f"ChatBridge couldn't start.\n\nDetails were saved to:\n{LOG_PATH}\n\n{desktop.START_HINT}".strip())
         sys.exit(1)
 
 

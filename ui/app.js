@@ -28,7 +28,7 @@ const iconFor = source => {
   return a ? `<img src="${a.icon}" alt="">` : ({"project": "▤", "pasted": "⎘"}[first] || esc(String(source)[0] || "?").toUpperCase());
 };
 const THEMES = {light: "Light", midnight: "Dark (teal)", tokyo: "Dark (blue)", gruvbox: "Dark (amber)", nord: "Dark (ice)"};
-const FONTS = {sans: "Easy to read (Segoe UI)", code: "Programmer style (Cascadia Code)", consolas: "Programmer style (Consolas)"};
+let FONTS = {sans: "Easy to read (Segoe UI)", code: "Programmer style (Cascadia Code)", consolas: "Programmer style (Consolas)"};   // Windows font names
 const SIZES = {14: "Smaller", 16: "Normal", 17: "Comfortable", 19: "Large", 22: "Extra large"};
 function applySettings() {
   const s = S.settings;
@@ -116,6 +116,13 @@ const pagesOf = t => {            // "about 6 pages" reads better than a token c
 const tipFor = c => c.real_tokens ? `About ${(c.tokens || 0).toLocaleString()} tokens (how AI measures length). Claude Code recorded ${c.real_tokens.toLocaleString()} tokens processed while this chat was running.`
                                   : `About ${(c.tokens || 0).toLocaleString()} tokens. Tokens are how AI measures length: roughly 650 per page.`;
 
+const svg = body => `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
+const ICONS = {
+  web: svg('<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9M12 3c-2.5 2.6-3.8 5.6-3.8 9s1.3 6.4 3.8 9"/>'),
+  file: svg('<path d="M5 4h11l3 3v13H5z"/><path d="M8 4v5h7V4M8 20v-6h8v6"/>'),
+  copy: svg('<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/>'),
+};
+
 function appTile(key, name, iconHtml, bg) {
   const on = S.target === key ? "on" : "";
   const ic = iconHtml ? `<span class="ic" style="background:${bg || "transparent"}">${iconHtml}</span>`
@@ -129,9 +136,10 @@ function renderApps() {
     if (a.icon) return appTile(a.key, a.name, `<img src="${a.icon}" alt="">`);
     return appTile(a.key, a.name, a.kind === "CLI tool" ? "&gt;_" : "", a.kind === "CLI tool" ? "#b4b2a9" : "");
   });
-  tiles.push(appTile("web", "A website", "🌐", "var(--chip)"));
-  tiles.push(appTile("file", "A file", "💾", "var(--chip)"));
-  tiles.push(appTile("copy", "Just copy it", "⧉", "var(--chip)"));
+  const linux = document.documentElement.dataset.os === "linux";      // many Linux systems have no colour emoji font: draw them
+  tiles.push(appTile("web", "A website", linux ? ICONS.web : "🌐", "var(--chip)"));
+  tiles.push(appTile("file", "A file", linux ? ICONS.file : "💾", "var(--chip)"));
+  tiles.push(appTile("copy", "Just copy it", linux ? ICONS.copy : "⧉", "var(--chip)"));
   $("#appGrid").innerHTML = tiles.join("");
   const ta = typeof S.target === "number" ? S.apps.find(a => a.key === S.target) : null;
   $("#intoRow").hidden = !(ta && ta.kind === "Desktop app");      // only desktop apps have a chat that can already be open
@@ -483,7 +491,7 @@ $("#btnSettings").onclick = () => {
   $("#sSize").innerHTML = Object.entries(SIZES).map(([k, v]) => `<option value="${k}" ${Number(k) === s.size ? "selected" : ""}>${esc(v)}</option>`).join("");
   $("#sLang").innerHTML = [["auto", "Automatic"], ...Object.entries(I18N.NAMES)].map(([k, v]) => `<option value="${k}" ${k === (s.language || "auto") ? "selected" : ""}${k === "auto" ? "" : ' translate="no"'}>${esc(v)}</option>`).join("");
   $("#sScrub").checked = s.scrub !== false; $("#sCompact").checked = !!s.compact;
-  $("#sAuto").checked = s.autopaste !== false;
+  $("#sAuto").checked = s.autopaste !== false && !$("#sAuto").disabled;
   $("#sUpdate").checked = s.update_check !== false; $("#sVersion").textContent = "You have version " + (s.version || "");
   $("#sToken").value = s.capture_token || ""; $("#sPort").textContent = s.capture_port || "not running";
   $("#sAbout").value = s.about_me || ""; $("#sPriceIn").value = s.price_in || ""; $("#sPriceOut").value = s.price_out || "";
@@ -645,7 +653,7 @@ async function sendChat() {
   $("#dInput").value = ""; bubble("user", t); hist.push({role: "user", content: t}); askModel();
 }
 $("#dSend").onclick = sendChat;
-$("#dInput").addEventListener("keydown", e => { if (e.key === "Enter" && e.ctrlKey) sendChat(); });
+$("#dInput").addEventListener("keydown", e => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) sendChat(); });
 
 /* ---------- startup ---------- */
 async function rescan(manual = false) {
@@ -667,10 +675,30 @@ async function rescan(manual = false) {
       : `Nothing new — found ${S.apps.length} apps and ${S.chats.length} conversations.`, "good", 5000);
   }
 }
+/* macOS and Linux words for the few Windows-only ones on the screen (before translating, so each has its own translation) */
+function osWording(os, canPaste) {
+  document.documentElement.dataset.os = os || "windows";
+  const set = (sel, from, to) => { const el = $(sel); if (!el) return;
+    for (const n of el.childNodes) if (n.nodeType === 3 && n.nodeValue.includes(from)) n.nodeValue = n.nodeValue.replace(from, to); };
+  if (os === "mac" || os === "linux") {
+    FONTS = {sans: "Easy to read", code: "Programmer style"};          // Segoe UI, Cascadia and Consolas are Windows fonts
+    set("#mTools label.f", "Missing something you installed? Add it by its name in the Start menu",
+        os === "mac" ? "Missing something you installed? Add it by its name in the Applications folder" : "Missing something you installed? Add it by its name in your app menu");
+    set("#aEdit", "Open the app rules in Notepad", "Open the app rules in a text editor");
+    const privacy = [...document.querySelectorAll("#mHelp .note")].find(n => n.textContent.includes("your Windows user name"));
+    if (privacy) privacy.textContent = "It removes passwords, keys, email addresses, phone numbers and your user name. If a conversation is very long, it trims big blocks of code or output so the AI can handle it, and tells you when it does. You can change both in Settings.";
+  }
+  if (!canPaste) {                    // Linux Wayland: no app may press keys in another, so ChatBridge copies and the person pastes
+    const box = $("#sAuto"); box.checked = false; box.disabled = true;
+    for (const n of box.parentElement.childNodes) if (n.nodeType === 3 && n.nodeValue.trim()) n.nodeValue = " Paste into the app automatically after opening it (not available on this desktop)";
+  }
+}
+
 async function start() {
   const b = await api().bootstrap();
   S.chats = b.chats; S.apps = b.apps; S.web = b.web || []; S.settings = b.settings; S.toolsChosen = !!b.tools_chosen;
-  I18N.init(b.settings.language);                                       // translate the fixed text, then everything that appears later
+  osWording(b.os, b.can_paste);
+  I18N.init(b.settings.language, {swaps: b.os === "mac" ? [["Ctrl+", "Cmd+"], ["Strg+", "Cmd+"]] : []});   // translate the fixed text, then everything that appears later
   applySettings(); rememberTarget(); renderAll();
   if (!b.welcomed) { open("#mWelcome"); } else { showWhatsNew(); }   // new users get the welcome; people who updated get what's new
   if (!b.welcomed) api().whats_new();                                  // just records the version so it isn't "new" next time

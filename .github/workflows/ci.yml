@@ -10,14 +10,18 @@ permissions:
 
 jobs:
   test:
-    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-15, ubuntu-22.04]      # the desktop app runs on all three
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
       - name: Install
-        run: pip install pywebview pillow
+        run: pip install pywebview==6.2.1 pillow
       - name: Run the tests
         run: python -W ignore -m unittest discover -s tests -v
       - uses: actions/setup-node@v4

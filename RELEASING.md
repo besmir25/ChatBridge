@@ -23,7 +23,8 @@ Add `-beta1` for a trial release (`1.2.0-beta1`). GitHub marks it as a pre-relea
    (In GitHub Desktop: commit and push; then open the **History** tab, right-click the newest commit → **Create Tag…**, name it
    `v1.1.0`, and click **Push origin** again. Check the tag appears on GitHub under *Releases → Tags*.)
 4. GitHub Actions runs the tests, builds the app, installer and extension, writes the checksums, and publishes the release with
-   your changelog text. Watch it under the repository's **Actions** tab. It takes a few minutes.
+   your changelog text. Then it adds the macOS `.dmg` files (Apple Silicon and Intel), the Linux AppImage and the Android APK
+   to the same release. Watch it under the repository's **Actions** tab. It takes about 15 minutes.
 5. The in-app update check then shows **Update available** to everyone on an older version, with your release notes, and shows
    **What's new** the first time they open the new version.
 
@@ -48,6 +49,26 @@ An unsigned installer shows Windows SmartScreen's "unknown publisher" warning. O
 Signing doesn't remove the warning instantly; Windows builds reputation for a publisher over time.
 Check each provider's current terms before you buy or apply.
 
+## Signing and notarizing the macOS app (one-time setup)
+Without this the `.dmg` is still built, but unsigned: macOS says it "can't be opened" until the person right-clicks → Open.
+1. Join the **Apple Developer Program** (developer.apple.com, $99/year) with your Apple ID.
+2. On a Mac, in Xcode → *Settings → Accounts → Manage Certificates*, add a **Developer ID Application** certificate.
+   In *Keychain Access*, export it (with its private key) as a `.p12` file and choose a password.
+3. At appleid.apple.com → *Sign-In and Security → App-Specific Passwords*, create one named "ChatBridge notarization".
+4. In the GitHub repository → *Settings → Secrets and variables → Actions → New repository secret*, add:
+
+   | Secret | Value |
+   |---|---|
+   | `MACOS_CERT_P12_BASE64` | the `.p12` file as base64 (on a Mac: `base64 -i cert.p12 \| pbcopy`) |
+   | `MACOS_CERT_PASSWORD` | the password you chose for the `.p12` |
+   | `MACOS_SIGN_IDENTITY` | the certificate's name, e.g. `Developer ID Application: Your Name (ABCDE12345)` |
+   | `APPLE_ID` | your Apple ID email |
+   | `APPLE_TEAM_ID` | the 10-character Team ID (developer.apple.com → Membership) |
+   | `APPLE_APP_PASSWORD` | the app-specific password from step 3 |
+
+The next tagged release is then signed, notarized and stapled automatically (`build_unix.py` does it; the workflow checks
+it with `spctl`). Secrets are never printed in the logs and never stored in the repository.
+
 ## Before every release: the test pass
 
 Automated (must be green): `python -W ignore -m unittest discover -s tests`, then once with `CHATBRIDGE_GUI_TESTS=1`.
@@ -67,6 +88,9 @@ By hand, on the built app (`dist\ChatBridge\ChatBridge.exe`) — about 15 minute
 8. **Install** the release installer over the previous version (settings and conversations are kept), then **uninstall**.
 9. **Clean machine or second Windows account**: install, start, and check the empty-list message makes sense.
 10. Look at the changelog entry: plain words, no jargon.
+11. **macOS and Linux** (the release adds them automatically; check them on a real machine when you can): the app opens and lists
+    chats; *Just copy it* and *A website* work; on macOS, pasting into an app works after allowing Accessibility; on Linux,
+    pasting works on an X11 desktop, and on Wayland the app opens and you paste yourself.
 
 If any step fails, fix it first. Don't tag a release with a known broken step.
 

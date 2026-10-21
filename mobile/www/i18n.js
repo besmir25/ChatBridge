@@ -3,6 +3,7 @@
    Keys with {name} are patterns: the matching parts are filled into the translation (and translated themselves if they have an entry).
    After init() everything that appears on the page is translated: the fixed text, and text the app adds later (a MutationObserver).
    Text inside translate="no" (chat titles, messages, file names) is never touched. Anything without an entry stays English.
+   init(lang, {swaps: [["Ctrl+V", "Cmd+V"]]}) also swaps words after translating, in every language including English (macOS key names).
    Used by both the Windows screen (ui/) and the phone screen (mobile/www/); mobile/www/i18n.js must be an identical copy. */
 (function (root, factory) {
   const api = factory();
@@ -12,7 +13,7 @@
   "use strict";
   const NAMES = {en: "English", es: "Español", "pt-BR": "Português (Brasil)", fr: "Français", de: "Deutsch", "zh-CN": "简体中文", ja: "日本語"};
   const packs = {};
-  let dict = {}, patterns = [], active = "en", observer = null;
+  let dict = {}, patterns = [], active = "en", observer = null, swaps = [];
   const cache = new Map();
   const NUMERIC = new Set(["n", "total", "on", "a", "c", "tokens"]);   // these placeholders only ever match numbers
 
@@ -63,12 +64,14 @@
     return out;
   }
 
+  const swap = s => { for (const [a, b] of swaps) s = s.split(a).join(b); return s; };
+
   /* translate a string, keeping its leading and trailing spaces */
   function tr(text) {
-    if (active === "en" || typeof text !== "string") return text;
+    if ((active === "en" && !swaps.length) || typeof text !== "string") return text;
     const m = /^(\s*)([\s\S]*?)(\s*)$/.exec(text);
     if (!m || !m[2]) return text;
-    const out = trCore(m[2]);
+    const out = swap(active === "en" ? m[2] : trCore(m[2]));
     return out === m[2] ? text : m[1] + out + m[3];
   }
 
@@ -97,15 +100,16 @@
   function setHtml() {                                     // paragraphs with bold parts are translated as a whole: <p data-i18n-html="help.step1">
     for (const el of document.querySelectorAll("[data-i18n-html]")) {
       const v = dict["html:" + el.dataset.i18nHtml];
-      if (v !== undefined) el.innerHTML = v;
+      if (v !== undefined) el.innerHTML = swap(v);
     }
   }
 
-  function init(pref) {
+  function init(pref, opts) {
     active = pick(pref);
+    swaps = (opts && Array.isArray(opts.swaps) ? opts.swaps : []).filter(s => Array.isArray(s) && s.length === 2 && s[0]);
     document.documentElement.lang = active;
-    if (active === "en") return active;
-    compile(packs[active]);
+    if (active === "en" && !swaps.length) return active;
+    compile(active === "en" ? {} : packs[active]);
     setHtml();
     walk(document.body);
     if (!observer && typeof MutationObserver !== "undefined") {
@@ -122,6 +126,6 @@
   }
 
   /* for tests and for code that needs a translated string right now */
-  function use(code) { active = code; compile(packs[code]); return active; }
+  function use(code, opts) { active = code; swaps = (opts && opts.swaps) || []; compile(packs[code]); return active; }
   return {NAMES, packs, init, pick, tr, use, get lang() { return active; }};
 });

@@ -4,7 +4,7 @@
 
 **Lleva una conversación (o un proyecto de código completo) de una app de IA a otra, sin empezar de cero.**
 
-![Licencia: MIT](https://img.shields.io/badge/license-MIT-2dd4bf) ![Plataforma: Windows 10/11](https://img.shields.io/badge/platform-Windows%2010%2F11-60a5fa) ![Funciona en local](https://img.shields.io/badge/data-stays%20on%20your%20PC-34d399)
+![Licencia: MIT](https://img.shields.io/badge/license-MIT-2dd4bf) ![Plataforma: Windows, macOS, Linux](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-60a5fa) ![Funciona en local](https://img.shields.io/badge/data-stays%20on%20your%20PC-34d399)
 
 > Esta es una traducción. La versión en inglés ([README.md](README.md)) es la de referencia. La aplicación también está disponible en español: se elige sola según el idioma de Windows, o en **Settings → Language**. Aquí los nombres de los botones se dejan en inglés; en la app los verás en tu idioma.
 
@@ -45,6 +45,18 @@ Descarga **`ChatBridge-Setup.exe`** desde la página de [Releases](../../release
 ChatBridge es nuevo y todavía no está firmado digitalmente, por eso Windows SmartScreen muestra un aviso azul o rojo para cualquier programa que no ha visto muchas veces. No significa que algo vaya mal. Para continuar, haz clic en **Más información** y luego en **Ejecutar de todas formas**. Cada versión incluye una suma SHA-256 (`SHA256SUMS.txt`) por si quieres verificar la descarga antes. Se ha solicitado la firma de código gratuita (consulta la [política de firma de código](CODE_SIGNING_POLICY.md)), que eliminará el aviso.
 
 **Requisitos:** Windows 10 u 11 con el runtime Microsoft Edge WebView2 (ya incluido en Windows 11).
+
+### macOS
+Descarga **`ChatBridge-<versión>-mac-arm64.dmg`** (Apple Silicon: M1 o posterior) o **`…-mac-x86_64.dmg`** (Mac con Intel), ábrelo y arrastra ChatBridge a *Aplicaciones*. Requiere macOS 11 o posterior.
+- Para que ChatBridge pegue en la app que elegiste, permítelo una vez: *Ajustes del Sistema → Privacidad y seguridad → Accesibilidad →* activa ChatBridge. Sin eso, copia la conversación y abre la app, y tú pulsas **Cmd+V**.
+
+### Linux
+Descarga **`ChatBridge-<versión>-x86_64.AppImage`**, hazlo ejecutable y ábrelo:
+```bash
+chmod +x ChatBridge-*-x86_64.AppImage && ./ChatBridge-*-x86_64.AppImage
+```
+- Para copiar hace falta `wl-clipboard` (Wayland) o `xclip` (X11). Si el AppImage no arranca, instala `libfuse2`.
+- **Pegar por ti funciona en escritorios X11** (con `xdotool`). En **Wayland**, Linux no deja que una app escriba en otra: ChatBridge copia la conversación y abre la app, y tú pegas con **Ctrl+V**.
 
 ## Extensión de navegador (opcional)
 

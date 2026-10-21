@@ -30,6 +30,7 @@ TEXTS_SCRUB = [
     "email me at jane.doe@example.com or call (415) 555-0172 please",
     "OPENAI_API_KEY=abcdefghijk123456 and password: \"correct horse battery\" and token = 'short'",
     "path C:\\Users\\Besmir\\Documents\\x and C:/Users/Jane/file and C:\\\\Users\\\\Bob\\\\y",
+    "mac /Users/jo.doe/proj/a.py linux /home/sam/x.txt (\"/home/kim\") but not https://example.com/home/page or a/home/b",
     "postgres://admin:s3cretpass@db.example.com/prod",
     "-----BEGIN RSA PRIVATE KEY----- abc ghp_" + "a" * 36,
     "nothing private here, just words", ""]

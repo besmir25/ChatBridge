@@ -291,5 +291,15 @@ I18N.packs["ja"] = {
  "Pick a desktop app first.": "先にデスクトップアプリを選んでください。",
  "Testing works for desktop apps.": "テストはデスクトップアプリ用です。",
  "Nothing to continue yet.": "続けるものがまだありません。",
- "The extension folder wasn't found next to the app.": "アプリの隣に拡張機能のフォルダーが見つかりませんでした。"
+ "The extension folder wasn't found next to the app.": "アプリの隣に拡張機能のフォルダーが見つかりませんでした。",
+ "Missing something you installed? Add it by its name in the Applications folder": "インストールしたものが見当たらない場合は、「アプリケーション」フォルダでの名前で追加します",
+ "Missing something you installed? Add it by its name in your app menu": "インストールしたものが見当たらない場合は、アプリメニューでの名前で追加します",
+ "Open the app rules in a text editor": "テキストエディタでアプリのルールを開く",
+ "It removes passwords, keys, email addresses, phone numbers and your user name. If a conversation is very long, it trims big blocks of code or output so the AI can handle it, and tells you when it does. You can change both in Settings.": "パスワード、キー、メールアドレス、電話番号、ユーザー名を取り除きます。会話がとても長い場合は、AI が扱えるように大きなコードや出力のかたまりを短くし、そのときはお知らせします。どちらも設定で変更できます。",
+ "{name} opened in a terminal. Press Ctrl+Shift+V there to paste.": "{name} をターミナルで開きました。そこで Ctrl+Shift+V を押して貼り付けます。",
+ "{name} opened in a terminal. Press Ctrl+V there to paste.": "{name} をターミナルで開きました。そこで Ctrl+V を押して貼り付けます。",
+ "To paste for you on a Mac, ChatBridge needs permission: System Settings → Privacy & Security → Accessibility → turn on ChatBridge. For now, click the message box and press Ctrl+V.": "Mac で代わりに貼り付けるには、ChatBridge に許可が必要です：システム設定 → プライバシーとセキュリティ → アクセシビリティ → ChatBridge をオンにします。今はメッセージ欄をクリックして Ctrl+V を押してください。",
+ "Paste into the app automatically after opening it (not available on this desktop)": "アプリを開いた後に自動で貼り付ける（このデスクトップでは使用できません）",
+ "Easy to read": "読みやすい",
+ "Programmer style": "プログラマー向け"
 };

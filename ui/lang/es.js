@@ -291,5 +291,15 @@ I18N.packs["es"] = {
  "Pick a desktop app first.": "Elige primero una app de escritorio.",
  "Testing works for desktop apps.": "La prueba funciona con apps de escritorio.",
  "Nothing to continue yet.": "Aún no hay nada que continuar.",
- "The extension folder wasn't found next to the app.": "No se encontró la carpeta de la extensión junto a la app."
+ "The extension folder wasn't found next to the app.": "No se encontró la carpeta de la extensión junto a la app.",
+ "Missing something you installed? Add it by its name in the Applications folder": "¿Falta algo que instalaste? Añádelo por su nombre en la carpeta Aplicaciones",
+ "Missing something you installed? Add it by its name in your app menu": "¿Falta algo que instalaste? Añádelo por su nombre en el menú de aplicaciones",
+ "Open the app rules in a text editor": "Abrir las reglas de las apps en un editor de texto",
+ "It removes passwords, keys, email addresses, phone numbers and your user name. If a conversation is very long, it trims big blocks of code or output so the AI can handle it, and tells you when it does. You can change both in Settings.": "Quita contraseñas, claves, direcciones de correo, números de teléfono y tu nombre de usuario. Si una conversación es muy larga, recorta los bloques grandes de código o de salida para que la IA pueda manejarla, y te avisa cuando lo hace. Puedes cambiar ambas cosas en Ajustes.",
+ "{name} opened in a terminal. Press Ctrl+Shift+V there to paste.": "{name} se abrió en un terminal. Pulsa Ctrl+Shift+V allí para pegar.",
+ "{name} opened in a terminal. Press Ctrl+V there to paste.": "{name} se abrió en un terminal. Pulsa Ctrl+V allí para pegar.",
+ "To paste for you on a Mac, ChatBridge needs permission: System Settings → Privacy & Security → Accessibility → turn on ChatBridge. For now, click the message box and press Ctrl+V.": "Para pegar por ti en un Mac, ChatBridge necesita permiso: Ajustes del Sistema → Privacidad y seguridad → Accesibilidad → activa ChatBridge. Por ahora, haz clic en el cuadro de mensaje y pulsa Ctrl+V.",
+ "Paste into the app automatically after opening it (not available on this desktop)": "Pegar en la app automáticamente después de abrirla (no disponible en este escritorio)",
+ "Easy to read": "Fácil de leer",
+ "Programmer style": "Estilo programador"
 };

@@ -4,7 +4,7 @@
 
 **Move a conversation — or a whole code project — from one AI app to another, without starting over.**
 
-![License: MIT](https://img.shields.io/badge/license-MIT-2dd4bf) ![Platform: Windows 10/11](https://img.shields.io/badge/platform-Windows%2010%2F11-60a5fa) ![Runs locally](https://img.shields.io/badge/data-stays%20on%20your%20PC-34d399)
+![License: MIT](https://img.shields.io/badge/license-MIT-2dd4bf) ![Platform: Windows, macOS, Linux](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-60a5fa) ![Runs locally](https://img.shields.io/badge/data-stays%20on%20your%20PC-34d399)
 
 You started a conversation in one AI and want to continue it in another — or hand a project to a new model. Today that means
 copying and pasting, losing context, and re-explaining everything. ChatBridge does it in three simple steps.
@@ -46,12 +46,15 @@ copying and pasting, losing context, and re-explaining everything. ChatBridge do
 | ![Choose which tools to show](docs/screenshots/tools.png) | ![Send history](docs/screenshots/history.png) |
 | ![A dark look, from Settings](docs/screenshots/themes.png) | |
 
-> The screenshots use sample data and placeholder icons. On your PC ChatBridge shows each app's real icon, taken from Windows.
+> The screenshots use sample data and placeholder icons. On your computer ChatBridge shows each app's real icon.
 
 ## Install
 
-Download **`ChatBridge-Setup.exe`** from the [Releases](../../releases) page and run it. It installs for your Windows account
-only and needs no administrator rights. It also installs an uninstaller you can reach from *Settings → Apps*.
+Everything is on the [Releases](../../releases) page.
+
+### Windows
+Download **`ChatBridge-Setup.exe`** and run it. It installs for your Windows account only and needs no administrator rights.
+It also installs an uninstaller you can reach from *Settings → Apps*.
 
 ### If Windows says "Windows protected your PC"
 ChatBridge is new and not code-signed yet, so Windows SmartScreen shows a blue or red box for any program it hasn't seen
@@ -60,6 +63,23 @@ Each release lists a SHA-256 checksum (`SHA256SUMS.txt`) if you want to verify t
 for (see [Code signing policy](#code-signing-policy)), which will remove the warning.
 
 **Requirements:** Windows 10 or 11 with the Microsoft Edge WebView2 runtime (already included in Windows 11).
+
+### macOS
+Download **`ChatBridge-<version>-mac-arm64.dmg`** (Apple Silicon: M1 and newer) or **`…-mac-x86_64.dmg`** (Intel Macs), open it
+and drag ChatBridge into *Applications*. Needs macOS 11 or newer.
+- To let ChatBridge paste into the app you picked, allow it once: *System Settings → Privacy & Security → Accessibility →*
+  turn on ChatBridge. Without that it copies the conversation and opens the app, and you press **Cmd+V** yourself.
+- If a release isn't notarized yet, macOS says it "can't be opened": right-click ChatBridge in *Applications* → **Open** → **Open**.
+
+### Linux
+Download **`ChatBridge-<version>-x86_64.AppImage`**, make it executable and run it:
+```bash
+chmod +x ChatBridge-*-x86_64.AppImage && ./ChatBridge-*-x86_64.AppImage
+```
+- Copying needs `wl-clipboard` (Wayland) or `xclip` (X11), which most desktops already have
+  (`sudo apt install wl-clipboard xclip` otherwise). If the AppImage won't start, install `libfuse2`.
+- **Pasting for you works on X11 desktops** (with `xdotool` installed). On **Wayland**, Linux doesn't let one app type into
+  another, so ChatBridge copies the conversation and opens the app, and you paste with **Ctrl+V**.
 
 ## Browser extension (optional)
 
@@ -91,14 +111,18 @@ work, please [open an issue](../../issues/new/choose) — it's usually a one-lin
 
 ## Build from source
 
-Python 3.9+ on Windows:
+Python 3.9+:
 
 ```bash
-pip install pywebview pyinstaller pillow
+pip install pywebview pyinstaller pillow      # on Linux also: pip install PyQt6 PyQt6-WebEngine  (or use your system's WebKitGTK)
 python chatbridge_app.py                      # run it
-python -m unittest discover -s tests -v       # 80 tests
-python make_release.py                        # tests, then build the app and the installer into release/
+python -m unittest discover -s tests -v       # the tests (they run on Windows, macOS and Linux)
+python make_release.py                        # Windows: tests, then the app and the installer into release/
+python build_unix.py                          # macOS: a .dmg   Linux: an AppImage  (see the notes at the top of the file)
 ```
+
+Everything that differs between Windows, macOS and Linux (settings folder, clipboard, finding and opening apps, pressing keys)
+is in `desktop.py`.
 
 Set `CHATBRIDGE_GUI_TESTS=1` to also run tests that open a fake chat window (they briefly use the clipboard and keyboard).
 Releasing is described in [RELEASING.md](RELEASING.md).

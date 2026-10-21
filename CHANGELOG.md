@@ -3,6 +3,12 @@
 Newest first. Add new entries under **Unreleased**; `python bump_version.py X.Y.Z` turns that section into the release.
 
 ## Unreleased
+- **ChatBridge now runs on macOS and Linux too.** macOS: a `.dmg` for Apple Silicon and one for Intel Macs (macOS 11 or newer).
+  Linux: an AppImage that runs on most distributions. It finds the same conversations (Claude Code, Codex, Gemini CLI,
+  LM Studio, Jan), finds the AI apps in your Applications folder or app menu, and pastes for you where the system allows it
+  (macOS after allowing Accessibility; Linux on X11 desktops; on Wayland it copies and opens the app and you paste)
+- Privacy scrubbing now also hides your user name in macOS (`/Users/…`) and Linux (`/home/…`) file paths, on the PC and the phone
+- On a Mac the app says Cmd+V instead of Ctrl+V, in every language
 - **Android, Google Play preparation**: the app now targets Android 16 (API 36, Capacitor 8) and draws edge to edge with correct status and navigation bar colours in the light and night looks; a signed release bundle (.aab) can be built with `mobile\build-release.ps1`; the app can read the .zip your ChatGPT or Claude export gives you; sharing only a link opens Help with the right tip; phones whose web view is too old show a clear message instead of a blank screen
 - Safer on Android: an uncompressed-size cap on zip files that is checked while unpacking, size limits on shared text, only content:// files accepted when sharing in, and exported files are kept in one folder that is cleared on the next export
 - Store listing text says the privacy hiding is a safeguard, not a guarantee

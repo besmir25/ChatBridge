@@ -53,3 +53,14 @@ test("messages the phone builds are translated", () => {
   I18N.use("ja");
   assert.equal(I18N.tr("Share to an app…"), "アプリに共有…");
 });
+
+test("macOS key names are swapped after translating, in English too", () => {
+  const swaps = [["Ctrl+", "Cmd+"], ["Strg+", "Cmd+"]];
+  I18N.use("en", {swaps});
+  assert.equal(I18N.tr("Copied. Paste it anywhere with Ctrl+V."), "Copied. Paste it anywhere with Cmd+V.");
+  I18N.use("de", {swaps});
+  assert.ok(!/Strg\+|Ctrl\+/.test(I18N.tr("Copied. Paste it anywhere with Ctrl+V.")));
+  I18N.use("de");
+  assert.equal(I18N.tr("Copied. Paste it anywhere with Ctrl+V."), P.de["Copied. Paste it anywhere with Ctrl+V."]);   // no swaps: unchanged
+  I18N.use("en");
+});

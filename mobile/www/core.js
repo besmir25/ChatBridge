@@ -41,7 +41,7 @@
     "|AccountKey=[A-Za-z0-9+/=]{20,}|-----BEGIN [A-Z ]*PRIVATE KEY-----)", "g");
   const EMAIL = /(?<![\w.+-])[\w.+-]{1,64}@[\w-]{1,63}(?:\.[\w-]{1,63})+/g;
   const PHONE = /(?<!\d)(?:\+?1[\s.-]?)?\(?\d{3}\)?[\s.-]\d{3}[\s.-]\d{4}(?!\d)/g;
-  const USER_PATH = /(C:(?:\\{1,4}|\/)Users(?:\\{1,4}|\/))[^\\/\s"'<>|]+/gi;
+  const USER_PATH = /([Cc]:(?:\\{1,4}|\/)[Uu][Ss][Ee][Rr][Ss](?:\\{1,4}|\/)|(?<![\w.~-])\/(?:Users|home)\/)[^\\/\s"'<>|]+/g;   // Windows, macOS, Linux
   const KEY_ASSIGN = /([\w.-]{0,40}(?:api[_-]?key|secret|token|passw(?:or)?d|pwd|auth)[\w.-]{0,40})(\s*[:=]\s*)(?:"[^"\n]{4,200}"|'[^'\n]{4,200}'|[^\s"']{8,})/gi;
 
   function scrubText(text, secrets = true, personal = true) {

@@ -7,11 +7,13 @@ ChatBridge runs entirely on your PC. It has no account, no analytics, no ads and
 ## What it reads
 - **Chats and projects you choose.** It looks for chat files that other apps keep on this PC (for example Claude Code's
   session logs) and for project folders you pick. It reads them only to list them and to build what you send.
-- **Which AI apps are installed**, from your Start menu and installed-programs list, so it can show them as tiles.
+- **Which AI apps are installed**, from your Start menu and installed-programs list (Windows), the Applications folder
+  (macOS) or the app menu (Linux), so it can show them as tiles.
 - **Your clipboard**, only to place the text you're sending on it.
 
 ## What it stores
-Everything is under `%APPDATA%\ChatBridge`: your library, settings, send history, an icon cache, a pairing code for the
+Everything is in one folder: `%APPDATA%\ChatBridge` on Windows, `~/Library/Application Support/ChatBridge` on macOS,
+`~/.config/ChatBridge` on Linux. It holds your library, settings, send history, an icon cache, a pairing code for the
 browser extension, and a log file. Nothing is encrypted. Delete the folder to remove it all. Uninstalling keeps it unless
 you choose to remove it.
 
@@ -29,7 +31,7 @@ you choose to remove it.
 - It never uploads your chats or files to a server.
 - Project folders: `.env` files, key files, and any file that looks like it contains an API key or password are left out
   before anything is built. The *Scrub private info* option additionally removes keys, emails, phone numbers and your
-  Windows user name from chats before sending. This is a safeguard, not a guarantee — look at what you're sending.
+  user name in file paths (Windows, macOS and Linux) from chats before sending. This is a safeguard, not a guarantee — look at what you're sending.
 
 ## The Android app
 - It has no account and no servers, and it asks Android for **no permissions**, not even the internet.

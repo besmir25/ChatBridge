@@ -29,7 +29,7 @@ jobs:
           fi
 
       - name: Install
-        run: pip install pywebview pyinstaller pillow
+        run: pip install pywebview==6.2.1 pyinstaller pillow
 
       - name: Check the tag matches the version inside the app
         shell: python
@@ -60,6 +60,93 @@ jobs:
           else
             gh release create "$GITHUB_REF_NAME" $FILES --title "$TITLE" --notes-file "$NOTES" $FLAGS
           fi
+
+  # macOS: one .dmg for Apple Silicon and one for Intel Macs. Signed and notarized when the Apple secrets exist (see RELEASING.md);
+  # without them the .dmg is unsigned and macOS warns on first open. If this fails, the Windows release above stays published.
+  mac:
+    needs: release
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [macos-15, macos-15-intel]
+    runs-on: ${{ matrix.runner }}
+    env:
+      HAS_MAC_CERT: ${{ secrets.MACOS_CERT_P12_BASE64 != '' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false   # the build never needs git access; uploads use GH_TOKEN
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install
+        run: pip install pywebview==6.2.1 pyinstaller pillow
+      - name: Put the signing certificate in a temporary keychain
+        env:
+          CERT_P12: ${{ secrets.MACOS_CERT_P12_BASE64 }}
+          CERT_PASSWORD: ${{ secrets.MACOS_CERT_PASSWORD }}
+        if: env.HAS_MAC_CERT == 'true'
+        run: |
+          KC="$RUNNER_TEMP/build.keychain-db"; KCPW="$(uuidgen)"
+          echo "$CERT_P12" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          security create-keychain -p "$KCPW" "$KC"
+          security set-keychain-settings -lut 21600 "$KC"
+          security unlock-keychain -p "$KCPW" "$KC"
+          security import "$RUNNER_TEMP/cert.p12" -P "$CERT_PASSWORD" -f pkcs12 -k "$KC" -T /usr/bin/codesign -T /usr/bin/security
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$KCPW" "$KC"
+          security list-keychains -d user -s "$KC" $(security list-keychains -d user | tr -d '"')
+          rm "$RUNNER_TEMP/cert.p12"
+      - name: Test and build the .dmg
+        env:
+          MACOS_SIGN_IDENTITY: ${{ secrets.MACOS_SIGN_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+        run: python build_unix.py
+      - name: Check the app starts
+        run: |
+          APP=dist/ChatBridge.app/Contents/MacOS/ChatBridge
+          test -x "$APP"
+          "$APP" & PID=$!; sleep 20
+          if kill -0 $PID 2>/dev/null; then echo "still running after 20 s: OK"; kill $PID; else echo "it quit"; cat "$HOME/Library/Application Support/ChatBridge/chatbridge.log" || true; exit 1; fi
+      - name: Attach it to the release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload "$GITHUB_REF_NAME" release/*.dmg release/SHA256SUMS-mac-*.txt --clobber
+
+  # Linux: an AppImage (one file that runs on most distributions). Built on the oldest supported Ubuntu so it runs on older systems too.
+  linux:
+    needs: release
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false   # the build never needs git access; uploads use GH_TOKEN
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libfuse2 libxcb-cursor0 libxkbcommon-x11-0 libxcb-icccm4 libxcb-keysyms1 libxcb-shape0 libegl1 xvfb
+          pip install "pywebview[qt]==6.2.1" PyQt6 PyQt6-WebEngine pyinstaller pillow
+          curl -fsSL -o "$RUNNER_TEMP/appimagetool" https://github.com/AppImage/appimagetool/releases/download/1.9.1/appimagetool-x86_64.AppImage
+          echo "ed4ce84f0d9caff66f50bcca6ff6f35aae54ce8135408b3fa33abfc3cb384eb0  $RUNNER_TEMP/appimagetool" | sha256sum -c -   # a pinned, checked tool
+          chmod +x "$RUNNER_TEMP/appimagetool"
+      - name: Test and build the AppImage
+        env:
+          APPIMAGETOOL: ${{ runner.temp }}/appimagetool
+        run: python build_unix.py
+      - name: Check the app starts
+        run: |
+          IMG=$(ls release/*.AppImage)
+          chmod +x "$IMG"
+          xvfb-run -a "$IMG" & sleep 25
+          if pgrep -f "usr/lib/chatbridge/ChatBridge" >/dev/null; then echo "running: OK"; pkill -f "usr/lib/chatbridge/ChatBridge"; else echo "it quit"; cat "$HOME/.config/ChatBridge/chatbridge.log" || true; exit 1; fi
+      - name: Attach it to the release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload "$GITHUB_REF_NAME" release/*.AppImage release/SHA256SUMS-linux.txt --clobber
 
   # The phone app: built on GitHub's Linux machines and attached to the same release. If this fails, the Windows release above stays published.
   android:

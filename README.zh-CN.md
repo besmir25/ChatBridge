@@ -4,7 +4,7 @@
 
 **把一段对话（或整个代码项目）从一个 AI 应用带到另一个，无需从头再来。**
 
-![许可证：MIT](https://img.shields.io/badge/license-MIT-2dd4bf) ![平台：Windows 10/11](https://img.shields.io/badge/platform-Windows%2010%2F11-60a5fa) ![本地运行](https://img.shields.io/badge/data-stays%20on%20your%20PC-34d399)
+![许可证：MIT](https://img.shields.io/badge/license-MIT-2dd4bf) ![平台：Windows、macOS、Linux](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-60a5fa) ![本地运行](https://img.shields.io/badge/data-stays%20on%20your%20PC-34d399)
 
 > 这是翻译版本，以英文版（[README.md](README.md)）为准。应用也提供简体中文界面：会根据 Windows 的语言自动选择，也可在 **Settings → Language** 中更改。这里的按钮名称保留英文，在应用中你会看到中文。
 
@@ -45,6 +45,18 @@
 ChatBridge 是新软件，尚未进行代码签名，所以对任何 Windows SmartScreen 见得不多的程序，它都会弹出蓝色或红色的提示框。这并不表示有问题。要继续，请点击**更多信息**，然后点击**仍要运行**。每个版本都附有 SHA-256 校验值（`SHA256SUMS.txt`），方便你先验证下载文件。我们已申请免费代码签名（见[代码签名政策](CODE_SIGNING_POLICY.md)），获批后该提示将会消失。
 
 **系统要求：** Windows 10 或 11，并安装 Microsoft Edge WebView2 运行时（Windows 11 已内置）。
+
+### macOS
+下载 **`ChatBridge-<版本>-mac-arm64.dmg`**（Apple 芯片：M1 及更新机型）或 **`…-mac-x86_64.dmg`**（Intel Mac），打开后把 ChatBridge 拖到“应用程序”。需要 macOS 11 或更新版本。
+- 要让 ChatBridge 替你粘贴到所选应用，请允许一次：*系统设置 → 隐私与安全性 → 辅助功能 →* 打开 ChatBridge。否则它会复制对话并打开应用，由你按 **Cmd+V**。
+
+### Linux
+下载 **`ChatBridge-<版本>-x86_64.AppImage`**，设为可执行后运行：
+```bash
+chmod +x ChatBridge-*-x86_64.AppImage && ./ChatBridge-*-x86_64.AppImage
+```
+- 复制需要 `wl-clipboard`（Wayland）或 `xclip`（X11）。如果 AppImage 无法启动，请安装 `libfuse2`。
+- **在 X11 桌面上可以自动粘贴**（需要 `xdotool`）。在 **Wayland** 上，Linux 不允许一个应用向另一个应用输入：ChatBridge 会复制对话并打开应用，由你按 **Ctrl+V** 粘贴。
 
 ## 浏览器扩展（可选）
 

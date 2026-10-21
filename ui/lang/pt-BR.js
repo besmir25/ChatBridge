@@ -291,5 +291,15 @@ I18N.packs["pt-BR"] = {
  "Pick a desktop app first.": "Escolha primeiro um app de desktop.",
  "Testing works for desktop apps.": "O teste funciona com apps de desktop.",
  "Nothing to continue yet.": "Ainda não há nada para continuar.",
- "The extension folder wasn't found next to the app.": "A pasta da extensão não foi encontrada ao lado do app."
+ "The extension folder wasn't found next to the app.": "A pasta da extensão não foi encontrada ao lado do app.",
+ "Missing something you installed? Add it by its name in the Applications folder": "Falta algo que você instalou? Adicione pelo nome na pasta Aplicativos",
+ "Missing something you installed? Add it by its name in your app menu": "Falta algo que você instalou? Adicione pelo nome no menu de aplicativos",
+ "Open the app rules in a text editor": "Abrir as regras dos apps em um editor de texto",
+ "It removes passwords, keys, email addresses, phone numbers and your user name. If a conversation is very long, it trims big blocks of code or output so the AI can handle it, and tells you when it does. You can change both in Settings.": "Remove senhas, chaves, endereços de e-mail, números de telefone e seu nome de usuário. Se uma conversa for muito longa, corta blocos grandes de código ou de saída para a IA conseguir lidar com ela, e avisa quando faz isso. Você pode mudar as duas coisas em Configurações.",
+ "{name} opened in a terminal. Press Ctrl+Shift+V there to paste.": "{name} aberto em um terminal. Pressione Ctrl+Shift+V lá para colar.",
+ "{name} opened in a terminal. Press Ctrl+V there to paste.": "{name} aberto em um terminal. Pressione Ctrl+V lá para colar.",
+ "To paste for you on a Mac, ChatBridge needs permission: System Settings → Privacy & Security → Accessibility → turn on ChatBridge. For now, click the message box and press Ctrl+V.": "Para colar por você em um Mac, o ChatBridge precisa de permissão: Ajustes do Sistema → Privacidade e Segurança → Acessibilidade → ative o ChatBridge. Por enquanto, clique na caixa de mensagem e pressione Ctrl+V.",
+ "Paste into the app automatically after opening it (not available on this desktop)": "Colar no app automaticamente depois de abri-lo (não disponível nesta área de trabalho)",
+ "Easy to read": "Fácil de ler",
+ "Programmer style": "Estilo programador"
 };

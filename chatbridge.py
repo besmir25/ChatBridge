@@ -15,16 +15,16 @@ import time
 import urllib.error
 import urllib.request
 import uuid
-import tkinter as tk
-import tkinter.font as tkfont
-from tkinter import filedialog, messagebox, simpledialog, ttk
+try:   # only the old window (App below) uses tkinter; many Linux systems don't have it, and the engine doesn't need it
+    import tkinter as tk
+    import tkinter.font as tkfont
+    from tkinter import filedialog, messagebox, simpledialog, ttk
+except ImportError:
+    tk = tkfont = filedialog = messagebox = simpledialog = ttk = None
 
-try:
-    import winreg
-except ImportError:  # not on Windows
-    winreg = None
+import desktop
 
-APP_DIR = os.path.join(os.environ.get("APPDATA", os.path.expanduser("~")), "ChatBridge")
+APP_DIR = desktop.app_dir()       # %APPDATA%\ChatBridge, ~/Library/Application Support/ChatBridge or ~/.config/ChatBridge
 LIB_PATH = os.path.join(APP_DIR, "library.json")
 CFG_PATH = os.path.join(APP_DIR, "config.json")
 
@@ -362,7 +362,8 @@ _TOKEN_PIECE = re.compile(r"[A-Za-z]+|\d+|[^\sA-Za-z\d]")
 _ANSI = re.compile(r"\x1b\[[0-9;]*[A-Za-z]")
 _EMAIL = re.compile(r"(?<![\w.+-])[\w.+-]{1,64}@[\w-]{1,63}(?:\.[\w-]{1,63})+")   # the look-behind + caps keep this linear on long text
 _PHONE = re.compile(r"(?<!\d)(?:\+?1[\s.-]?)?\(?\d{3}\)?[\s.-]\d{3}[\s.-]\d{4}(?!\d)")
-_USER_PATH = re.compile(r"(?i)(C:(?:\\{1,4}|/)Users(?:\\{1,4}|/))[^\\/\s\"'<>|]+")   # C:\Users\x, C:\\Users\\x (JSON) and C:/Users/x
+_USER_PATH = re.compile(r"((?i:C:(?:\\{1,4}|/)Users(?:\\{1,4}|/))|(?<![\w.~-])/(?:Users|home)/)[^\\/\s\"'<>|]+")
+# C:\Users\x (also JSON-escaped, and C:/Users/x), /Users/x (macOS) and /home/x (Linux). Not inside web addresses: example.com/home/x
 _KEY_ASSIGN = re.compile(r"(?i)([\w.-]{0,40}(?:api[_-]?key|secret|token|passw(?:or)?d|pwd|auth)[\w.-]{0,40})(\s*[:=]\s*)"
                          r"(?:\"[^\"\n]{4,200}\"|'[^'\n]{4,200}'|[^\s\"']{8,})")   # quoted values may contain spaces
 
@@ -409,7 +410,7 @@ def compact_messages(msgs, aggressive=False):
 
 
 def scrub_text(text, secrets=True, personal=True):
-    """Remove API keys/passwords and (optionally) emails, phone numbers and the Windows user name in file paths."""
+    """Remove API keys/passwords and (optionally) emails, phone numbers and the user name in file paths."""
     counts = {"keys": 0, "emails": 0, "phones": 0, "paths": 0}
 
     def sub(rx, repl, key, s):
@@ -436,16 +437,8 @@ def add_history(entry, keep=100):
 
 
 def find_exe(name):
-    """Locate an installed app's main .exe, e.g. %LOCALAPPDATA%\\Programs\\Antigravity\\Antigravity.exe."""
-    from glob import glob
-    first = name.split()[0].lower()
-    for root in (os.path.join(os.environ.get("LOCALAPPDATA", ""), "Programs"),
-                 os.environ.get("ProgramFiles", ""), os.environ.get("ProgramFiles(x86)", "")):
-        for d in glob(os.path.join(root, first + "*")):
-            exe = os.path.join(d, first + ".exe")
-            if os.path.isfile(exe):
-                return exe
-    return shutil.which(first)
+    """Locate an installed app's main program, e.g. %LOCALAPPDATA%\\Programs\\Antigravity\\Antigravity.exe."""
+    return desktop.find_program(name)
 
 
 HANDOFF_DIR = os.path.join(os.path.expanduser("~"), "ChatBridge", "handoffs")
@@ -494,33 +487,8 @@ def scan_apps():
             found.setdefault((name, "Possible AI app"), {"name": name, "kind": "Possible AI app", "info": info,
                                                          "launch": launch, "base_url": None, "models": []})
 
-    try:  # Start menu entries cover classic and Microsoft Store apps
-        out = subprocess.run(["powershell", "-NoProfile", "-Command", "Get-StartApps | ConvertTo-Json -Compress"],
-                             capture_output=True, text=True, timeout=45, creationflags=0x08000000).stdout
-        apps = json.loads(out) if out.strip() else []
-        for a in [apps] if isinstance(apps, dict) else apps:
-            add(a["Name"], "Desktop app", "Start menu", "shell:AppsFolder\\" + a["AppID"])
-    except Exception:
-        pass
-    if winreg:  # installed-programs list (catches apps with no Start menu entry)
-        for hive, sub in ((winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"),
-                           (winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall"),
-                           (winreg.HKEY_CURRENT_USER, r"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall")):
-            try:
-                with winreg.OpenKey(hive, sub) as k:
-                    for i in range(winreg.QueryInfoKey(k)[0]):
-                        try:
-                            with winreg.OpenKey(k, winreg.EnumKey(k, i)) as s:
-                                name = winreg.QueryValueEx(s, "DisplayName")[0]
-                                try:
-                                    loc = winreg.QueryValueEx(s, "InstallLocation")[0]
-                                except OSError:
-                                    loc = ""
-                            add(name, "Desktop app", loc or "Installed program", loc if loc and os.path.isdir(loc) else None)
-                        except OSError:
-                            continue
-            except OSError:
-                continue
+    for name, info, launch in desktop.installed_apps():   # Start menu and installed programs / Applications folder / app menu
+        add(name, "Desktop app", info, launch)
     for exe in CLI_TOOLS:
         p = shutil.which(exe)
         if p:
@@ -896,13 +864,13 @@ def parse_jan(path):
 def discover_chats(limit=400):
     """Find chats that AI apps keep as readable files on this PC. Returns unsaved conversations."""
     from glob import glob
-    home, appdata = os.path.expanduser("~"), os.environ.get("APPDATA", "")
+    home = os.path.expanduser("~")
     sources = [
         (os.path.join(home, ".claude", "projects", "*", "*.jsonl"), parse_claude_code),
         (os.path.join(home, ".codex", "sessions", "**", "*.jsonl"), parse_codex),
         (os.path.join(home, ".gemini", "tmp", "*", "chats", "*.json"), parse_gemini_cli),
         (os.path.join(home, ".lmstudio", "conversations", "*.json"), parse_lmstudio),
-        (os.path.join(appdata, "Jan", "data", "threads", "*", "thread.json"), parse_jan),
+        (os.path.join(desktop.data_dir("Jan"), "data", "threads", "*", "thread.json"), parse_jan),
     ]
     out = []
     for pattern, parser in sources:
@@ -1108,7 +1076,7 @@ def call_model(cfg, system, msgs):
 
 
 # ---------------------------------------------------------------- UI
-class ScrollFrame(tk.Frame):
+class ScrollFrame(tk.Frame if tk else object):
     """A vertically scrolling container; put widgets in .inner."""
 
     def __init__(self, parent, bg):

@@ -291,5 +291,15 @@ I18N.packs["zh-CN"] = {
  "Pick a desktop app first.": "请先选择一个桌面应用。",
  "Testing works for desktop apps.": "测试仅适用于桌面应用。",
  "Nothing to continue yet.": "目前没有可继续的内容。",
- "The extension folder wasn't found next to the app.": "在应用旁边没有找到扩展文件夹。"
+ "The extension folder wasn't found next to the app.": "在应用旁边没有找到扩展文件夹。",
+ "Missing something you installed? Add it by its name in the Applications folder": "缺少你安装的程序？按它在“应用程序”文件夹中的名称添加",
+ "Missing something you installed? Add it by its name in your app menu": "缺少你安装的程序？按它在应用程序菜单中的名称添加",
+ "Open the app rules in a text editor": "用文本编辑器打开应用规则",
+ "It removes passwords, keys, email addresses, phone numbers and your user name. If a conversation is very long, it trims big blocks of code or output so the AI can handle it, and tells you when it does. You can change both in Settings.": "它会移除密码、密钥、电子邮件地址、电话号码和你的用户名。如果对话很长，它会精简大段代码或输出，方便 AI 处理，并在这样做时告诉你。这两项都可以在设置中更改。",
+ "{name} opened in a terminal. Press Ctrl+Shift+V there to paste.": "{name} 已在终端中打开。在那里按 Ctrl+Shift+V 粘贴。",
+ "{name} opened in a terminal. Press Ctrl+V there to paste.": "{name} 已在终端中打开。在那里按 Ctrl+V 粘贴。",
+ "To paste for you on a Mac, ChatBridge needs permission: System Settings → Privacy & Security → Accessibility → turn on ChatBridge. For now, click the message box and press Ctrl+V.": "要在 Mac 上替你粘贴，ChatBridge 需要权限：系统设置 → 隐私与安全性 → 辅助功能 → 打开 ChatBridge。现在请先点击消息框并按 Ctrl+V。",
+ "Paste into the app automatically after opening it (not available on this desktop)": "打开应用后自动粘贴（此桌面环境不支持）",
+ "Easy to read": "易读",
+ "Programmer style": "程序员风格"
 };

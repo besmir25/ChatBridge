@@ -4,7 +4,7 @@
 
 **会話（またはコードプロジェクト全体）を、最初からやり直さずに、ある AI アプリから別の AI アプリへ引き継げます。**
 
-![ライセンス: MIT](https://img.shields.io/badge/license-MIT-2dd4bf) ![プラットフォーム: Windows 10/11](https://img.shields.io/badge/platform-Windows%2010%2F11-60a5fa) ![ローカルで動作](https://img.shields.io/badge/data-stays%20on%20your%20PC-34d399)
+![ライセンス: MIT](https://img.shields.io/badge/license-MIT-2dd4bf) ![プラットフォーム: Windows・macOS・Linux](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-60a5fa) ![ローカルで動作](https://img.shields.io/badge/data-stays%20on%20your%20PC-34d399)
 
 > これは翻訳版です。正式な内容は英語版（[README.md](README.md)）です。アプリも日本語で使えます。Windows の言語に合わせて自動で選ばれ、**Settings → Language** で変更もできます。ここではボタン名を英語のまま記載していますが、アプリ内では日本語で表示されます。
 
@@ -45,6 +45,18 @@
 ChatBridge は新しいソフトで、まだコード署名されていないため、Windows SmartScreen は見慣れないプログラムすべてに青または赤の画面を表示します。何か問題があるという意味ではありません。続けるには、**詳細情報**をクリックし、**実行**をクリックします。各リリースには SHA-256 チェックサム（`SHA256SUMS.txt`）が付いており、先にダウンロードを確認できます。無料のコード署名を申請済みで（[コード署名ポリシー](CODE_SIGNING_POLICY.md)を参照）、承認されればこの警告は表示されなくなります。
 
 **動作環境:** Windows 10 または 11、および Microsoft Edge WebView2 ランタイム（Windows 11 には標準で含まれています）。
+
+### macOS
+**`ChatBridge-<バージョン>-mac-arm64.dmg`**（Apple シリコン: M1 以降）または **`…-mac-x86_64.dmg`**（Intel Mac）をダウンロードして開き、ChatBridge を「アプリケーション」にドラッグします。macOS 11 以降が必要です。
+- 選んだアプリへ ChatBridge が貼り付けるには、一度だけ許可します: *システム設定 → プライバシーとセキュリティ → アクセシビリティ →* ChatBridge をオン。許可しない場合は、会話をコピーしてアプリを開くので、**Cmd+V** を押してください。
+
+### Linux
+**`ChatBridge-<バージョン>-x86_64.AppImage`** をダウンロードし、実行可能にして起動します:
+```bash
+chmod +x ChatBridge-*-x86_64.AppImage && ./ChatBridge-*-x86_64.AppImage
+```
+- コピーには `wl-clipboard`（Wayland）または `xclip`（X11）が必要です。AppImage が起動しない場合は `libfuse2` をインストールしてください。
+- **X11 デスクトップでは自動で貼り付けます**（`xdotool` が必要）。**Wayland** では Linux があるアプリから別のアプリへの入力を許可しないため、ChatBridge は会話をコピーしてアプリを開き、**Ctrl+V** で貼り付けてもらいます。
 
 ## ブラウザ拡張機能（任意）
 

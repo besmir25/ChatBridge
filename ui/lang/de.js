@@ -291,5 +291,15 @@ I18N.packs["de"] = {
  "Pick a desktop app first.": "Wählen Sie zuerst eine Desktop-App.",
  "Testing works for desktop apps.": "Der Test funktioniert für Desktop-Apps.",
  "Nothing to continue yet.": "Noch nichts zum Fortsetzen.",
- "The extension folder wasn't found next to the app.": "Der Erweiterungsordner wurde neben der App nicht gefunden."
+ "The extension folder wasn't found next to the app.": "Der Erweiterungsordner wurde neben der App nicht gefunden.",
+ "Missing something you installed? Add it by its name in the Applications folder": "Fehlt etwas, das Sie installiert haben? Fügen Sie es mit seinem Namen aus dem Ordner „Programme“ hinzu",
+ "Missing something you installed? Add it by its name in your app menu": "Fehlt etwas, das Sie installiert haben? Fügen Sie es mit seinem Namen aus dem Anwendungsmenü hinzu",
+ "Open the app rules in a text editor": "App-Regeln in einem Texteditor öffnen",
+ "It removes passwords, keys, email addresses, phone numbers and your user name. If a conversation is very long, it trims big blocks of code or output so the AI can handle it, and tells you when it does. You can change both in Settings.": "Es entfernt Passwörter, Schlüssel, E-Mail-Adressen, Telefonnummern und Ihren Benutzernamen. Ist eine Unterhaltung sehr lang, kürzt es große Code- oder Ausgabeblöcke, damit die KI damit zurechtkommt, und sagt Ihnen Bescheid. Beides lässt sich in den Einstellungen ändern.",
+ "{name} opened in a terminal. Press Ctrl+Shift+V there to paste.": "{name} wurde in einem Terminal geöffnet. Drücken Sie dort Strg+Umschalt+V zum Einfügen.",
+ "{name} opened in a terminal. Press Ctrl+V there to paste.": "{name} wurde in einem Terminal geöffnet. Drücken Sie dort Strg+V zum Einfügen.",
+ "To paste for you on a Mac, ChatBridge needs permission: System Settings → Privacy & Security → Accessibility → turn on ChatBridge. For now, click the message box and press Ctrl+V.": "Damit ChatBridge auf einem Mac für Sie einfügen kann, braucht es eine Erlaubnis: Systemeinstellungen → Datenschutz & Sicherheit → Bedienungshilfen → ChatBridge einschalten. Klicken Sie vorerst in das Nachrichtenfeld und drücken Sie Strg+V.",
+ "Paste into the app automatically after opening it (not available on this desktop)": "Nach dem Öffnen automatisch in die App einfügen (auf diesem Desktop nicht verfügbar)",
+ "Easy to read": "Gut lesbar",
+ "Programmer style": "Programmierer-Stil"
 };

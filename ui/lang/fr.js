@@ -291,5 +291,15 @@ I18N.packs["fr"] = {
  "Pick a desktop app first.": "Choisissez d’abord une application de bureau.",
  "Testing works for desktop apps.": "Le test fonctionne avec les applications de bureau.",
  "Nothing to continue yet.": "Rien à poursuivre pour l’instant.",
- "The extension folder wasn't found next to the app.": "Le dossier de l’extension est introuvable à côté de l’application."
+ "The extension folder wasn't found next to the app.": "Le dossier de l’extension est introuvable à côté de l’application.",
+ "Missing something you installed? Add it by its name in the Applications folder": "Il manque quelque chose que vous avez installé ? Ajoutez-le par son nom dans le dossier Applications",
+ "Missing something you installed? Add it by its name in your app menu": "Il manque quelque chose que vous avez installé ? Ajoutez-le par son nom dans le menu des applications",
+ "Open the app rules in a text editor": "Ouvrir les règles des applications dans un éditeur de texte",
+ "It removes passwords, keys, email addresses, phone numbers and your user name. If a conversation is very long, it trims big blocks of code or output so the AI can handle it, and tells you when it does. You can change both in Settings.": "Il retire les mots de passe, clés, adresses e-mail, numéros de téléphone et votre nom d’utilisateur. Si une conversation est très longue, il réduit les gros blocs de code ou de sortie pour que l’IA puisse la traiter, et vous prévient quand il le fait. Vous pouvez modifier les deux dans Paramètres.",
+ "{name} opened in a terminal. Press Ctrl+Shift+V there to paste.": "{name} s’est ouvert dans un terminal. Appuyez sur Ctrl+Shift+V pour coller.",
+ "{name} opened in a terminal. Press Ctrl+V there to paste.": "{name} s’est ouvert dans un terminal. Appuyez sur Ctrl+V pour coller.",
+ "To paste for you on a Mac, ChatBridge needs permission: System Settings → Privacy & Security → Accessibility → turn on ChatBridge. For now, click the message box and press Ctrl+V.": "Pour coller à votre place sur un Mac, ChatBridge a besoin d’une autorisation : Réglages Système → Confidentialité et sécurité → Accessibilité → activez ChatBridge. En attendant, cliquez dans la zone de message et appuyez sur Ctrl+V.",
+ "Paste into the app automatically after opening it (not available on this desktop)": "Coller automatiquement dans l’application après l’avoir ouverte (indisponible sur ce bureau)",
+ "Easy to read": "Facile à lire",
+ "Programmer style": "Style développeur"
 };

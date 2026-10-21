@@ -3,7 +3,7 @@
 Run (no GUI parts):      python -m unittest discover -s tests -v
 Run with the fake-app window too:   set CHATBRIDGE_GUI_TESTS=1  then the same command.
 
-Nothing here touches your real apps, chats, or settings: APPDATA is redirected to a temp folder,
+Nothing here touches your real apps, chats, or settings: the settings folder is redirected to a temp folder,
 the "AI app" is a fake window, and the "model" is a tiny local HTTP server. The GUI tests inject
 keystrokes, but ChatBridge only sends them while the fake window is in front.
 """
@@ -18,6 +18,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 
 _TMP = tempfile.mkdtemp(prefix="chatbridge-test-")
 os.environ["APPDATA"] = _TMP
+os.environ["CHATBRIDGE_HOME"] = _TMP      # the same on macOS and Linux, where settings don't live under APPDATA
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import chatbridge as cb  # noqa: E402
 
@@ -296,10 +297,12 @@ class WebApi(unittest.TestCase):
 
     @unittest.skipIf(os.environ.get("CI"), "build servers have no interactive clipboard")
     def test_clipboard_round_trip(self):
-        self.app.set_clipboard("héllo ✓ ChatBridge")
-        out = __import__("subprocess").run(["powershell", "-NoProfile", "-Command", "Get-Clipboard"], capture_output=True,
-                                           text=True, encoding="utf-8").stdout.strip()
-        self.assertEqual(out, "héllo ✓ ChatBridge")
+        import desktop
+        try:
+            self.app.set_clipboard("héllo ✓ ChatBridge")
+        except OSError as e:          # Linux without wl-clipboard/xclip, or no display
+            self.skipTest(str(e))
+        self.assertEqual(desktop.get_clipboard(), "héllo ✓ ChatBridge")
 
 
 class BrowserCapture(unittest.TestCase):
@@ -975,6 +978,7 @@ class FriendlyList(unittest.TestCase):
         self.assertIn("error", api.rename_chat("nope", "x"))
 
 
+@unittest.skipUnless(sys.platform == "win32", "the installer is the Windows one (macOS uses a .dmg, Linux an AppImage)")
 class InstallerSafety(unittest.TestCase):
     def setUp(self):
         import installer
@@ -1024,6 +1028,124 @@ class InstallerSafety(unittest.TestCase):
             self.assertTrue(os.path.exists(os.path.join(target, "photos.zip")))
         finally:
             self.i.BUNDLE = old_bundle
+
+
+class CrossPlatform(unittest.TestCase):
+    """desktop.py: the parts that differ on Windows, macOS and Linux. These run on any system (nothing is launched)."""
+
+    def setUp(self):
+        import desktop
+        self.d = desktop
+
+    def test_settings_folder_per_system(self):
+        from unittest import mock
+        with mock.patch.dict(os.environ, {"CHATBRIDGE_HOME": ""}):
+            with mock.patch.object(self.d, "WINDOWS", False), mock.patch.object(self.d, "MAC", True):
+                self.assertTrue(self.d.app_dir().replace("\\", "/").endswith("Library/Application Support/ChatBridge"))
+            with mock.patch.object(self.d, "WINDOWS", False), mock.patch.object(self.d, "MAC", False), \
+                    mock.patch.dict(os.environ, {"XDG_CONFIG_HOME": "/x/conf"}):
+                self.assertEqual(self.d.app_dir().replace("\\", "/"), "/x/conf/ChatBridge")
+        self.assertEqual(cb.APP_DIR, os.path.join(_TMP, "ChatBridge"))       # the tests' own folder, on every system
+
+    def test_user_names_are_hidden_on_mac_and_linux_paths(self):
+        out, n = cb.scrub_text("see /Users/jo.doe/proj/a.py and /home/sam/x.txt and C:\\Users\\Pat\\y")
+        for name in ("jo.doe", "sam", "Pat"):
+            self.assertNotIn(name, out)
+        self.assertEqual(n["paths"], 3)
+        self.assertIn("/Users/<user>/proj/a.py", out)
+        self.assertIn("/home/<user>/x.txt", out)
+        kept, n = cb.scrub_text("https://example.com/home/page and https://github.com/Users/x")
+        self.assertEqual(n["paths"], 0)          # web addresses aren't file paths
+        self.assertIn("example.com/home/page", kept)
+
+    def test_desktop_file_reading(self):
+        path = os.path.join(_TMP, "claude.desktop")
+        with open(path, "w", encoding="utf-8") as f:
+            f.write("[Desktop Entry]\nName=Claude\nName[de]=Claude DE\nExec=/opt/Claude/claude --flag %U\nIcon=claude\n"
+                    "Type=Application\n[Desktop Action new]\nName=New window\nExec=other\n")
+        e = self.d.read_desktop_file(path)
+        self.assertEqual((e["Name"], e["Exec"], e["Icon"]), ("Claude", "/opt/Claude/claude --flag %U", "claude"))
+        self.assertEqual(self.d.desktop_exec(e["Exec"]), ["/opt/Claude/claude", "--flag"])
+        self.assertEqual(self.d.desktop_exec(e["Exec"], "/tmp/f"), ["/opt/Claude/claude", "--flag", "/tmp/f"])
+        self.assertEqual(self.d.desktop_exec("app %i %c --x"), ["app", "--x"])
+
+    def test_linux_app_menu_is_read(self):
+        from unittest import mock
+        apps = os.path.join(_TMP, "share", "applications")
+        os.makedirs(apps, exist_ok=True)
+        for fname, body in (("chatgpt.desktop", "Name=ChatGPT\nExec=chatgpt\nType=Application"),
+                            ("hidden.desktop", "Name=Hidden Thing\nExec=x\nNoDisplay=true"),
+                            ("link.desktop", "Name=A Link\nType=Link\nURL=x")):
+            with open(os.path.join(apps, fname), "w", encoding="utf-8") as f:
+                f.write("[Desktop Entry]\n" + body + "\n")
+        with mock.patch.dict(os.environ, {"XDG_DATA_HOME": os.path.join(_TMP, "share"), "XDG_DATA_DIRS": os.path.join(_TMP, "none")}):
+            found = self.d._linux_apps()
+        names = [n for n, _, _ in found]
+        self.assertIn("ChatGPT", names)
+        self.assertNotIn("Hidden Thing", names)
+        self.assertNotIn("A Link", names)
+        self.assertTrue(found[names.index("ChatGPT")][2].startswith("desktop:"))
+
+    def test_enter_is_never_pressed_on_any_system(self):
+        from unittest import mock
+        for flags in ((True, False, False), (False, True, False), (False, False, True)):
+            with mock.patch.object(self.d, "WINDOWS", flags[0]), mock.patch.object(self.d, "MAC", flags[1]), \
+                    mock.patch.object(self.d, "LINUX", flags[2]), mock.patch("subprocess.run") as run:
+                for spec in ("enter", "ctrl+return", "numpadenter"):
+                    with self.assertRaises(ValueError):
+                        self.d.press_spec(spec)
+                run.assert_not_called()
+
+    def test_webview_bridge_works_without_eval(self):
+        """The page forbids eval (CSP). pywebview's bridge needs it unless webview_patch replaces those two spots."""
+        import webview
+        import webview_patch
+        api_js = open(os.path.join(os.path.dirname(webview.__file__), "js", "api.js"), encoding="utf-8").read()
+        fixed = webview_patch.without_eval(api_js)              # raises if a pywebview update changed this part
+        self.assertNotIn("new Function", fixed)
+        self.assertNotIn("eval(", fixed)
+        from unittest import mock
+        from webview.window import Window
+        before = Window.evaluate_js
+        try:
+            webview_patch.apply()
+            w = mock.Mock()
+            Window.evaluate_js(w, "window.pywebview._returnValuesCallbacks['f']['1']({value: 1})".replace("'", '"'))
+            w.run_js.assert_called_once()                        # answers go to the page without the eval wrapper
+        finally:
+            Window.evaluate_js = before
+            import webview.util as util
+            util._chatbridge_no_eval = False
+
+    def test_mac_shortcuts_use_cmd(self):
+        from unittest import mock
+        with mock.patch.object(self.d, "WINDOWS", False), mock.patch.object(self.d, "MAC", True), \
+                mock.patch.object(self.d, "_osa", return_value="") as osa:
+            self.d.press_spec("ctrl+shift+l")
+            self.d.paste()
+        scripts = [c.args[0] for c in osa.call_args_list]
+        self.assertEqual(scripts[0], 'tell application "System Events" to keystroke "l" using {command down, shift down}')
+        self.assertEqual(scripts[1], 'tell application "System Events" to keystroke "v" using {command down}')
+
+    def test_no_key_presses_on_wayland(self):
+        from unittest import mock
+        with mock.patch.object(self.d, "WINDOWS", False), mock.patch.object(self.d, "MAC", False), \
+                mock.patch.object(self.d, "LINUX", True), \
+                mock.patch.dict(os.environ, {"XDG_SESSION_TYPE": "wayland", "WAYLAND_DISPLAY": "wayland-0", "DISPLAY": ":0"}):
+            self.assertFalse(self.d.can_press_keys())
+            self.assertEqual(self.d.foreground_title(), "")
+            with self.assertRaises(OSError):
+                self.d.paste()
+
+    def test_x11_shortcut_names(self):
+        from unittest import mock
+        with mock.patch.object(self.d, "WINDOWS", False), mock.patch.object(self.d, "MAC", False), \
+                mock.patch.object(self.d, "LINUX", True), mock.patch.object(self.d, "can_press_keys", return_value=True), \
+                mock.patch("subprocess.run") as run:
+            self.d.press_spec("ctrl+shift+l")
+            self.d.press_spec("alt+f4")
+        self.assertEqual(run.call_args_list[0].args[0], ["xdotool", "key", "--clearmodifiers", "ctrl+shift+l"])
+        self.assertEqual(run.call_args_list[1].args[0], ["xdotool", "key", "--clearmodifiers", "alt+F4"])
 
 
 class _Model(BaseHTTPRequestHandler):

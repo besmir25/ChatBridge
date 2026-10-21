@@ -1,4 +1,5 @@
-"""Writes ui/lang/es.js, pt-BR.js, fr.js, de.js, zh-CN.js, ja.js from the tables in table_a.py and table_b.py, and checks them.
+"""Writes ui/lang/es.js, pt-BR.js, fr.js, de.js, zh-CN.js, ja.js from the tables in table_a.py, table_b.py and table_os.py
+(and the phone's mobile/www/lang from table_a, table_b and table_m.py), and checks them.
 Run from the project root:  python ui/lang/build_lang.py
 A row is (English, es, pt-BR, fr, de, zh-CN, ja). The checks catch the usual mistakes: a missing translation, a {name} that was
 changed or dropped, or the same English text listed twice."""
@@ -9,6 +10,7 @@ sys.path.insert(0, HERE)
 from table_a import ROWS_A
 from table_b import ROWS_B
 from table_m import ROWS_M
+from table_os import ROWS_OS
 ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
 
 CODES = ["es", "pt-BR", "fr", "de", "zh-CN", "ja"]
@@ -48,7 +50,7 @@ def write_packs(rows, folder):
 
 
 def main():
-    rows = ROWS_A + ROWS_B
+    rows = ROWS_A + ROWS_B + ROWS_OS                                         # the desktop app (Windows, macOS, Linux)
     problems = check(rows + ROWS_M)
     if len({re.sub(r"\s+", " ", r[0]).strip() for r in rows + ROWS_M}) != len(rows + ROWS_M):
         problems.append("a phone-only row repeats an English text that already exists in part 1 or 2")
@@ -56,11 +58,11 @@ def main():
         print("\n".join(problems))
         sys.exit(1)
     write_packs(rows, HERE)                                                   # the Windows app
-    write_packs(rows + ROWS_M, os.path.join(ROOT, "mobile", "www", "lang"))  # the phone app: everything above plus its own text
+    write_packs(ROWS_A + ROWS_B + ROWS_M, os.path.join(ROOT, "mobile", "www", "lang"))  # the phone: parts 1-2 plus its own text
     engine = open(os.path.join(ROOT, "ui", "i18n.js"), encoding="utf-8").read()
     with open(os.path.join(ROOT, "mobile", "www", "i18n.js"), "w", encoding="utf-8", newline="\n") as f:
         f.write(engine)                                                       # one engine, two copies
-    print(f"wrote {len(CODES)} language files for Windows ({len(rows)} entries) and for the phone ({len(rows) + len(ROWS_M)} entries)")
+    print(f"wrote {len(CODES)} language files for the desktop app ({len(rows)} entries) and for the phone ({len(ROWS_A + ROWS_B + ROWS_M)} entries)")
 
 
 if __name__ == "__main__":

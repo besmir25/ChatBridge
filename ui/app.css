@@ -25,9 +25,9 @@
   --shadow:0 8px 28px rgba(27,31,36,.10);
 }
 /* ---- fonts ---- */
-:root,:root[data-font="code"]{--font:"Cascadia Code","Cascadia Mono",Consolas,"Courier New",monospace;--fscale:.86}
-:root[data-font="consolas"]{--font:Consolas,"Cascadia Mono","Courier New",monospace;--fscale:.95}
-:root[data-font="sans"]{--font:"Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;--fscale:1}
+:root,:root[data-font="code"]{--font:"Cascadia Code","Cascadia Mono",Consolas,"SF Mono",Menlo,"DejaVu Sans Mono","Ubuntu Mono","Courier New",monospace;--fscale:.86}
+:root[data-font="consolas"]{--font:Consolas,"Cascadia Mono",Menlo,"DejaVu Sans Mono","Courier New",monospace;--fscale:.95}
+:root[data-font="sans"]{--font:"Segoe UI Variable Text","Segoe UI",-apple-system,system-ui,"Ubuntu","Cantarell","Noto Sans",sans-serif;--fscale:1}
 *{box-sizing:border-box}
 [hidden]{display:none!important}   /* without this, rules like .chip{display:flex} would override the hidden attribute */
 html,body{height:100%;margin:0}

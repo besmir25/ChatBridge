@@ -4,7 +4,7 @@
 
 **Déplacez une conversation (ou tout un projet de code) d'une application d'IA à une autre, sans repartir de zéro.**
 
-![Licence : MIT](https://img.shields.io/badge/license-MIT-2dd4bf) ![Plateforme : Windows 10/11](https://img.shields.io/badge/platform-Windows%2010%2F11-60a5fa) ![Fonctionne en local](https://img.shields.io/badge/data-stays%20on%20your%20PC-34d399)
+![Licence : MIT](https://img.shields.io/badge/license-MIT-2dd4bf) ![Plateforme : Windows, macOS, Linux](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-60a5fa) ![Fonctionne en local](https://img.shields.io/badge/data-stays%20on%20your%20PC-34d399)
 
 > Ceci est une traduction. La version anglaise ([README.md](README.md)) fait foi. L'application existe aussi en français : elle choisit seule selon la langue de Windows, ou dans **Settings → Language**. Ici, les noms des boutons restent en anglais ; dans l'application, vous les verrez dans votre langue.
 
@@ -45,6 +45,18 @@ Téléchargez **`ChatBridge-Setup.exe`** depuis la page [Releases](../../release
 ChatBridge est récent et n'est pas encore signé numériquement ; Windows SmartScreen affiche donc un cadre bleu ou rouge pour tout programme qu'il n'a pas vu souvent. Cela ne signifie pas qu'il y a un problème. Pour continuer, cliquez sur **Informations complémentaires**, puis sur **Exécuter quand même**. Chaque version fournit une somme SHA-256 (`SHA256SUMS.txt`) pour vérifier le téléchargement au préalable. Une signature de code gratuite a été demandée (voir la [politique de signature de code](CODE_SIGNING_POLICY.md)), ce qui supprimera l'avertissement.
 
 **Prérequis :** Windows 10 ou 11 avec le runtime Microsoft Edge WebView2 (déjà inclus dans Windows 11).
+
+### macOS
+Téléchargez **`ChatBridge-<version>-mac-arm64.dmg`** (Apple Silicon : M1 ou plus récent) ou **`…-mac-x86_64.dmg`** (Mac Intel), ouvrez-le et glissez ChatBridge dans *Applications*. Nécessite macOS 11 ou plus récent.
+- Pour que ChatBridge colle dans l’application choisie, autorisez-le une fois : *Réglages Système → Confidentialité et sécurité → Accessibilité →* activez ChatBridge. Sinon, il copie la conversation et ouvre l’application, et vous appuyez sur **Cmd+V**.
+
+### Linux
+Téléchargez **`ChatBridge-<version>-x86_64.AppImage`**, rendez-le exécutable et lancez-le :
+```bash
+chmod +x ChatBridge-*-x86_64.AppImage && ./ChatBridge-*-x86_64.AppImage
+```
+- La copie nécessite `wl-clipboard` (Wayland) ou `xclip` (X11). Si l’AppImage ne démarre pas, installez `libfuse2`.
+- **Le collage automatique fonctionne sur les bureaux X11** (avec `xdotool`). Sous **Wayland**, Linux n’autorise pas une application à taper dans une autre : ChatBridge copie la conversation et ouvre l’application, et vous collez avec **Ctrl+V**.
 
 ## Extension de navigateur (facultative)
 

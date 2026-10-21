@@ -8,15 +8,15 @@ import build_lang as bl
 
 class Languages(unittest.TestCase):
     def test_tables_are_complete_and_placeholders_match(self):
-        self.assertEqual(bl.check(bl.ROWS_A + bl.ROWS_B + bl.ROWS_M), [])
+        self.assertEqual(bl.check(bl.ROWS_A + bl.ROWS_B + bl.ROWS_M + bl.ROWS_OS), [])
 
     def test_no_english_text_is_listed_twice_across_the_parts(self):
-        keys = [" ".join(r[0].split()) for r in bl.ROWS_A + bl.ROWS_B + bl.ROWS_M]
+        keys = [" ".join(r[0].split()) for r in bl.ROWS_A + bl.ROWS_B + bl.ROWS_M + bl.ROWS_OS]
         self.assertEqual(len(keys), len(set(keys)))
 
     def test_generated_files_are_up_to_date(self):
         """If this fails, run: python ui/lang/build_lang.py"""
-        windows, phone = bl.ROWS_A + bl.ROWS_B, bl.ROWS_A + bl.ROWS_B + bl.ROWS_M
+        windows, phone = bl.ROWS_A + bl.ROWS_B + bl.ROWS_OS, bl.ROWS_A + bl.ROWS_B + bl.ROWS_M
         with tempfile.TemporaryDirectory() as tmp:
             for folder, rows, live in (("w", windows, os.path.join(ROOT, "ui", "lang")), ("p", phone, os.path.join(ROOT, "mobile", "www", "lang"))):
                 bl.write_packs(rows, os.path.join(tmp, folder))
